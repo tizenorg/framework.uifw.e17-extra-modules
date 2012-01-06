@@ -1,0 +1,1140 @@
+e17-extra-modules (0.1-126) unstable; urgency=low
+
+  * Remove accessibility module
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-126
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Wed, 28 Dec 2011 14:32:33 +0900
+
+e17-extra-modules (0.1-125) unstable; urgency=low
+
+  * [ILLUME2] Bug fix
+    - Modify code to check return value of getting window angle property
+    - This change is related with JIRA S1-107
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-125
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Sun, 11 Dec 2011 07:00:00 +0900
+
+e17-extra-modules (0.1-124) unstable; urgency=low
+
+  * [ILLUME2] Apply new quickpanel UX
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-124
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 08 Dec 2011 20:29:04 +0900
+
+e17-extra-modules (0.1-123) unstable; urgency=low
+
+  * [ILLUME2] Bug fix
+    - Add code to check the border is deleted or not when a illume makes the border info structure.
+    - Remove code to check the notification window or not in _policy_border_add().
+    - These changes are related with GUMI testing verification problem No.28,29.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-123
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 08 Dec 2011 16:46:31 +0900
+
+e17-extra-modules (0.1-122) unstable; urgency=low
+
+  * [ILLUME2] Change code to find top window using e_container's stack instead of raise_stack
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-122
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 08 Dec 2011 14:16:02 +0900
+
+e17-extra-modules (0.1-121) unstable; urgency=low
+
+  * [ILLUME2] Add code to change level of extra mini-controller windows
+     when the indicator stack is changed.
+    - This change is related with CQ H0100137855
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-121
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 06 Dec 2011 11:32:21 +0900
+
+e17-extra-modules (0.1-120) unstable; urgency=low
+
+  * [ILLUME2] Add code to control extra mini-controller windows
+    - This change is related with GUMI testing verification proble No.44
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-120
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Sun, 04 Dec 2011 20:27:33 +0900
+
+e17-extra-modules (0.1-119) unstable; urgency=low
+
+  * [ILLUME2] Bug fix
+    1. Doesn't check root angle in _policy_root_angle_set() - CQ H0100137755
+    2. Add error handling code in _policy_window_rotation_angle_get() - Gumi Verification No.170
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-119
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 02 Dec 2011 00:49:19 +0900
+
+e17-extra-modules (0.1-118) unstable; urgency=low
+
+  * [ILLUME2] Changed code
+    - Doesn't find and set focus to the top window when a indicator's stack is changed
+    - This change is related with CQ H0100137365
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-118
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 30 Nov 2011 13:08:48 +0900
+
+e17-extra-modules (0.1-117) unstable; urgency=low
+
+  * [keyrouter] Change key combination for screen shot
+     from HOME key + POWWER key to VOLUMEDOWN key + POWER key
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-117
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Thu, 24 Nov 2011 13:15:31 +0900
+
+e17-extra-modules (0.1-116) unstable; urgency=low
+
+  * [COMP] Add Capture Effect
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-116
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Wed, 23 Nov 2011 18:25:23 +0900
+
+e17-extra-modules (0.1-115) unstable; urgency=low
+
+  * [COMP] setup sync counter on show to resolve CQ H0100137005
+  * [keyrouter] Rollback the following changes
+     : Change key combination from KEY_SELECT+KEY_POWER to KEY_VOLUMEDOWN+KEY_POWER
+  * [keyrouter & accessibility] Remove build-warnings and SVACE wanrings.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-115
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Wed, 23 Nov 2011 09:09:53 +0900
+
+e17-extra-modules (0.1-114) unstable; urgency=low
+
+  * [accessibility] Modify accessibility module to use ecore x gesture APIs/callbacks
+    instead of using Xgesture library directly
+  * [ILLUME2] Bug fix for quickpanel stack
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-114
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Mon, 21 Nov 2011 15:47:26 +0900
+
+e17-extra-modules (0.1-113) unstable; urgency=low
+
+  * [COMP] fix raise above bug
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-113
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Thu, 17 Nov 2011 17:00:41 +0900
+
+e17-extra-modules (0.1-112) unstable; urgency=low
+
+  * [ILLUME2] Remove code to set _e_config_save_block
+    - this will make to save configuration files
+  * [COMP] Change indicator effect to simple fade in/out
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-112
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 16 Nov 2011 21:00:00 +0900
+
+e17-extra-modules (0.1-111) unstable; urgency=low
+
+  * [ILLUME2] fix bug for notification stack
+    - add code to check notification level and re-arrange notification stack.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-111
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 09 Nov 2011 19:27:33 +0900
+
+e17-extra-modules (0.1-110) unstable; urgency=low
+
+  * [COMP] fix problem which is doing rotation effect without black background
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-110
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Wed, 09 Nov 2011 13:43:19 +0900
+
+e17-extra-modules (0.1-109) unstable; urgency=low
+
+  * [COMP] fix sync counter lockup problem with application which maps
+           and unmaps a window rapidly
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-109
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Fri, 04 Nov 2011 14:03:00 +0900
+
+e17-extra-modules (0.1-108) unstable; urgency=low
+
+  * [ILLUME2] Add code to set _e_config_save_block
+    - this will block to save configuration files
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-108
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 03 Nov 2011 17:02:31 +0900
+
+e17-extra-modules (0.1-107) unstable; urgency=low
+
+  * [ILLUME2] change code to set root angle property
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-107
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 26 Oct 2011 19:18:01 +0900
+
+e17-extra-modules (0.1-106) unstable; urgency=low
+
+  * [ILLUME2] change code for hibernation
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-106
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 21 Oct 2011 14:32:11 +0900
+
+e17-extra-modules (0.1-105) unstable; urgency=low
+
+  * [keyrouter] Add device_list and modify device_add/device_remove function to handle xinput device properly.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-105
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Tue, 18 Oct 2011 17:29:32 +0900
+
+e17-extra-modules (0.1-104) unstable; urgency=low
+
+  * [keyrouter] Fix a bug related to accessibility feature(HighContrast) 
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-104
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Fri, 14 Oct 2011 15:59:58 +0900
+
+e17-extra-modules (0.1-103) unstable; urgency=low
+
+  * [ILLUME2] Bug fix - Remove code to resize UTILITY type window
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-103
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 13 Oct 2011 20:42:51 +0900
+
+e17-extra-modules (0.1-102) unstable; urgency=low
+
+  * [keyrouter] Modify _e_keyrouter_device_add()/_e_keyrouter_device_remove() for handling dynamically added H/W keys properly
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-102
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Thu, 13 Oct 2011 11:16:13 +0900
+
+e17-extra-modules (0.1-101) unstable; urgency=low
+
+  * [keyrouter] Fix two CQ defects:rotation fix, remove unused two keys
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-101
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Thu, 13 Oct 2011 10:38:30 +0900
+
+e17-extra-modules (0.1-100) unstable; urgency=low
+
+  * [keyrouter] 1. Add key definitions and routines for Earjack/BT Headset/Multimedia keys
+                2. Fix DeliverDeviceKeyEvents() to deliver KeyPress/KeyRelease event in a same manner
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-100
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Tue, 11 Oct 2011 09:46:39 +0900
+
+e17-extra-modules (0.1-99) unstable; urgency=low
+
+  * [keyrouter] Apply hardkey emulation menu(mouse menu) both for landscape and portrait mode
+  * [ILLUME2] removed code saving ilde lock window handle
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-99
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Thu, 06 Oct 2011 12:30:15 +0900
+
+e17-extra-modules (0.1-98) unstable; urgency=low
+
+  * [keyrouter] Fix an error related to mouse right button action on hardkey emulation menu(mouse menu)
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-98
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Tue, 04 Oct 2011 16:31:16 +0900
+
+e17-extra-modules (0.1-97) unstable; urgency=low
+
+  * [COMP] Fix Raise Above Animation
+           Details: Show white frame while closing application animation.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-97
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Tue, 04 Oct 2011 11:16:29 +0900
+
+e17-extra-modules (0.1-96) unstable; urgency=low
+
+  * [accessibility] Add a new module
+  * Remove spec file for rpm packaging
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-96
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Fri, 30 Sep 2011 10:05:01 +0900
+
+e17-extra-modules (0.1-95) unstable; urgency=low
+
+  * [COMP] moved atom_init function before compositor init function
+  * [ILLUME2] remove temporary code for avoiding 3d limitation
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-95
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 27 Sep 2011 16:29:27 +0900
+
+e17-extra-modules (0.1-94) unstable; urgency=low
+
+  * [COMP] fix restack effect animation
+  * [ILLUME2] add code to check opaque property while calculating window's visibility.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-94
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 23 Sep 2011 09:52:11 +0900
+
+e17-extra-modules (0.1-93) unstable; urgency=low
+
+  * [COMP] fix animation policy : raise_above -> hide effect
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-93
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Wed, 21 Sep 2011 22:42:56 +0900
+
+e17-extra-modules (0.1-92) unstable; urgency=low
+
+  * [COMP]Fix e_dialog disappearance problem.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-92
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Wed, 21 Sep 2011 21:22:53 +0900
+
+e17-extra-modules (0.1-91) unstable; urgency=low
+
+  * [keyrouter] Add overridable EXCLUSIVE_GRAB mode (OR_EXCLUSIVE)
+  * [COMP] fix quickpanel window's size is not correct case.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-91
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Wed, 21 Sep 2011 15:12:50 +0900
+
+e17-extra-modules (0.1-90) unstable; urgency=low
+
+  * [keyrouter] 1. Enable e17 keybinding for non-grabbed HW Keys
+                2. Prevent bug fix - not freed char* was in code
+  * [COMP] remove dependencies of Xlib & Xlib_ext
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-90
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Tue, 20 Sep 2011 20:57:16 +0900
+
+e17-extra-modules (0.1-89) unstable; urgency=low
+
+  * [COMP] fix Restack Effect - add restack effect's exception handling code
+  * [ILLUME2] fix internal stack bug
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-89
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Sun, 18 Sep 2011 08:35:05 +0900
+
+e17-extra-modules (0.1-88) unstable; urgency=low
+
+  * [COMP] 1. Add Logging to File Feature
+           2. resolve defects from Prevent report - resource leak, unsigned_compare, thread safety issue
+  * [ILLUME2] 1. Add code to save debug information to file
+              2. Fix code detected by prevent
+  * [keyrouter] Modify Keygrab_Status() to leave keygrab status log in a log file
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-88
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Fri, 16 Sep 2011 13:23:33 +0900
+
+e17-extra-modules (0.1-87) unstable; urgency=low
+
+  * [ILLUME2] 1. Bug fix - incorrect visibility when the lock screen is shown.
+              2. Add code to use dlog when a active window is changed.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-87
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 08 Sep 2011 16:36:47 +0900
+
+e17-extra-modules (0.1-86) unstable; urgency=low
+
+  * [COMP] added E_EVENT_BORDER_RESIZE event handling codes to fix border resize bug
+  * [COMP] fix quickpanel disappearance problem
+           Problem: when does task switcher show, window resize is not permitted.
+           Solution : use defer_window_move_resize flag
+  * [ILLUME2] patch code to resize quickpanel window when a target is rotated
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-86
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 07 Sep 2011 23:02:12 +0900
+
+e17-extra-modules (0.1-85) unstable; urgency=low
+
+  * [ILLUME2] Change code to recalculate visibility when lock screen is shown.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-85
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 07 Sep 2011 13:03:33 +0900
+
+e17-extra-modules (0.1-84) unstable; urgency=low
+
+  * [COMP] Fix isf's small window does not show problem.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-84
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Tue, 06 Sep 2011 23:38:11 +0900
+
+e17-extra-modules (0.1-83) unstable; urgency=low
+
+  * [ILLUME2-SLP] Patch code for 3D driver limitation
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-83
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Mon, 05 Sep 2011 23:34:19 +0900
+
+e17-extra-modules (0.1-82) unstable; urgency=low
+
+  * [COMP] fix window's position for task manager's jump effect
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-82
+
+ -- Duna Oh <duna.oh@samsung.com>  Mon, 05 Sep 2011 17:50:27 +0900
+
+e17-extra-modules (0.1-81) unstable; urgency=low
+
+  * [COMP] fix lower effect's check routine
+           : check effect window's visibility
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-81
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Fri, 26 Aug 2011 14:04:27 +0900
+
+e17-extra-modules (0.1-80) unstable; urgency=low
+
+  * [COMP] changed _e_mod_comp_get_screen_angle to avoid creation of
+           X_SCREEN_ROTATION atom if it doesn't exist.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-80
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Thu, 25 Aug 2011 21:36:48 +0900
+
+e17-extra-modules (0.1-79) unstable; urgency=low
+
+  * [COMP] 1. move cleanup code of jump effect to on_animate_done().
+           2. apply Jump effect to all active windows, not just windows below task manager.
+           3. don't apply Jump effect when task manager is obscured.
+           4. fix noeffect bug of task_switcher.edc
+           5. Add Lower Effect
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-79
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Wed, 24 Aug 2011 21:07:43 +0900
+
+e17-extra-modules (0.1-78) unstable; urgency=low
+
+  * [ILLUME2] Patch code to calculate window's visibility when a window stack is changed (especially lower)
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-78
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 23 Aug 2011 21:13:01 +0900
+
+e17-extra-modules (0.1-77) unstable; urgency=low
+
+  * [ILLUME2] 1.Patch code to update border info list correctly
+              2.Change code to handle a transient_for window
+    [ILLUME2][QP] Fix crash problem - Add code to delete mini controller when a hidden mini controller is destroyed.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-77
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 23 Aug 2011 15:55:17 +0900
+
+e17-extra-modules (0.1-76) unstable; urgency=low
+
+  * [keyrouter] Check external keyboard is attached at booting time
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-76
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Mon, 22 Aug 2011 14:01:52 +0900
+
+e17-extra-modules (0.1-75) unstable; urgency=low
+
+  * [COMP] fix Rotation Effect's bug
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-75
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Fri, 19 Aug 2011 15:56:58 +0900
+
+e17-extra-modules (0.1-74) unstable; urgency=low
+
+  * [ILLUME2][QP] Add code to restack quickpanel window when it is added
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-74
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 18 Aug 2011 14:51:35 +0900
+
+e17-extra-modules (0.1-73) unstable; urgency=low
+
+  * [COMP] Fix Animation( EDC )'s NoEffect Program
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-73
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Fri, 12 Aug 2011 18:46:59 +0900
+
+e17-extra-modules (0.1-72) unstable; urgency=low
+
+  * 1. Update License
+    2. Change module name (illume2-slp, comp-slp)
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-72
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 10 Aug 2011 23:12:11 +0900
+
+e17-extra-modules (0.1-71) unstable; urgency=low
+
+  * [ILLUME2][QP] Add code to close quickpanel when the HOME key is pressed.
+    [COMP] Fix code to update indicator when task manager is open.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-71
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 08 Aug 2011 14:24:41 +0900
+
+e17-extra-modules (0.1-70) unstable; urgency=low
+
+  * [ILLUME2] Add mini controller feature.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-70
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 04 Aug 2011 14:08:32 +0900
+
+e17-extra-modules (0.1-69) unstable; urgency=low
+
+  * Package upload
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-69
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Sun, 31 Jul 2011 01:33:50 +0900
+
+e17-extra-modules (0.1-68) unstable; urgency=low
+
+  * [COMP] 1. fix no-effect window disappearing problem.
+           2. code cleanup (indentation, padding, whitespaces)
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-68
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Sun, 31 Jul 2011 01:06:52 +0900
+
+e17-extra-modules (0.1-67) unstable; urgency=low
+
+  * [COMP] 1. fix to update window when task manager is open and new
+              window is added.
+           2. fix the bug when task manager's hide effect is called before
+              selected window's restack effect.
+           3. add transparency to show/hide effect.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-67
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Wed, 27 Jul 2011 20:35:47 +0900
+
+e17-extra-modules (0.1-66) unstable; urgency=low
+
+  * [COMP] 1. Remove unused files
+           2. Modify code for new UX more clearly
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-66
+
+ -- Duna Oh <duna.oh@samsung.com>  Wed, 20 Jul 2011 16:45:03 +0900
+
+e17-extra-modules (0.1-65) unstable; urgency=low
+
+  * [COMP] 1. fixed a restack problem
+           2. fixed a crash problem while showing jump effect
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-65
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Wed, 20 Jul 2011 04:15:03 +0900
+
+e17-extra-modules (0.1-64) unstable; urgency=low
+
+  * [ILLUME2] Add code to change and send visibility notify event
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-64
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Mon, 18 Jul 2011 16:00:35 +0900
+
+e17-extra-modules (0.1-63) unstable; urgency=low
+
+  * [COMP] 1. new UX interaction (VI prototype) - open/close, open task switcher, jump
+           2. modify indentation
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-63
+
+ -- Duna Oh <duna.oh@samsung.com>  Wed, 13 Jul 2011 14:49:12 +0900
+
+e17-extra-modules (0.1-62) unstable; urgency=low
+
+  * Remove Conflicts and Replaces fields in debian/control file
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-62
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 08 Jul 2011 15:43:01 +0900
+
+e17-extra-modules (0.1-61) unstable; urgency=low
+
+  * Repackaging according to upgrade e17
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-61
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 05 Jul 2011 16:15:41 +0900
+
+e17-extra-modules (0.1-60) unstable; urgency=low
+
+  * [SBS] Add debian/jobs file to support parallel builds
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-60
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 30 Jun 2011 10:56:12 +0900
+
+e17-extra-modules (0.1-59) unstable; urgency=low
+
+  * [COMP] 1. Add dlog info for app launch time
+           2. Fix to use bd_del instead of win_destroy in border window delelete case.
+           3. Fix bug - don't show window  when the comp get event (  BD_HIDE -> BD_SHOW , and keep_unmapped is disabled)
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-59
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 16 Jun 2011 13:43:51 +0900
+
+e17-extra-modules (0.1-58) unstable; urgency=low
+
+  * [ILLUME2] Fix code detected by SVACE
+    [COMP] Modify usage of Compositor's black background image
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-58
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Tue, 07 Jun 2011 21:28:31 +0900
+
+e17-extra-modules (0.1-57) unstable; urgency=low
+
+  * [ILLUME2] 1. Add APIs for checking notification/utility type.
+              2. Remove unused files (e_mod_kbd.c/h, e_mod_kbd_device.c/h)
+              3. Code cleanup
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-57
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 2 Jun 2011 11:31:24 +0900
+
+e17-extra-modules (0.1-56) unstable; urgency=low
+
+  * [ILLUME2] changed code to rotate quickpanel when it is shown.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-56
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 27 May 2011 13:47:57 +0900
+
+e17-extra-modules (0.1-55) unstable; urgency=low
+
+  * [COMP] 1. fixed named pixmap handling to get rid of resize artifact.
+           2. moved emit code to _e_mod_comp_win_update() for rotation effect.
+           3. add opacity, change fps_average_range value (12 to 30)
+
+    [ILLUME2] 1. changed width of border for handling SGX driver bug.
+              2. modified _policy_border_resize() to add visible border to lock list.
+
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-55
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Wed, 25 May 2011 21:51:04 +0900
+
+e17-extra-modules (0.1-54) unstable; urgency=low
+
+  * [ILLUME2] 1. Change feature (livepanel -> quickpanel)
+              2. Remove dependency with appcore
+              3. Change quickpanel images
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-54
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 13 May 2011 11:17:23 +0900
+
+e17-extra-modules (0.1-53) unstable; urgency=low
+
+  * [COMP] 1. enable dynamically global effect on/off by root window's property
+           2. add hib feature. - when does compositor run in hib mode, compositor could load compositor's effect configuration info by X_HIBERNATION_STATE client message.
+           3. add fps info which is controled by e_comp_util
+           4. merge e17 comp source to support configurable vsync interval
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-53
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 12 May 2011 21:06:56 +0900
+
+e17-extra-modules (0.1-52) unstable; urgency=low
+
+  * [ILLUME2] Bug fix - Modified code for handling desktop files
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-52
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 27 Apr 2011 19:52:18 +0900
+
+e17-extra-modules (0.1-51) unstable; urgency=low
+
+  * [keyrouter] Add a property/handler for enabling/disabling mouse cursor
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-51
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Wed, 27 Apr 2011 17:15:45 +0900
+
+e17-extra-modules (0.1-50) unstable; urgency=low
+
+  * Rollback
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-50
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 26 Apr 2011 22:06:11 +0900
+
+e17-extra-modules (0.1-49) unstable; urgency=low
+
+  * [ILLUME2] Bug fix - Modified code for handling desktop files
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-49
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 26 Apr 2011 18:05:42 +0900
+
+e17-extra-modules (0.1-48) unstable; urgency=low
+
+  * Adjust quickpanel window height
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-48
+
+ -- SaeNa Kim <saina.kim@samsung.com>  Mon, 25 Apr 2011 19:55:42 +0900
+
+e17-extra-modules (0.1-47) unstable; urgency=low
+
+  * [ILLUME2-QP] delete codes for hiding quickpanel in mouse_move_calback func
+  * [KEYROUTER] Sets PropertyNotifyMask as soon as a window is created
+  * [PACKAGING] Repackaging according to E17 patch (upstream svn rev.58622)  
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-47
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 14 Apr 2011 16:42:35 +0900
+
+e17-extra-modules (0.1-46) unstable; urgency=low
+
+  * [COMP] fix screen rotation bug
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-46
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Sun, 10 Apr 2011 17:23:32 +0900
+
+e17-extra-modules (0.1-45) unstable; urgency=low
+
+  * [ILLUME2-QP] Adjust mouse event (LIVE_PANEL_THRESHOLD_Y) for hiding quickpanel
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-45
+
+ -- SaeNa Kim <saina.kim@samsung.com>  Thu, 07 Apr 2011 16:39:11 +0900
+
+e17-extra-modules (0.1-44) unstable; urgency=low
+
+  * [ILLUME2-QP] apply NBEAT UX
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-44
+
+ -- SaeNa Kim <saina.kim@samsung.com>  Tue, 05 Apr 2011 10:38:55 +0900
+
+e17-extra-modules (0.1-43) unstable; urgency=low
+
+  * [keyrouter] Fix _e_keyrouter_cb_window_create() to check a window's
+    property even when a window is created
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-43
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Mon, 04 Apr 2011 21:25:10 +0900
+
+e17-extra-modules (0.1-42) unstable; urgency=low
+
+  * Repackaging according to E17 patch (svn rev.58169)
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-42
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 30 Mar 2011 10:46:43 +0900
+
+e17-extra-modules (0.1-41) unstable; urgency=low
+
+  * [ILLUME2] Change indicator's level when active window's type is changed to NORMAL from NOTIFICATION
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-41
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Sun, 27 Mar 2011 18:26:56 +0900
+
+e17-extra-modules (0.1-40) unstable; urgency=low
+
+  * Delete policy for indicator rotation 
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-40
+
+ -- SaeNa Kim <saina.kim@samsung.com>  Fri, 25 Mar 2011 11:54:27 +0900
+
+e17-extra-modules (0.1-39) unstable; urgency=low
+
+  * E17 upgrade - svn rev.57458
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-39
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 23 Mar 2011 19:56:19 +0900
+
+e17-extra-modules (0.1-38) unstable; urgency=low
+
+  * [keyrouter] Fix DeliverDeviceKeyEvents() for deliverying key(s) grabbed in SHARED_GRAB_MODE
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-38
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Wed, 23 Mar 2011 15:40:05 +0900
+
+e17-extra-modules (0.1-37) unstable; urgency=low
+
+  * [ILLUME2][QP] Patch quickpanel code according to changing efreet
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-37
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 16 Mar 2011 18:47:39 +0900
+
+e17-extra-modules (0.1-36) unstable; urgency=low
+
+  * [ILLUME2] Change code to enable stack_trim in arm environment only
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-36
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 15 Mar 2011 22:41:05 +0900
+
+e17-extra-modules (0.1-35) unstable; urgency=low
+
+  * [ILLUME2] Add malloc_trim and stack_trim
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-35
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 11 Mar 2011 10:33:58 +0900
+
+e17-extra-modules (0.1-34) unstable; urgency=low
+
+  * [ILLUME2] Change indicator and quickpanel's layer
+  * [COMP] Remove build warning
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-34
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Sat, 05 Mar 2011 14:25:43 +0900
+
+e17-extra-modules (0.1-33) unstable; urgency=low
+
+  * [keyrouter] Remove warning and unused function
+  * [ILLUME2] Remove build warning
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-33
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Wed, 02 Mar 2011 19:35:25 +0900
+
+e17-extra-modules (0.1-32) unstable; urgency=low
+
+  * [ILLUME2] Add code to change the window's notification level if it's transient_for window is notication type
+  * [COMP] Change policy of restack effect
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-32
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 25 Feb 2011 15:56:44 +0900
+
+e17-extra-modules (0.1-31) unstable; urgency=low
+
+  * [wmready] Add code to create .wm_ready file
+  * [ILLUME2-QP] Add configuration value for quickpanel's launching timer
+  * [ILLUME2] PNG optimization
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-31
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 23 Feb 2011 08:59:00 +0900
+
+e17-extra-modules (0.1-30) unstable; urgency=low
+
+  * [keyrouter] Modify _e_keyrouter_device_add() and _e_keyrouter_set_keyboard_exist()
+    to update keymap when a new keyboard device is added
+  * [keyrouter] Fix code not to make OVERRUN_STATIC detected by prevent
+  * [keyrouter] Remove whitespaces
+  * [ILLUME2,COMP] Fix code detected by prevent
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-30
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Wed, 16 Feb 2011 10:00:44 +0900
+
+e17-extra-modules (0.1-29) unstable; urgency=low
+
+  * [ILLUME2-QP] rollback livepanel
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-29
+
+ -- SaeNa Kim <saina.kim@samsung.com>  Tue, 15 Feb 2011 15:56:34 +0900
+
+e17-extra-modules (0.1-28) unstable; urgency=low
+
+  * [COMP] Disable Demo Feature : Live Magazine & Menu-Screen Demo Animation
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-28
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Mon, 14 Feb 2011 14:56:31 +0900
+
+e17-extra-modules (0.1-27) unstable; urgency=low
+
+  * [COMP] Change Animation : Live Magazine & Menu-Screen Demo Animation
+       - Comp wait for completion of Menu-screen or Live Magazine 's restack
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-27
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Wed, 09 Feb 2011 20:58:43 +0900
+
+e17-extra-modules (0.1-26) unstable; urgency=low
+
+  * [ILLUME2-QP] Temporal modification for MWC demo - displaying only quickpanel
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-26
+
+ -- SaeNa Kim <saina.kim@samsung.com>  Wed, 09 Feb 2011 15:23:06 +0900
+
+e17-extra-modules (0.1-25) unstable; urgency=low
+
+  * [COMP] fix problem which is noise window appearing when non-EFL's window
+    is showing. to fix it, add a check code that checks and skips first damage.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-25
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Tue, 08 Feb 2011 22:52:24 +0900
+
+e17-extra-modules (0.1-24) unstable; urgency=low
+
+  * [COMP] Add Demo Feature : Live Magazine & Menu-Screen Demo Animation
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-24
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Tue, 08 Feb 2011 14:15:27 +0900
+
+e17-extra-modules (0.1-23) unstable; urgency=low
+
+  * [COMP] FIXME: When Screen is rotated by Comp. EDJE Map doesn't work correctly. so prevent rotation effect. It's temporal code.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-23
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Mon, 07 Feb 2011 12:04:07 +0900
+
+e17-extra-modules (0.1-22) unstable; urgency=low
+
+  * [keyrouter]
+    1. Add XI_HierarchyChanged event handler
+    2. Add _e_keyrouter_set_keyboard_exist() to set the property for the
+       existence of external keyboard
+    3. Modify _e_keyrouter_set_mouse_exist() to set the property for the
+       existence of external mouse
+    4. Add _e_keyrouter_device_add/remove()
+    5. Add _e_keyrouter_is_relative_device() to check a device is relative
+       device or not
+    6. Remove a check statement of property atomXMouseExist in
+        _e_keyrouter_cb_window_property()
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-22
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Tue, 01 Feb 2011 13:36:11 +0900
+
+e17-extra-modules (0.1-21) unstable; urgency=low
+
+  * [keyrouter]
+    1. Modify mouse-rbutton-popup to grab button 1 only when the popup was shown and to ungrab button 1 when the popup was disappeared
+    2. Fix popup size and remove un-needed line
+    3. Put most of global variables into keyrouter structure as member variables
+    4. Fix/remove warnging lines when compiling keyrouter module
+    5. Modify mouse-rbutton-popup to grab button 1 only when the popup was shown and to ungrab button 1 when the popup was disappeared
+    6. Fix popup size and remove un-needed line
+    7. Add NULL check of keyrouter.popup and remove unnecessary space and lines
+    8. Add XI2 device hierarchy event handler for addition/removal of keyboard and pointer devices
+  * [COMP]
+    1. Add feature No rotation Effect ( which is implemented by CUSTOM effectc / rotatation property change )
+    2. Add Show / Hide Effect: Custom0, Custom1
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-21
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Mon, 31 Jan 2011 17:03:56 +0900
+
+e17-extra-modules (0.1-20) unstable; urgency=low
+
+  * [COMP] apply screen rotation
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-20
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Sat, 22 Jan 2011 21:49:51 +0900
+
+e17-extra-modules (0.1-19) unstable; urgency=low
+
+  * [ILLUME2][QP] Add code to hide quickpanel when a END_KEY is pressed
+    [ILLUME2] Add code to lock/unlock screen
+    [ILLUME2] Patch code for split screen
+    [COMP] Add export function for e17 module
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-19
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 20 Jan 2011 14:11:50 +0900
+
+e17-extra-modules (0.1-18) unstable; urgency=low
+
+  * [ILLUME2][QP] 1.Change code to create/destroy a E_Popup when the quickpanel is shown/hidden.
+                  2.Replace _e_mod_quickpanel_hide to e_mod_quickpanel_hide.
+  * [ILLUME2] Change code for split screen
+              - change default slot id of window to E_ILLUME_SLOT_ID_NONE.
+              - change code to split window only when all slots are occupied.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-18
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Mon, 17 Jan 2011 13:30:36 +0900
+
+e17-extra-modules (0.1-17) unstable; urgency=low
+
+  * [COMP] Fix Effect's Black Screen disapearing case
+           details: while comp shows Application Launching Effect, if comp get rotation event.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-17
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 13 Jan 2011 21:04:55 +0900
+
+e17-extra-modules (0.1-16) unstable; urgency=low
+
+  * [ILLUME2] Change code for handling full-screen state window
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-16
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 12 Jan 2011 14:56:26 +0900
+
+e17-extra-modules (0.1-15) unstable; urgency=low
+
+  * [keyrouter] Add mouse rbutton popup implementation
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-15
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Wed, 12 Jan 2011 13:45:33 +0900
+
+e17-extra-modules (0.1-14) unstable; urgency=low
+
+  * [COMP] change fake effect's window policy 
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-14
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Tue, 11 Jan 2011 17:38:44 +0900
+
+e17-extra-modules (0.1-13) unstable; urgency=low
+
+  * [ILLUME2] Add code to check indicator's layer when a indicator is created.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-13
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Sat, 08 Jan 2011 13:10:48 +0900
+
+e17-extra-modules (0.1-12) unstable; urgency=low
+
+  * [ILLUME2] 1.Add code to update indicator's layer in handling ECORE_X_ATOM_E_ILLUME_INDICATOR_STATE property.
+              2.Add code to set indicator's geometry to root window.
+              3.Change indicator's rotation logic.
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-12
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 07 Jan 2011 17:41:19 +0900
+
+e17-extra-modules (0.1-11) unstable; urgency=low
+
+  * [ILLUME2] Bug fix - change notification stack in handling configure request
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-11
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 06 Jan 2011 11:33:22 +0900
+
+e17-extra-modules (0.1-10) unstable; urgency=low
+
+  * [keyrouter][wmready] Add COPYING and AUTHORS files
+  * [ILLUME2-QP] Bugfix - file path mismatch of startup desktop in .order file 
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-10
+
+ -- SaeNa Kim <saina.kim@samsung.com>  Wed, 05 Jan 2011 15:42:32 +0900
+
+e17-extra-modules (0.1-9) unstable; urgency=low
+
+  * [ILLUME2] Add code for HDMI rotation
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-9
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 05 Jan 2011 09:32:49 +0900
+
+e17-extra-modules (0.1-8) unstable; urgency=low
+
+  * [ILLUME2] 1. Add feature - logger
+              2. Code cleanup 
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-8
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Mon, 03 Jan 2011 13:23:04 +0900
+
+e17-extra-modules (0.1-7) unstable; urgency=low
+
+  * [ILLUME2] Bug fix for notification stack
+  * [ILLUME2] Add -i option to the vconftool command
+  * [ILLUME2-QP] Bug fix for Livepanel touch event
+  * [WMREADY] Add -i option to the vconftool command
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-7
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 29 Dec 2010 19:18:46 +0900
+
+e17-extra-modules (0.1-6) unstable; urgency=low
+
+  * [KEYROUTER] Modify rules and .install file to install omitted scripts in keyrouter/scripts
+  * [ILLUME2][WMREADY] Change code to use /usr/bin/vconftool for security
+  * [ILLUME2] Change code to include active window's handle in client message when a root angle is changed
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-6
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 24 Dec 2010 15:36:48 +0900
+
+e17-extra-modules (0.1-5) unstable; urgency=low
+
+  * [ILLUME2] Add feature to calculate visibility
+    [COMP   ] Add code to set the overlay window handle to root property
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-5
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 23 Dec 2010 10:56:56 +0900
+
+e17-extra-modules (0.1-4) unstable; urgency=low
+
+  * [COMP] add custom effect feature 
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-4
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Wed, 22 Dec 2010 18:11:43 +0900
+
+e17-extra-modules (0.1-3) unstable; urgency=low
+
+  * [ILLUME2-QP] change code to use e_border_stack_below
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-3
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Sat, 18 Dec 2010 15:01:02 +0900
+
+e17-extra-modules (0.1-2) unstable; urgency=low
+
+  * [ILLUME2-QP] quickpanel_launcher - make dependency with appcore 
+  * [COMP] fix double free problem on xlib backend
+  * [e17-extra-modules] Add omitted files and add a dependency on libappcore-efl-dev
+  * [ILLUME2-QP] Bugfix for H0100114260 - Add draw_done property to _E_Quickpanel_Item
+  * [COMP] use native surface version, type
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-2
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 15 Dec 2010 12:15:36 +0900
+
+e17-extra-modules (0.1-1) unstable; urgency=low
+
+  * Initial release for e17-extra-modules (illume2, comp, keyrouter, wmready)
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.1-1
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 02 Dec 2010 13:57:28 +0900

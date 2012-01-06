@@ -1,0 +1,115 @@
+#!/usr/bin/make -f
+# debian/rules for the Debian xutils package.
+# Copyright © 2004 Scott James Remnant <scott@netsplit.com>
+# Copyright © 2005 Daniel Stone <daniel@fooishbar.org>
+# Copyright © 2005 David Nusinow <dnusinow@debian.org>
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# set this to the name of the main shlib's binary package
+PACKAGE = e17-extra-modules
+PREFIX ?= /usr
+
+#include debian/xsfbs/xsfbs.mk
+
+# This package contains multiple modules as shipped by upstream. Each module is # contained in a subdirectory in the root dir of the package. You must list each
+# subdirectory explicitly so that the build system knows what to build
+DEF_SUBDIRS=comp-slp illume2-slp keyrouter wmready
+SUBDIRS=$(DEF_SUBDIRS)
+BUILD_STAMPS = $(addprefix $(STAMP_DIR)/build-,$(SUBDIRS))
+
+CFLAGS = -Wall -g -fPIC -rdynamic
+CXXFLAGS += -fPIC
+LDFLAGS += -Wl,--hash-style=both -Wl,--as-needed -Wl,--rpath=$(PREFIX)/lib
+
+# Machine name
+MACHINE_NAME=$(shell uname -m)
+
+ifneq (,$(filter noopt,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -O0
+else
+	CFLAGS += -O2
+endif
+ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+	NUMJOBS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+	MAKEFLAGS += -j$(NUMJOBS)
+endif
+
+ifeq ($(MACHINE_NAME), arm)
+	CFLAGS  += -D_ENV_ARM
+endif
+
+DEB_HOST_ARCH      ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+DEB_HOST_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+ifeq ($(DEB_BUILD_GNU_TYPE), $(DEB_HOST_GNU_TYPE))
+	confflags += --build=$(DEB_HOST_GNU_TYPE)
+else
+	confflags += --build=$(DEB_HOST_GNU_TYPE) --host=$(DEB_HOST_GNU_TYPE)
+endif
+
+build:
+	>$@
+	for FILE in $(SUBDIRS); do \
+		mkdir -p "$$FILE"-obj-$(DEB_BUILD_GNU_TYPE) ; \
+		cd "$$FILE" && ./autogen.sh && cd ..; \
+		cd "$$FILE"-obj-$(DEB_BUILD_GNU_TYPE) && ../"$$FILE"/configure --prefix=/usr CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" && $(MAKE) || exit ; \
+		cd ..; \
+	done
+	>$@
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+
+	rm -f config.cache config.log config.status
+	rm -f */config.cache */config.log */config.status
+	rm -f conftest* */conftest*
+	rm -rf autom4te.cache */autom4te.cache
+	rm -rf *-obj-*
+	rm -f build
+
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+
+ifneq (,$(filter keyrouter,$(SUBDIRS)))
+	mkdir -p $(CURDIR)/debian/tmp/usr/bin
+	cp -af $(CURDIR)/keyrouter/scripts/* $(CURDIR)/debian/tmp/usr/bin/
+endif
+	for FILE in $(SUBDIRS); do \
+		cd "$$FILE"-obj-$(DEB_BUILD_GNU_TYPE) && $(MAKE) DESTDIR=$(CURDIR)/debian/tmp install ; \
+		cd ..; \
+	done
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+
+	dh_installdocs
+	dh_install --sourcedir=debian/tmp --list-missing
+	dh_installmenu
+	dh_installchangelogs
+	dh_link
+	dh_strip --dbg-package=$(PACKAGE)-dbg
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+# Build architecture-independent files here.
+binary-indep: build install
+# Nothing to do
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install
