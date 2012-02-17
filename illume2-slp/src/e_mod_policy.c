@@ -23,6 +23,7 @@ static void _e_mod_policy_cb_hook_post_assign(void *data __UNUSED__, void *data2
 static void _e_mod_policy_cb_hook_layout(void *data __UNUSED__, void *data2 __UNUSED__);
 static void _e_mod_policy_cb_hook_post_new_border (void *data __UNUSED__, void *data2);
 static void _e_mod_policy_cb_hook_pre_fetch(void *data __UNUSED__, void *data2);
+static void _e_mod_policy_cb_hook_new_border(void *data __UNUSED__, void *data2);
 
 static Eina_Bool _e_mod_policy_cb_window_focus_in(void *data __UNUSED__, int type __UNUSED__, void *event);
 
@@ -41,6 +42,9 @@ static Eina_Bool _e_mod_policy_cb_window_configure (void *data __UNUSED__, int t
 static E_Illume_Policy *_policy = NULL;
 static Eina_List *_policy_hdls = NULL, *_policy_hooks = NULL;
 Ecore_X_Atom E_ILLUME_BORDER_WIN_RESTACK;
+static Ecore_X_Atom ECORE_X_ATOM_E_ILLUME_RESIZE_START = 0;
+static Ecore_X_Atom ECORE_X_ATOM_E_ILLUME_RESIZE_END   = 0;
+
 
 /* external variables */
 int E_ILLUME_POLICY_EVENT_CHANGE = 0;
@@ -381,6 +385,10 @@ _e_mod_policy_hooks_add(void)
      eina_list_append(_policy_hooks,
                       e_border_hook_add(E_BORDER_HOOK_EVAL_PRE_FETCH,
                                         _e_mod_policy_cb_hook_pre_fetch, NULL));
+   _policy_hooks =
+     eina_list_append(_policy_hooks,
+                      e_border_hook_add(E_BORDER_HOOK_NEW_BORDER,
+                                        _e_mod_policy_cb_hook_new_border, NULL));
 }
 
 static void
@@ -408,9 +416,6 @@ _e_mod_policy_cb_border_add(void *data __UNUSED__, int type __UNUSED__, void *ev
    E_Event_Border_Add *ev;
 
    ev = event;
-
-   ecore_x_window_prop_window_set (ev->border->win, ECORE_X_ATOM_E_USER_CREATED_WINDOW, &(ev->border->client.win), 1);
-   ecore_x_window_prop_window_set (ev->border->client.win, ECORE_X_ATOM_E_PARENT_BORDER_WINDOW, &(ev->border->win), 1);
 
    if ((_policy) && (_policy->funcs.border_add))
      _policy->funcs.border_add(ev->border);
@@ -564,6 +569,20 @@ _e_mod_policy_cb_client_message(void *data __UNUSED__, int type __UNUSED__, void
         if ((_policy) && (_policy->funcs.quickpanel_state_change))
           _policy->funcs.quickpanel_state_change(ev);
      }
+   else if (ev->message_type == ECORE_X_ATOM_E_ILLUME_RESIZE_START)
+     {
+        E_Border *bd;
+        if (!(bd = e_border_find_by_client_window(ev->win))) return ECORE_CALLBACK_PASS_ON;
+        if ((_policy) && (_policy->funcs.resize_start))
+          _policy->funcs.resize_start(bd);
+     }
+   else if (ev->message_type == ECORE_X_ATOM_E_ILLUME_RESIZE_END)
+     {
+        E_Border *bd;
+        if (!(bd = e_border_find_by_client_window(ev->win))) return ECORE_CALLBACK_PASS_ON;
+        if ((_policy) && (_policy->funcs.resize_end))
+          _policy->funcs.resize_end(bd);
+     }
 
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -637,6 +656,20 @@ static void _e_mod_policy_cb_hook_pre_fetch(void *data __UNUSED__, void *data2)
      _policy->funcs.border_pre_fetch(bd);
 }
 
+static void
+_e_mod_policy_cb_hook_new_border(void *data __UNUSED__, void *data2)
+{
+   E_Border *bd;
+
+   if (!(bd = data2)) return;
+
+   ecore_x_window_prop_window_set(bd->win, ECORE_X_ATOM_E_USER_CREATED_WINDOW, &(bd->client.win), 1);
+   ecore_x_window_prop_window_set(bd->client.win, ECORE_X_ATOM_E_PARENT_BORDER_WINDOW, &(bd->win), 1);
+
+   if ((_policy) && (_policy->funcs.border_new_border))
+     _policy->funcs.border_new_border(bd);
+}
+
 static Eina_Bool
 _e_mod_policy_cb_window_configure_request (void *data __UNUSED__, int type __UNUSED__, void *event)
 {
@@ -702,6 +735,22 @@ _e_mod_policy_init_atom (void)
    if (!E_ILLUME_BORDER_WIN_RESTACK)
      {
         fprintf (stderr, "[ILLUME2] Critical Error!!! Cannot create _E_ILLUME_RESTACK_WINDOW Atom...\n");
+        return 0;
+     }
+
+   ECORE_X_ATOM_E_ILLUME_RESIZE_START = ecore_x_atom_get("_E_ILLUME_RESIZE_START");
+   if (!ECORE_X_ATOM_E_ILLUME_RESIZE_START)
+     {
+        fprintf(stderr,
+                "[ILLUME2] cannot create _E_ILLUME_RESIZE_START atom.\n");
+        return 0;
+     }
+
+   ECORE_X_ATOM_E_ILLUME_RESIZE_END = ecore_x_atom_get("_E_ILLUME_RESIZE_END");
+   if (!ECORE_X_ATOM_E_ILLUME_RESIZE_END)
+     {
+        fprintf(stderr,
+                "[ILLUME2] cannot create _E_ILLUME_RESIZE_END atom.\n");
         return 0;
      }
 

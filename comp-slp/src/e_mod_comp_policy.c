@@ -1,499 +1,116 @@
-#include "e.h"
-#include "e_mod_main.h"
+#include "e_mod_comp_shared_types.h"
 #include "e_mod_comp.h"
-#include "e_mod_comp_data.h"
-#include "config.h"
+#include "e_mod_comp_debug.h"
+#include "e_mod_comp_policy.h"
 
-#if COMP_LOGGER_BUILD_ENABLE
-extern int comp_logger_type                        ;
-extern Ecore_X_Atom ATOM_CM_LOG                    ;
-#endif
+/* local subsystem functions */
+static E_Comp_Win *_transient_parent_find(E_Comp_Win *cw);
 
-extern Ecore_X_Atom ATOM_EFFECT_ENABLE             ;
-extern Ecore_X_Atom ATOM_WINDOW_EFFECT_ENABLE      ;
-extern Ecore_X_Atom ATOM_WINDOW_EFFECT_CLIENT_STATE;
-extern Ecore_X_Atom ATOM_WINDOW_EFFECT_STATE       ;
-extern Ecore_X_Atom ATOM_WINDOW_EFFECT_TYPE        ;
-extern Ecore_X_Atom ATOM_EFFECT_DEFAULT            ;
-extern Ecore_X_Atom ATOM_EFFECT_NONE               ;
-extern Ecore_X_Atom ATOM_EFFECT_CUSTOM0            ;
-extern Ecore_X_Atom ATOM_EFFECT_CUSTOM1            ;
-extern Ecore_X_Atom ATOM_EFFECT_CUSTOM2            ;
-extern Ecore_X_Atom ATOM_EFFECT_CUSTOM3            ;
-extern Ecore_X_Atom ATOM_EFFECT_CUSTOM4            ;
-extern Ecore_X_Atom ATOM_EFFECT_CUSTOM5            ;
-extern Ecore_X_Atom ATOM_EFFECT_CUSTOM6            ;
-extern Ecore_X_Atom ATOM_EFFECT_CUSTOM7            ;
-extern Ecore_X_Atom ATOM_EFFECT_CUSTOM8            ;
-extern Ecore_X_Atom ATOM_EFFECT_CUSTOM9            ;
+/* local subsystem globals */
+static Eina_Hash *shadow_hash = NULL;
 
-extern E_Comp_Win       * _e_mod_comp_win_transient_parent_find    (E_Comp_Win * cw);
-extern E_Comp_Effect_Type _e_mod_comp_get_effect_type              (Ecore_X_Atom *atom);
-extern Eina_Bool          _e_mod_comp_win_check_visible            (E_Comp_Win *cw);
-
-Eina_Bool    _e_mod_comp_is_quickpanel_window         (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_task_manager_window       (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_live_magazine_window       (E_Border * bd);
-Eina_Bool    _e_mod_comp_is_lock_screen_window        (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_indicator_window          (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_isf_main_window           (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_isf_sub_window            (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_normal_window             (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_tooltip_window            (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_combo_window              (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_dnd_window                (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_desktop_window            (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_toolbar_window            (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_menu_window               (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_splash_window             (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_drop_down_menu_window     (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_notification_window       (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_utility_window            (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_popup_menu_window         (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_dialog_window             (E_Border *bd);
-
-Eina_Bool    _e_mod_comp_is_application_launch        (E_Border *bd);
-Eina_Bool    _e_mod_comp_is_application_close         (E_Border *bd);
-
-void         _e_mod_comp_window_effect_policy         (E_Comp_Win *cw);
-Eina_Bool    _e_mod_comp_window_restack_policy        (E_Comp_Win *cw, E_Comp_Win *cw2);
-Eina_Bool    _e_mod_comp_window_rotation_policy       (E_Comp_Win *cw);
-int          _e_mod_comp_shadow_policy                (E_Comp_Win *cw);
-
-Eina_Bool
-_e_mod_comp_is_quickpanel_window(E_Border *bd)
+/* externally accessible functions */
+EINTERN int
+e_mod_comp_policy_init(void)
 {
-   const char *name = NULL;
-   const char *clas = NULL;
+   if (!shadow_hash) shadow_hash = eina_hash_string_superfast_new(NULL);
 
-   if (!bd) return EINA_FALSE;
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_UNKNOWN),        "shadow"      );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DESKTOP),        "no-effect"   );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DOCK),           "shadow_twist");
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_TOOLBAR),        "no-effect"   );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_MENU),           "no-effect"   );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_UTILITY),        "no-effect"   );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_SPLASH),         "no-effect"   );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DIALOG),         "dialog"      );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_NORMAL),         "shadow_twist");
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DROPDOWN_MENU),  "no-effect"   );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_POPUP_MENU),     "shadow"      );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_TOOLTIP),        "shadow"      );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_NOTIFICATION),   "dialog"      );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_COMBO),          "no-effect"   );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DND),            "no-effect"   );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_MENUSCREEN),     "shadow_twist");
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_QUICKPANEL_BASE),"quickpanel"  );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_QUICKPANEL),     "quickpanel"  );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_TASKMANAGER),    "taskmgr"     );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_LIVEMAGAZINE),   "shadow_twist");
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_LOCKSCREEN),     "lockscreen"  );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_INDICATOR),      "indicator"   );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_APPTRAY),        "app_tray"    );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_BACKGROUND),     "no-effect"   );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_ISF_KEYBOARD),   "shadow"      );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_ISF_SUB),        "shadow"      );
 
-   name = bd->client.icccm.name;
-   clas = bd->client.icccm.class;
-   if ( clas == NULL ) return EINA_FALSE;
-   if ( strncmp(clas,"QUICKPANEL",strlen("QUICKPANEL")) != 0 ) return EINA_FALSE;
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_NORMAL ) return EINA_FALSE;
-
-   return EINA_TRUE;
+   return 1;
 }
 
-Eina_Bool
-_e_mod_comp_is_task_manager_window(E_Border *bd)
+EINTERN int
+e_mod_comp_policy_shutdown(void)
 {
-   const char *name = NULL;
-   const char *clas = NULL;
-
-   if (!bd) return EINA_FALSE;
-
-   name = bd->client.icccm.name;
-   clas = bd->client.icccm.class;
-
-   if ( clas == NULL ) return EINA_FALSE;
-   if ( strncmp(clas,"TASK_MANAGER",strlen("TASK_MANAGER")) != 0 ) return EINA_FALSE;
-   if ( name == NULL ) return EINA_FALSE;
-   if ( strncmp(name,"TASK_MANAGER",strlen("TASK_MANAGER")) != 0 ) return EINA_FALSE;
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_NOTIFICATION ) return EINA_FALSE;
-
-   return EINA_TRUE;
+   if (shadow_hash) eina_hash_free(shadow_hash);
+   shadow_hash = NULL;
+   return 1;
 }
 
-Eina_Bool
-_e_mod_comp_is_live_magazine_window(E_Border *bd)
+EINTERN Eina_Bool
+e_mod_comp_policy_app_launch_check(E_Comp_Win *cw)
 {
-   const char *name = NULL;
-   const char *clas = NULL;
-
-   if (!bd) return EINA_FALSE;
-
-   name = bd->client.icccm.name;
-   clas = bd->client.icccm.class;
-
-   if ( clas == NULL ) return EINA_FALSE;
-   if ( strncmp(clas,"live-magazine",strlen("live-magazine")) != 0 ) return EINA_FALSE;
-   if ( name == NULL ) return EINA_FALSE;
-   if ( strncmp(name,"Live magazine",strlen("Live magazine")) != 0 ) return EINA_FALSE;
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_NORMAL ) return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_lock_screen_window(E_Border *bd)
-{
-   const char *name = NULL;
-   const char *clas = NULL;
-
-   if (!bd) return EINA_FALSE;
-
-   name = bd->client.icccm.name;
-   clas = bd->client.icccm.class;
-
-   if ( clas == NULL ) return EINA_FALSE;
-   if ( strncmp(clas,"LOCK_SCREEN",strlen("LOCK_SCREEN")) != 0 ) return EINA_FALSE;
-   if ( name == NULL ) return EINA_FALSE;
-   if ( strncmp(name,"LOCK_SCREEN",strlen("LOCK_SCREEN")) != 0 ) return EINA_FALSE;
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_NOTIFICATION ) return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_indicator_window(E_Border *bd)
-{
-   const char *name = NULL;
-   const char *clas = NULL;
-
-   if (!bd) return EINA_FALSE;
-
-   name = bd->client.icccm.name;
-   clas = bd->client.icccm.class;
-
-   if ( clas == NULL ) return EINA_FALSE;
-   if ( strncmp(clas,"INDICATOR",strlen("INDICATOR")) != 0 ) return EINA_FALSE;
-   if ( name == NULL ) return EINA_FALSE;
-   if ( strncmp(name,"INDICATOR",strlen("INDICATOR")) != 0 ) return EINA_FALSE;
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_DOCK ) return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_isf_main_window(E_Border *bd)
-{
-   const char *name = NULL;
-   const char *clas = NULL;
-
-   if (!bd) return EINA_FALSE;
-
-   name = bd->client.icccm.name;
-   clas = bd->client.icccm.class;
-
-   if ( clas == NULL ) return EINA_FALSE;
-   if ( strncmp(clas,"ISF",strlen("ISF")) != 0 ) return EINA_FALSE;
-   if ( name == NULL ) return EINA_FALSE;
-   if ( strncmp(name,"Virtual Keyboard",strlen("Virtual Keyboard")) != 0  ) return EINA_FALSE;
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_NORMAL ) return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_isf_sub_window(E_Border *bd)
-{
-   const char *name = NULL;
-   const char *clas = NULL;
-
-   if (!bd) return EINA_FALSE;
-
-   name = bd->client.icccm.name;
-   clas = bd->client.icccm.class;
-
-   if ( clas == NULL ) return EINA_FALSE;
-   if ( strncmp(clas,"ISF",strlen("ISF")) != 0 ) return EINA_FALSE;
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_NORMAL ) return EINA_FALSE;
-   if ( name == NULL ) return EINA_FALSE;
-   if ( (strncmp(name,"Key Magnifier",strlen("Key Magnifier")) == 0 )
-        || (strncmp(name,"Prediction Window",strlen("Prediction Window")) == 0 )
-        || (strncmp(name,"Setting Window",strlen("Setting Window")) == 0 )
-        || (strncmp(name,"ISF Popup",strlen("ISF Popup")) == 0 ) ) return EINA_TRUE;
+   E_CHECK_RETURN(cw, 0);
+   if (TYPE_NORMAL_CHECK(cw) && SIZE_EQUAL_TO_ROOT(cw))
+     return EINA_TRUE;
    return EINA_FALSE;
 }
 
-Eina_Bool
-_e_mod_comp_is_normal_window(E_Border *bd)
+EINTERN Eina_Bool
+e_mod_comp_policy_app_close_check(E_Comp_Win *cw)
 {
-   const char *clas = NULL;
-
-   if (!bd) return EINA_FALSE;
-
-   clas = bd->client.icccm.class;
-
-   if ( clas == NULL ) return EINA_FALSE;
-   if ( strncmp(clas,"NORMAL_WINDOW",strlen("NORMAL_WINDOW")) != 0 ) return EINA_FALSE;
-
-   if ( ( bd->client.netwm.type == ECORE_X_WINDOW_TYPE_NORMAL)
-        || ( bd->client.netwm.type == ECORE_X_WINDOW_TYPE_UNKNOWN ) ) return EINA_TRUE;
-
+   E_CHECK_RETURN(cw, 0);
+   if (TYPE_NORMAL_CHECK(cw) && SIZE_EQUAL_TO_ROOT(cw))
+     return EINA_TRUE;
    return EINA_FALSE;
 }
 
-Eina_Bool
-_e_mod_comp_is_tooltip_window(E_Border *bd)
+EINTERN Eina_Bool
+e_mod_comp_policy_win_restack_check(E_Comp_Win *cw,
+                                    E_Comp_Win *cw2)
 {
+   E_Comp_Effect_Style st;
+   Eina_Bool animatable;
+   E_Comp_Win_Type type;
+   E_Comp_Win *tp, *tp2;
 
-   if (!bd) return EINA_FALSE;
+   E_CHECK_RETURN(cw, 0);
+   E_CHECK_RETURN(cw2, 0);
+   E_CHECK_RETURN(cw->c, 0);
 
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_TOOLTIP )  return EINA_FALSE;
+   type = e_mod_comp_win_type_get(cw);
+   animatable = e_mod_comp_effect_state_get(cw->eff_type);
+   st = e_mod_comp_effect_style_get
+          (cw->eff_type,
+          E_COMP_EFFECT_KIND_RESTACK);
 
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_combo_window(E_Border *bd)
-{
-
-   if (!bd) return EINA_FALSE;
-
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_COMBO )  return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_dnd_window(E_Border *bd)
-{
-
-   if (!bd) return EINA_FALSE;
-
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_DND )  return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_desktop_window(E_Border *bd)
-{
-
-   if (!bd) return EINA_FALSE;
-
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_DESKTOP )  return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_toolbar_window(E_Border *bd)
-{
-
-   if (!bd) return EINA_FALSE;
-
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_TOOLBAR )  return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_menu_window(E_Border *bd)
-{
-
-   if (!bd) return EINA_FALSE;
-
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_MENU )  return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_splash_window(E_Border *bd)
-{
-
-   if (!bd) return EINA_FALSE;
-
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_SPLASH )  return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_drop_down_menu_window(E_Border *bd)
-{
-
-   if (!bd) return EINA_FALSE;
-
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_DROPDOWN_MENU )  return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_notification_window(E_Border *bd)
-{
-
-   if (!bd) return EINA_FALSE;
-
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_NOTIFICATION )  return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_utility_window(E_Border *bd)
-{
-
-   if (!bd) return EINA_FALSE;
-
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_UTILITY )  return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_popup_menu_window(E_Border *bd)
-{
-
-   if (!bd) return EINA_FALSE;
-
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_POPUP_MENU )  return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_dialog_window(E_Border *bd)
-{
-
-   if (!bd) return EINA_FALSE;
-
-   if ( bd->client.netwm.type != ECORE_X_WINDOW_TYPE_DIALOG )  return EINA_FALSE;
-
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_application_launch(E_Border *bd)
-{
-   if (!bd) return EINA_FALSE;
-   if ( _e_mod_comp_is_quickpanel_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_task_manager_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_lock_screen_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_indicator_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_isf_main_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_isf_sub_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_normal_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_tooltip_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_combo_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_dnd_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_desktop_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_toolbar_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_menu_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_splash_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_drop_down_menu_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_notification_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_utility_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_popup_menu_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_dialog_window(bd) ) return EINA_FALSE;
-   if (_e_mod_comp_is_live_magazine_window(bd)) return EINA_FALSE;
-   return EINA_TRUE;
-}
-
-Eina_Bool
-_e_mod_comp_is_application_close(E_Border *bd)
-{
-   if (!bd) return EINA_FALSE;
-   if ( _e_mod_comp_is_quickpanel_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_task_manager_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_lock_screen_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_indicator_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_isf_main_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_isf_sub_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_normal_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_tooltip_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_combo_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_dnd_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_desktop_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_toolbar_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_menu_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_splash_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_drop_down_menu_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_notification_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_utility_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_popup_menu_window(bd) ) return EINA_FALSE;
-   if ( _e_mod_comp_is_dialog_window(bd) ) return EINA_FALSE;
-   if (_e_mod_comp_is_live_magazine_window(bd)) return EINA_FALSE;
-   return EINA_TRUE;
-}
-
-void _e_mod_comp_window_effect_policy( E_Comp_Win *cw )
-{
-   unsigned int    effect_enable = 0;
-   int             num = 0;
-   Ecore_X_Atom   *atoms = NULL;
-   Ecore_X_Window  win;
-
-   unsigned int val = 0;
-   int          ret = -1;
-
-   if ( cw->bd)
-     win = cw->bd->client.win;
-   else
-     win = cw->win;
-
-   ret =  ecore_x_window_prop_card32_get(win,  ATOM_WINDOW_EFFECT_ENABLE, &val, 1);
-   if ( ret != -1 )
-     {
-        cw->animatable = val;
-     }
-   else
-     {
-        effect_enable = 1;
-        cw->animatable = effect_enable;
-        ecore_x_window_prop_card32_set(win,  ATOM_WINDOW_EFFECT_ENABLE, &effect_enable, 1);
-     }
-
-   num = ecore_x_window_prop_atom_list_get(win, ATOM_WINDOW_EFFECT_TYPE, &atoms);
-   if ( num != 6 )
-     {
-        Ecore_X_Atom window_effect_type_list[] = {ATOM_EFFECT_DEFAULT,ATOM_EFFECT_DEFAULT,ATOM_EFFECT_DEFAULT,ATOM_EFFECT_DEFAULT,ATOM_EFFECT_DEFAULT,ATOM_EFFECT_DEFAULT};
-
-        cw->show_effect = COMP_EFFECT_DEFAULT;
-        cw->hide_effect = COMP_EFFECT_DEFAULT;
-        cw->restack_effect = COMP_EFFECT_DEFAULT;
-        cw->rotation_effect = COMP_EFFECT_DEFAULT;
-        cw->focusin_effect = COMP_EFFECT_DEFAULT;
-        cw->focusout_effect = COMP_EFFECT_DEFAULT;
-
-        ecore_x_window_prop_atom_set(win,ATOM_WINDOW_EFFECT_TYPE, window_effect_type_list , 6 );
-     }
-   else
-     {
-        cw->show_effect = _e_mod_comp_get_effect_type(&atoms[0]);
-        cw->hide_effect = _e_mod_comp_get_effect_type(&atoms[1]);
-        cw->restack_effect = _e_mod_comp_get_effect_type(&atoms[2]);
-        cw->rotation_effect = _e_mod_comp_get_effect_type(&atoms[3]);
-        cw->focusin_effect = _e_mod_comp_get_effect_type(&atoms[4]);
-        cw->focusout_effect = _e_mod_comp_get_effect_type(&atoms[5]);
-     }
-
-   if ( num > 0 ) free(atoms);
-}
-
-Eina_Bool
-_e_mod_comp_window_restack_policy(E_Comp_Win *cw,
-                                  E_Comp_Win *cw2)
-{
-   if ( cw == NULL || cw2 == NULL ) return EINA_FALSE;
-
-   if (!(cw->c->animatable)
-       || !(cw->visible)
-       || !(cw2->visible)
-       || !(cw->animatable)
-       || (cw->restack_effect == COMP_EFFECT_NONE)
-       || !(cw->x == 0 && cw->y == 0
-            && cw->w == cw->c->man->w
-            && cw->h == cw->c->man->h)
-      )
+   if ((!cw->c->animatable) ||
+       (!cw->visible) ||
+       (!cw->show_done) ||
+       (!animatable) ||
+       (st == E_COMP_EFFECT_STYLE_NONE) ||
+       (!REGION_EQUAL_TO_ROOT(cw)))
      {
         return EINA_FALSE;
      }
 
-   E_Comp_Win *tp = _e_mod_comp_win_transient_parent_find(cw);
-   E_Comp_Win *tp2 = _e_mod_comp_win_transient_parent_find(cw2);
+   tp  = _transient_parent_find(cw);
+   tp2 = _transient_parent_find(cw2);
    if ((tp) && (tp2) && (tp->win == tp2->win))
      {
         return EINA_FALSE;
      }
 
-   if (!_e_mod_comp_is_isf_main_window(cw->bd)
-       && !_e_mod_comp_is_isf_sub_window(cw->bd)
-       && !_e_mod_comp_is_utility_window(cw->bd)
-       && !_e_mod_comp_is_indicator_window(cw->bd)
-       && !_e_mod_comp_is_indicator_window(cw2->bd)
-       && !_e_mod_comp_is_tooltip_window(cw->bd)
-       && !_e_mod_comp_is_combo_window(cw->bd)
-       && !_e_mod_comp_is_dnd_window(cw->bd)
-       && !_e_mod_comp_is_popup_menu_window(cw->bd)
-       && !_e_mod_comp_is_normal_window(cw->bd)
-       && !_e_mod_comp_is_quickpanel_window(cw->bd))
+   if ((type == E_COMP_WIN_TYPE_NORMAL) ||
+       (type == E_COMP_WIN_TYPE_MENUSCREEN) ||
+       (type == E_COMP_WIN_TYPE_TASKMANAGER) ||
+       (type == E_COMP_WIN_TYPE_LIVEMAGAZINE))
      {
         return EINA_TRUE;
      }
@@ -501,81 +118,123 @@ _e_mod_comp_window_restack_policy(E_Comp_Win *cw,
    return EINA_FALSE;
 }
 
-Eina_Bool _e_mod_comp_window_rotation_policy( E_Comp_Win *cw )
+EINTERN Eina_Bool
+e_mod_comp_policy_win_lower_check(E_Comp_Win *cw,
+                                  E_Comp_Win *cw2)
 {
+   E_Comp_Effect_Style st1, st2;
+   Eina_Bool animatable1, animatable2;
+   E_Comp_Win *tp, *tp2;
 
-   Eina_Bool supported_group = EINA_TRUE;
-   const char *file = NULL;
-   const char *group = NULL;
+   E_CHECK_RETURN(cw, 0);
+   E_CHECK_RETURN(cw2, 0);
+   E_CHECK_RETURN(cw->c, 0);
+   E_CHECK_RETURN(cw->c->animatable, 0);
+   E_CHECK_RETURN(cw->visible, 0);
+   E_CHECK_RETURN(cw2->visible, 0);
+   if (!REGION_EQUAL_TO_ROOT(cw)) return EINA_FALSE;
+   if (!REGION_EQUAL_TO_ROOT(cw2)) return EINA_FALSE;
 
-   if (!cw) return EINA_FALSE;
+   animatable1 = e_mod_comp_effect_state_get(cw->eff_type);
+   animatable2 = e_mod_comp_effect_state_get(cw2->eff_type);
+   E_CHECK_RETURN(animatable1, 0);
+   E_CHECK_RETURN(animatable2, 0);
 
-   edje_object_file_get(cw->shobj, &file, &group);
-   if ( ( strcmp(group, "shadow_fade") != 0 )
-       && ( strcmp(group, "shadow_twist") !=0 ) )
-     {
-        supported_group = EINA_FALSE;
-     }
-
-   if ( ( cw->visible ) && ( cw->bd ) && ( supported_group == EINA_TRUE )
-       && ( _e_mod_comp_win_check_visible(cw) == EINA_TRUE )
-
-       && ( cw->animatable == EINA_TRUE )
-       && ( cw->rotation_effect !=  COMP_EFFECT_NONE )
-
-       && ( evas_object_visible_get(cw->shobj) == EINA_TRUE )
-       && ( _e_mod_comp_is_indicator_window(cw->bd) == EINA_FALSE )
-       && ( _e_mod_comp_is_isf_main_window(cw->bd) == EINA_FALSE )
-       && ( _e_mod_comp_is_isf_sub_window(cw->bd) == EINA_FALSE )
-       && ( _e_mod_comp_is_quickpanel_window(cw->bd) == EINA_FALSE )
-       && ( _e_mod_comp_is_normal_window(cw->bd) == EINA_FALSE )
-       && ( _e_mod_comp_is_task_manager_window(cw->bd) == EINA_FALSE )
-       && ( _e_mod_comp_is_lock_screen_window(cw->bd) == EINA_FALSE )
-       && ( _e_mod_comp_is_tooltip_window(cw->bd) == EINA_FALSE )
-       && ( _e_mod_comp_is_combo_window(cw->bd) == EINA_FALSE )
-       && ( _e_mod_comp_is_dnd_window(cw->bd) == EINA_FALSE )
-       && ( _e_mod_comp_is_popup_menu_window(cw->bd) == EINA_FALSE )
-       && ( _e_mod_comp_is_utility_window(cw->bd) == EINA_FALSE )
-       && ( _e_mod_comp_is_dialog_window(cw->bd)  == EINA_FALSE )
-       && ( cw->c->animatable == EINA_TRUE) )
-     {
-        return EINA_TRUE;
-     }
-   else
+   if ((!TYPE_NORMAL_CHECK(cw)) &&
+       (!TYPE_NORMAL_CHECK(cw2)))
      {
         return EINA_FALSE;
      }
-}
 
-int
-_e_mod_comp_shadow_policy( E_Comp_Win *cw )
-{
-   int ok = 0;
-
-   if ( cw == NULL ) return ok;
-   else
+   if ((!TYPE_NORMAL_CHECK(cw)) &&
+       (!TYPE_HOME_CHECK(cw2)))
      {
-        if      (_e_mod_comp_is_quickpanel_window(cw->bd))                                   ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "no-effect"  );
-        else if (_e_mod_comp_is_task_manager_window(cw->bd))                                 ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "taskmgr"    );
-        else if (_e_mod_comp_is_lock_screen_window(cw->bd))                                  ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "lockscreen" );
-        else if (_e_mod_comp_is_indicator_window(cw->bd))                                    ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "indicator"  );
-        else if (_e_mod_comp_is_isf_main_window(cw->bd))                                     ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "shadow"     );
-        else if (_e_mod_comp_is_isf_sub_window(cw->bd))                                      ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "shadow"     );
-        else if (_e_mod_comp_is_normal_window(cw->bd))                                       ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "shadow"     );
-        else if (_e_mod_comp_is_tooltip_window(cw->bd))                                      ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "shadow"     );
-        else if (_e_mod_comp_is_combo_window(cw->bd))                                        ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "no-effect"  );
-        else if (_e_mod_comp_is_dnd_window(cw->bd))                                          ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "no-effect"  );
-        else if (_e_mod_comp_is_desktop_window(cw->bd))                                      ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "no-effect"  );
-        else if (_e_mod_comp_is_toolbar_window(cw->bd))                                      ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "no-effect"  );
-        else if (_e_mod_comp_is_menu_window(cw->bd))                                         ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "no-effect"  );
-        else if (_e_mod_comp_is_splash_window(cw->bd))                                       ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "no-effect"  );
-        else if (_e_mod_comp_is_drop_down_menu_window(cw->bd))                               ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "no-effect"  );
-        else if (_e_mod_comp_is_notification_window(cw->bd))                                 ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "dialog"     );
-        else if (_e_mod_comp_is_utility_window(cw->bd))                                      ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "no-effect"  );
-        else if (_e_mod_comp_is_popup_menu_window(cw->bd))                                   ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "shadow"     );
-        else if (_e_mod_comp_is_dialog_window(cw->bd))                                       ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "dialog"     );
-        else                                                                                 ok = edje_object_file_set(cw->shobj, _comp_mod->conf->shadow_file, "shadow_twist");
+        return EINA_FALSE;
      }
-   return ok;
+
+   st1 = e_mod_comp_effect_style_get
+           (cw->eff_type, E_COMP_EFFECT_KIND_RESTACK);
+   st2 = e_mod_comp_effect_style_get
+           (cw2->eff_type, E_COMP_EFFECT_KIND_RESTACK);
+   E_CHECK_RETURN((st1 != E_COMP_EFFECT_STYLE_NONE), 0);
+   E_CHECK_RETURN((st2 != E_COMP_EFFECT_STYLE_NONE), 0);
+
+   tp  = _transient_parent_find(cw);
+   tp2 = _transient_parent_find(cw2);
+   if ((tp) && (tp2) && (tp->win == tp2->win))
+     {
+        return EINA_FALSE;
+     }
+
+   return EINA_TRUE;
 }
 
+EINTERN Eina_Bool
+e_mod_comp_policy_win_rotation_effect_check(E_Comp_Win *cw)
+{
+   E_Comp_Effect_Style st;
+   Eina_Bool animatable;
+   const char *file, *group;
+
+   E_CHECK_RETURN(cw, 0);
+   E_CHECK_RETURN(cw->c, 0);
+   E_CHECK_RETURN(cw->c->animatable, 0);
+   E_CHECK_RETURN(cw->visible, 0);
+   E_CHECK_RETURN(cw->bd, 0);
+
+   animatable = e_mod_comp_effect_state_get(cw->eff_type);
+   E_CHECK_RETURN(animatable, 0);
+
+   edje_object_file_get(cw->shobj, &file, &group);
+   if ((strcmp(group, "shadow_fade") != 0) &&
+       (strcmp(group, "shadow_twist") !=0))
+     {
+        return EINA_FALSE;
+     }
+
+   st = e_mod_comp_effect_style_get
+          (cw->eff_type,
+          E_COMP_EFFECT_KIND_ROTATION);
+   if (st == E_COMP_EFFECT_STYLE_NONE)
+     return EINA_FALSE;
+
+   if ((e_mod_comp_util_win_visible_get(cw)) &&
+       (evas_object_visible_get(cw->shobj)) &&
+       TYPE_NORMAL_CHECK(cw))
+     {
+        return EINA_TRUE;
+     }
+   return EINA_FALSE;
+}
+
+EINTERN char *
+e_mod_comp_policy_win_shadow_group_get(E_Comp_Win *cw)
+{
+   E_Comp_Win_Type type;
+   E_CHECK_RETURN(cw, 0);
+   type = e_mod_comp_win_type_get(cw);
+   return eina_hash_find(shadow_hash, e_util_winid_str_get(type));
+}
+
+/* local subsystem functions */
+static E_Comp_Win *
+_transient_parent_find(E_Comp_Win *cw)
+{
+   // if Border is not existed then, return itself.
+   // otherwise, return itself or parent.
+   Ecore_X_Window transient_parent;
+   E_Comp_Win *parent_cw = NULL;
+   E_Border *bd = NULL;
+   if (cw->bd)
+     {
+        bd = cw->bd;
+        do {
+             transient_parent = bd->win;
+             bd = bd->parent;
+        } while (bd);
+
+        parent_cw = e_mod_comp_win_find(transient_parent);
+        return parent_cw;
+     }
+   return cw;
+}

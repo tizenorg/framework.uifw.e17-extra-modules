@@ -8,6 +8,7 @@
 #include <X11/extensions/XI2.h>
 #include <X11/extensions/XIproto.h>
 #include <X11/extensions/XTest.h>
+#include <X11/extensions/Xrandr.h>
 #include <utilX.h>
 
 //maximum number of hardkeys
@@ -30,6 +31,7 @@
 #define PROP_X_MOUSE_EXIST				"X Mouse Exist"
 #define PROP_X_EXT_KEYBOARD_EXIST		"X External Keyboard Exist"
 #define PROP_X_EVDEV_AXIS_LABELS		"Axis Labels"
+#define PROP_XRROUTPUT       				"X_RR_PROPERTY_REMOTE_CONTROLLER"
 
 //key composition for screen capture
 #define NUM_COMPOSITION_KEY	2
@@ -92,7 +94,7 @@ const char *btns_label[] = {
 	"Rotate"
 };
 
-#define NUM_HWKEYS		17
+#define NUM_HWKEYS		18
 const char *HWKeys[] = {
 	KEY_VOLUMEUP,
 	KEY_VOLUMEDOWN,
@@ -104,6 +106,7 @@ const char *HWKeys[] = {
 	KEY_SEND,
 	KEY_SELECT,
 	KEY_END,
+	KEY_MEDIA,
 	KEY_PLAYCD,
 	KEY_STOPCD,
 	KEY_PAUSECD,
@@ -164,6 +167,10 @@ typedef struct _tag_keyrouter
 	int DeviceKeyRelease;
 	int nInputEvent[INPUTEVENT_MAX];
 
+	RROutput output;
+	char rroutput_buf[256];
+	int rroutput_buf_len;
+
 	//XInput extension 2 related variables
 	int xi2_opcode;
 	XIEventMask eventmask_all;
@@ -177,6 +184,7 @@ typedef struct _tag_keyrouter
 	struct FILE *fplog;
 
 	//atoms
+	Atom atomRROutput;
 	Atom atomPointerType;
 	Atom atomXMouseExist;
 	Atom atomXMouseCursorEnable;
@@ -242,6 +250,8 @@ static void _e_keyrouter_device_remove(int id, int type);
 static void _e_keyrouter_set_keyboard_exist(unsigned int val, int is_connected);
 static void _e_keyrouter_set_mouse_exist(unsigned int val, int propset);
 static void _e_keyrouter_mouse_cursor_enable(unsigned int val);
+static int _e_keyrouter_marshalize_string (char* buf, int num, char* srcs[]);
+static void _e_keyrouter_init_output(void);
 
 //e17 bindings functions and action callbacks
 static int _e_keyrouter_modifiers(E_Binding_Modifier modifiers);

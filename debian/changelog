@@ -1,17 +1,330 @@
+e17-extra-modules (0.2-31) unstable; urgency=low
+
+  * [ILLUME2] add app-in-app window resize feature.
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-31
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Thu, 16 Feb 2012 14:50:06 +0900
+
+e17-extra-modules (0.2-30) unstable; urgency=low
+
+  * [ILLUME2] Bug fix - change root angle when a window visibility is changed
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-30
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 14 Feb 2012 20:26:21 +0900
+
+e17-extra-modules (0.2-29) unstable; urgency=low
+
+  * [MOVE] Enable InputOnly Window that is hide indicator
+           InputOnly window is showed by TP_Indicator.
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-29
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Tue, 14 Feb 2012 13:53:30 +0900
+
+e17-extra-modules (0.2-28) unstable; urgency=low
+
+  * [MOVE] fix miss-showing of indicator.
+           it occures active window change.
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-28
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Mon, 13 Feb 2012 20:16:21 +0900
+
+e17-extra-modules (0.2-27) unstable; urgency=low
+
+  * [ILLUME2] add code to raise app-in-app mode window if it gets the mouse down event
+    [MOVE] Add Rotation Lock Property : _E_ROTATION_LOCK
+           it blocks (or unblock)  appcore's rotation.
+           ( of course, Appcore read Root Window's _E_ROTATION_LOCK Property )
+           _E_ROTATION_LOCK 1: Do not rotate.
+           _E_ROTATION_LOCK not 1 : can rotate.
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-27
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Mon, 13 Feb 2012 15:20:00 +0900
+
+e17-extra-modules (0.2-26) unstable; urgency=low
+
+  * [COMP] fixed a segfault error while deleting a BGWIN object
+    [MOVE] fix could not call move_unlock() case. (if module call e_border_move()
+           with border's current geometry(geometry does not change case), border_move
+           callback does not occur.)
+    [ILLUME2] 1. check if border's layer is notification layer or not.
+              2. add code create internal information of illume in E_BORDER_HOOK_EVAL_PRE_FETCH
+                 callback function.
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-26
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 10 Feb 2012 13:47:15 +0900
+
+e17-extra-modules (0.2-25) unstable; urgency=low
+
+  * [MOVE] Enable Apptray Rotate ( 90 degree, 270 degree)
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-25
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 09 Feb 2012 17:56:54 +0900
+
+e17-extra-modules (0.2-24) unstable; urgency=low
+
+  * [ILLUME2] 1.remove setting opacity code while dragging inset mode window
+    [COMP] 1.remove workaround code which forces screen update for GL app doesn't serve damage notify
+           2. fix Home Screen ( include Live Magazine ) 's visibility on Compositor
+    [MOVE] Add INDICATOR_STATE property change event handler
+           if state changes, it shows transparent indicator or not.
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-24
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 09 Feb 2012 14:55:17 +0900
+
+e17-extra-modules (0.2-23) unstable; urgency=low
+
+  * [ILLUME2] 1.support for app-in-app feature (illume window state)
+              2.Change code to set root angle
+              3.fix visibility policy
+                 : Input only window works same as argb window.
+    [COMP] 1.Support for app-in-app feature (shadow, state, effect)
+           2.Add workaround code to avoid that GL window doesn't send damage notify
+           3.Add BGWIN event handlers to handle correctly
+           4.Adjust shadow size
+           5.Add Feature : Window Move Lock / Unlock
+    [MOVE] Add Feature : Quick Panel Move with Active Window Animation.
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-23
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Fri, 03 Feb 2012 17:41:01 +0900
+
+e17-extra-modules (0.2-22) unstable; urgency=low
+
+  * [keyrouter] Add a key definition and modify routine PrintKeyDeliveryList() for Earset media key.
+    [Keyrouter] Use XRRChangeOutputProperty() for setting output property instead of using xberc command directly
+    [Accessibility] Use XRRChangeOutputProperty() for setting output property instead of using xberc command directly
+    [MOVE] fix event send problem if window's evas object is different with window geometry ( like transparent indicator ), this problem occures.
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-22
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Thu, 02 Feb 2012 17:08:34 +0900
+
+e17-extra-modules (0.2-21) unstable; urgency=low
+
+  * [MOVE] Add Feature : Transparent Indicator
+                         it showes real Indicator Window
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-21
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Fri, 27 Jan 2012 22:34:05 +0900
+
+e17-extra-modules (0.2-20) unstable; urgency=low
+
+  * [MOVE] fix indicator's mouse up event handler that fixes apptray's animation geometry
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-20
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 26 Jan 2012 21:22:47 +0900
+
+e17-extra-modules (0.2-19) unstable; urgency=low
+
+  * [COMP] fix shape input mask function call case ( window hide with pixmap keep_unmapped )
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-19
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Tue, 17 Jan 2012 13:41:40 +0900
+
+e17-extra-modules (0.2-18) unstable; urgency=low
+
+  * [ILLUME2] Bug fix - change hidden mini controller window stack
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-18
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Mon, 16 Jan 2012 14:37:51 +0900
+
+e17-extra-modules (0.2-17) unstable; urgency=low
+
+  * [MOVE] add quickpanel state change message handler
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-17
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 12 Jan 2012 16:41:58 +0900
+
+e17-extra-modules (0.2-16) unstable; urgency=low
+
+  * [MOVE] Add event management feature for applications which want to get motion event
+    [ILLUME2] Move code to set ECORE_X_ATOM_E_USER_CREATED_WINDOW property
+              to E_BORDER_HOOK_NEW_BORDER hook callback function
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-16
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 11 Jan 2012 20:05:19 +0900
+
+e17-extra-modules (0.2-15) unstable; urgency=low
+
+  * [COMP] 1. fix check of window animating
+           2. logging window name using NETWM
+    [ILLUME2] 1. Remove code - unset transient_for minicontroller
+              2. Add code - set root angle when the rotated window's visibility is changed
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-15
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 11 Jan 2012 15:53:12 +0900
+
+e17-extra-modules (0.2-14) unstable; urgency=low
+
+  * [MOVE] fix app_tray first show case: move module moves app_tray to off_stage.
+           fix app_tray heller window stack problem
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-14
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Tue, 10 Jan 2012 11:19:44 +0900
+
+e17-extra-modules (0.2-13) unstable; urgency=low
+
+  * [ILLUME2] Code cleanup for logger
+    [COMP] Add damage_timeout configuration
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-13
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Mon, 09 Jan 2012 21:42:39 +0900
+
+e17-extra-modules (0.2-12) unstable; urgency=low
+
+  * [MOVE] fix indicator 90 degree rotation check problem
+           add input only window's name
+    [COMP] add window name info for dlog
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-12
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Fri, 06 Jan 2012 13:15:54 +0900
+
+e17-extra-modules (0.2-11) unstable; urgency=low
+
+  * [BUILD] Add build option to rules file.
+    [MOVE] 1. Add _NET_WM_WINDOW_SHOW action to support for showing/hiding move wins.
+           2. Fix wrong code in _e_mod_move_win_del.
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-11
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Wed, 04 Jan 2012 15:16:37 +0900
+
+e17-extra-modules (0.2-10) unstable; urgency=low
+
+  * [MOVE] 1. Fix SIGSEGV on QP minicontroller when closing QP base
+           2. Add code to set/unset focus when the app-tray is shown/hidden
+           3. Fix code detected by SVACE
+    [ILLUME2] 1. Add code to set focus to the top window when app-tray lost focus
+              2. Fix code detected by SVACE
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-10
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 03 Jan 2012 18:45:51 +0900
+
+e17-extra-modules (0.2-9) unstable; urgency=low
+
+  * [MOVE] 1.Fix AppTray stack problem
+           2.Change code to control mini controller window on lock screen mode
+    [ILLUME] 1.Change code to handle transient_for window
+             2.Change code to control quickpanel windows on lock screen mode
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-9
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 03 Jan 2012 10:26:12 +0900
+
+e17-extra-modules (0.2-8) unstable; urgency=low
+
+  * [accessiblity] Enable ZOOM UI feature when screen is rotated inside xserver
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-8
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Mon, 02 Jan 2012 20:40:23 +0900
+
+e17-extra-modules (0.2-7) unstable; urgency=low
+
+  * [COMP] Add BG_WINDOW type to support live wallpaper feature
+    [ILLUME2][QP] Bug fix - change code to save indicator's height
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-7
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 29 Dec 2011 17:02:32 +0900
+
+e17-extra-modules (0.2-6) unstable; urgency=low
+
+  * [COMP] fix miss-calculation of input_shape
+    [MOVE] add AppTray move animation
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-6
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 29 Dec 2011 13:11:34 +0900
+
+e17-extra-modules (0.2-5) unstable; urgency=low
+
+  * debian/control
+    - Add libpixman-1-dev to Build-Depends.
+  * [COMP]
+     . Add Feature
+      - COMP_INPUT_REGION_SET : enable set compositor's input region
+      - This Feature is used by MOVE Module
+      - change usage of compositor's screen_lock feature (ILLUME)
+     . FIX
+      - effect stage is too early disabled by no-related effect stage window.
+      - input region code refactoring
+  * [MOVE] Add Move Module
+  * [ILLUME] change QuickPanel usage
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-5
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Tue, 27 Dec 2011 14:24:44 +0900
+
+e17-extra-modules (0.2-4) unstable; urgency=low
+
+  * Change debian/rules file
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-4
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 21 Dec 2011 18:56:21 +0900
+
+e17-extra-modules (0.2-3) unstable; urgency=low
+
+  * Add featuring - _F_FOCUS_WINDOW_IF_TOP_STACK_, _F_COMP_SCREEN_LOCK_ 
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-3
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 20 Dec 2011 20:48:36 +0900
+
+e17-extra-modules (0.2-2) unstable; urgency=low
+
+  * [accessiblity] Disable ZOOM UI feature when screen is rotated inside xserver
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-2
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Tue, 20 Dec 2011 18:45:12 +0900
+
+e17-extra-modules (0.2-1) unstable; urgency=low
+
+  * [COMP] This update contains bug fixes, including the following:
+    - Fix window lower effect bug that comp doesn't show restack effect
+      between two normal windows.
+    - Fix double free problem while deleting eff_winrot object.
+    - Fix taskmanager effect bug.
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-1
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Mon, 19 Dec 2011 17:39:32 +0900
+
 e17-extra-modules (0.1-126) unstable; urgency=low
 
-  * Remove accessibility module
-  * Git: slp/pkgs/e/e17-extra-modules
+  * [COMP] Code Cleanup
+  * Git: 165.213.149.219:slp/pkgs/e/e17-extra-modules
   * Tag: e17-extra-modules_0.1-126
 
- -- Sung-Jin Park <sj76.park@samsung.com>  Wed, 28 Dec 2011 14:32:33 +0900
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 15 Dec 2011 14:39:15 +0900
 
 e17-extra-modules (0.1-125) unstable; urgency=low
 
   * [ILLUME2] Bug fix
     - Modify code to check return value of getting window angle property
     - This change is related with JIRA S1-107
-  * Git: slp/pkgs/e/e17-extra-modules
+  * Git: 165.213.180.234:slp/pkgs/e/e17-extra-modules
   * Tag: e17-extra-modules_0.1-125
 
  -- Doyoun Kang <doyoun.kang@samsung.com>  Sun, 11 Dec 2011 07:00:00 +0900

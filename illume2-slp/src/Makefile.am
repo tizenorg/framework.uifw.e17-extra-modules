@@ -47,7 +47,10 @@ module_la_SOURCES = \
                   e_mod_config.h \
                   e_mod_config.c \
                   e_mod_main.h \
-                  e_mod_main.c
+                  e_mod_main.c \
+                  e_illume_log.h \
+                  e_mod_log.h \
+                  e_mod_log.c
 
 module_la_LIBADD       = @dlopen_libs@
 module_la_CFLAGS       = @ENLIGHTENMENT_CFLAGS@

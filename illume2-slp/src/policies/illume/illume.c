@@ -29,6 +29,8 @@ e_illume_policy_init(E_Illume_Policy *p)
    p->funcs.focus_back = _policy_focus_back;
    p->funcs.focus_forward = _policy_focus_forward;
    p->funcs.property_change = _policy_property_change;
+   p->funcs.resize_start = _policy_resize_start;
+   p->funcs.resize_end = _policy_resize_end;
 
    p->funcs.window_focus_in = _policy_window_focus_in;
 
@@ -37,6 +39,7 @@ e_illume_policy_init(E_Illume_Policy *p)
 
    p->funcs.border_post_new_border = _policy_border_post_new_border;
    p->funcs.border_pre_fetch = _policy_border_pre_fetch;
+   p->funcs.border_new_border = _policy_border_new_border;
 
    p->funcs.window_configure_request = _policy_window_configure_request;
 
@@ -77,6 +80,8 @@ e_illume_policy_shutdown(E_Illume_Policy *p)
    p->funcs.focus_back = NULL;
    p->funcs.focus_forward = NULL;
    p->funcs.property_change = NULL;
+   p->funcs.resize_start = NULL;
+   p->funcs.resize_end = NULL;
 
    p->funcs.window_focus_in = NULL;
 
@@ -85,6 +90,7 @@ e_illume_policy_shutdown(E_Illume_Policy *p)
 
    p->funcs.border_post_new_border = NULL;
    p->funcs.border_pre_fetch = NULL;
+   p->funcs.border_new_border = NULL;
 
    p->funcs.window_configure_request = NULL;
 

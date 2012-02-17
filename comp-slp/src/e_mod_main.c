@@ -80,6 +80,7 @@ e_modapi_init(E_Module *m)
    E_CONFIG_VAL(D, T, fps_average_range, INT);
    E_CONFIG_VAL(D, T, fps_corner, UCHAR);
    E_CONFIG_VAL(D, T, fps_show, UCHAR);
+   E_CONFIG_VAL(D, T, damage_timeout, FLOAT);
    E_CONFIG_LIST(D, T, match.popups,    mod->conf_match_edd);
    E_CONFIG_LIST(D, T, match.borders,   mod->conf_match_edd);
    E_CONFIG_LIST(D, T, match.overrides, mod->conf_match_edd);
@@ -112,12 +113,13 @@ e_modapi_init(E_Module *m)
         mod->conf->max_lock_screen_time = 2.0f;
         mod->conf->dri_buff_flip = 1;
         mod->conf->default_window_effect = 1;
+        mod->conf->damage_timeout = 10.0f;
 
         /* make shadow file path */
         mod->conf->shadow_file = calloc(4096, sizeof(unsigned char));
         if (mod->conf->shadow_file)
           {
-             snprintf((char*)(mod->conf->shadow_file), 4096 * sizeof(unsigned char), "%s/data/themes/shadow.edj", e_prefix_data_get() );
+             snprintf((char*)(mod->conf->shadow_file), 4096 * sizeof(unsigned char), "%s/data/themes/shadow.edj", e_prefix_data_get());
              fprintf(stdout, "[E17-comp] shadow file path: %s\n", mod->conf->shadow_file);
           }
 
@@ -186,6 +188,7 @@ _e_mod_config_new(E_Module *m)
    mod->conf->fps_average_range = 30;
    mod->conf->fps_corner = 0;
    mod->conf->fps_show = 0;
+   mod->conf->damage_timeout = 10.0f;
 
    mod->conf->match.popups = NULL;
    mat = E_NEW(Match, 1);
@@ -237,15 +240,13 @@ _match_list_free(Eina_List *list)
 
    EINA_LIST_FREE(list, m)
      {
-        if ( m )
-          {
-            if (m->title) eina_stringshare_del(m->title);
-            if (m->name) eina_stringshare_del(m->name);
-            if (m->clas) eina_stringshare_del(m->clas);
-            if (m->role) eina_stringshare_del(m->role);
-            if (m->shadow_style) eina_stringshare_del(m->shadow_style);
-            free(m);
-          }
+        if (!m) continue;
+        if (m->title) eina_stringshare_del(m->title);
+        if (m->name) eina_stringshare_del(m->name);
+        if (m->clas) eina_stringshare_del(m->clas);
+        if (m->role) eina_stringshare_del(m->role);
+        if (m->shadow_style) eina_stringshare_del(m->shadow_style);
+        free(m);
      }
 }
 

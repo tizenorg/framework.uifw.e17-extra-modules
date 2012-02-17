@@ -1083,12 +1083,22 @@ static void _e_keyrouter_set_mouse_exist(unsigned int val, int propset)
 {
 	if( !val )
 	{
-		system("/usr/bin/xberc cursor_enable 0");
+		char* cmds[] = {"keyrouter", "cursor_enable", "0", NULL };
+		keyrouter.rroutput_buf_len = _e_keyrouter_marshalize_string (keyrouter.rroutput_buf, 3, cmds);
+
+		XRRChangeOutputProperty(keyrouter.disp, keyrouter.output, keyrouter.atomRROutput, XA_CARDINAL, 8, PropModeReplace, (unsigned char *)keyrouter.rroutput_buf, keyrouter.rroutput_buf_len);
+		XSync(keyrouter.disp, False);
+
 		if( propset )	ecore_x_window_prop_card32_set(keyrouter.rootWin, keyrouter.atomXMouseExist, &val, 1);
 	}
 	else if( 1 == val )
 	{
-		system("/usr/bin/xberc cursor_enable 1");
+		char* cmds[] = {"keyrouter", "cursor_enable", "1", NULL };
+		keyrouter.rroutput_buf_len = _e_keyrouter_marshalize_string (keyrouter.rroutput_buf, 3, cmds);
+
+		XRRChangeOutputProperty(keyrouter.disp, keyrouter.output, keyrouter.atomRROutput, XA_CARDINAL, 8, PropModeReplace, (unsigned char *)keyrouter.rroutput_buf, keyrouter.rroutput_buf_len);
+		XSync(keyrouter.disp, False);
+
 		if( propset )	ecore_x_window_prop_card32_set(keyrouter.rootWin, keyrouter.atomXMouseExist, &val, 1);
 	}
 	else
@@ -1104,6 +1114,46 @@ static void _e_keyrouter_set_keyboard_exist(unsigned int val, int is_connected)
 
 	system("/usr/bin/xmodmap /opt/etc/X11/Xmodmap");
 }
+
+static int _e_keyrouter_marshalize_string (char* buf, int num, char* srcs[])
+{
+   int i;
+   char * p = buf;
+
+   for (i=0; i<num; i++)
+     {
+        p += sprintf (p, srcs[i]);
+        *p = '\0';
+        p++;
+     }
+
+   *p = '\0';
+   p++;
+
+   return (p - buf);
+}
+
+static void _e_keyrouter_init_output(void)
+{
+   int i;
+
+   XRRScreenResources* res = XRRGetScreenResources (keyrouter.disp, keyrouter.rootWin);
+   keyrouter.output = 0;
+
+   if( res && (res->noutput != 0) )
+     {
+        for ( i = 0 ; i  <res->noutput ; i++ )
+          {
+             keyrouter.output = res->outputs[i];
+          }
+     }
+
+   if( !keyrouter.output )
+     {
+        fprintf(stderr, "[keyrouter][_e_keyrouter_init_output] Failed to init output !\n");
+     }
+}
+
 
 static E_Zone* _e_keyrouter_get_zone()
 {
@@ -1160,6 +1210,7 @@ int _e_keyrouter_init()
 	keyrouter.rootWin = DefaultRootWindow(keyrouter.disp);
 
 	_e_keyrouter_x_input_init();
+	_e_keyrouter_init_output();
 
 	InitGrabKeyDevices();
 	_e_keyrouter_bindings_init();
@@ -1173,6 +1224,7 @@ int _e_keyrouter_init()
 	keyrouter.atomXMouseCursorEnable = ecore_x_atom_get(PROP_X_MOUSE_CURSOR_ENABLE);
 	keyrouter.atomXExtKeyboardExist = ecore_x_atom_get(PROP_X_EXT_KEYBOARD_EXIST);
 	keyrouter.atomPointerType = ecore_x_atom_get(PROP_X_EVDEV_AXIS_LABELS);
+	keyrouter.atomRROutput = ecore_x_atom_get(PROP_XRROUTPUT);
 
 	keyrouter.zone = _e_keyrouter_get_zone();
 	if( !keyrouter.zone )
@@ -1691,6 +1743,8 @@ static void PrintKeyDeliveryList()
 			fprintf(keyrouter.fplog, "[ KEY_CAMERA : %s : %d ]\n", keyname, index);
 		else if( !strncmp(keyname, KEY_CONFIG, LEN_KEY_CONFIG) )
 			fprintf(keyrouter.fplog, "[ KEY_CONFIG : %s : %d ]\n", keyname, index);
+		else if( !strncmp(keyname, KEY_MEDIA, LEN_KEY_MEDIA) )
+			fprintf(keyrouter.fplog, "[ KEY_MEDIA : %s : %d ]\n", keyname, index);
 		else if( !strncmp(keyname, KEY_PLAYCD, LEN_KEY_PLAYCD) )
 			fprintf(keyrouter.fplog, "[ KEY_PLAYCD : %s : %d ]\n", keyname, index);
 		else if( !strncmp(keyname, KEY_STOPCD, LEN_KEY_STOPCD) )

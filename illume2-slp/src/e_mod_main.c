@@ -58,6 +58,23 @@ e_modapi_init(E_Module *m)
         return NULL;
      }
 
+#if ILLUME_LOGGER_BUILD_ENABLE
+   if (!e_mod_log_init())
+     {
+        /* shutdown the policy subsystem */
+        e_mod_policy_shutdown();
+
+        /* shutdown the config subsystem */
+        e_mod_illume_config_shutdown();
+
+        /* clear module directory variable */
+        if (_e_illume_mod_dir) eina_stringshare_del(_e_illume_mod_dir);
+        _e_illume_mod_dir = NULL;
+
+        return NULL;
+     }
+#endif /* ILLUME_LOGGER_BUILD_ENABLE */
+
    /* initialize the quickpanel subsystem */
    e_mod_quickpanel_init();
 
@@ -79,6 +96,11 @@ e_modapi_init(E_Module *m)
      {
         /* shutdown quickpanel */
         e_mod_quickpanel_shutdown();
+
+#if ILLUME_LOGGER_BUILD_ENABLE
+        /* shutdown the log subsystem */
+        e_mod_log_shutdown();
+#endif /* ILLUME_LOGGER_BUILD_ENABLE */
 
         /* shutdown the config subsystem */
         e_mod_illume_config_shutdown();
@@ -140,6 +162,11 @@ e_modapi_shutdown(E_Module *m __UNUSED__)
 
    /* shutdown the quickpanel subsystem */
    e_mod_quickpanel_shutdown();
+
+#if ILLUME_LOGGER_BUILD_ENABLE
+   /* shutdown the log subsystem */
+   e_mod_log_shutdown();
+#endif /* ILLUME_LOGGER_BUILD_ENABLE */
 
    /* shutdown the policy subsystem */
    e_mod_policy_shutdown();

@@ -42,6 +42,7 @@ struct _Config
    int              fps_average_range;
    unsigned char    fps_corner;
    unsigned char    fps_show;
+   float            damage_timeout;
 
    struct {
       Eina_List    *popups; // used for e popups

@@ -1,7 +1,7 @@
 Source: e17-extra-modules
 Priority: extra
 Maintainer: Doyoun Kang <doyoun.kang@samsung.com>, Gwanglim Lee <gl77.lee@samsung.com>, Gwangyeong Mun <kk.moon@samsung.com>, Sangjin Lee <lsj119@samsung.com>, Sung-Jin Park <sj76.park@samsung.com>, Duna Oh <duna.oh@samsung.com>
-Build-Depends: debhelper (>= 5), e17-dev, libslp-utilx-dev, libelm-dev, dlog-dev
+Build-Depends: debhelper (>= 5), e17-dev, libslp-utilx-dev, libelm-dev, libpixman-1-dev, dlog-dev
 Standards-Version: 3.8.3
 Section: libs
 

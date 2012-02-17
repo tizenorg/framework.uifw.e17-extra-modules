@@ -45,6 +45,7 @@ static void _policy_border_show_below(E_Border *bd);
 static void _policy_zone_layout_update(E_Zone *zone);
 static void _policy_zone_layout_indicator(E_Border *bd, E_Illume_Config_Zone *cz);
 static void _policy_zone_layout_quickpanel(E_Border *bd);
+static void _policy_zone_layout_quickpanel_popup(E_Border *bd);
 static void _policy_zone_layout_keyboard(E_Border *bd, E_Illume_Config_Zone *cz);
 static void _policy_zone_layout_fullscreen(E_Border *bd);
 static void _policy_zone_layout_dialog(E_Border *bd, E_Illume_Config_Zone *cz);
@@ -95,16 +96,21 @@ static void _policy_property_rotate_root_angle_change (Ecore_X_Event_Window_Prop
 static void _policy_property_notification_level_change (Ecore_X_Event_Window_Property *event);
 static void _policy_property_overlay_win_change (Ecore_X_Event_Window_Property *event);
 static void _policy_property_window_opaque_change (Ecore_X_Event_Window_Property *event);
+static void _policy_property_illume_window_state_change(Ecore_X_Event_Window_Property *event);
+
+static void _policy_border_illume_window_state_change(E_Border *bd, unsigned int state);
+static void _policy_border_illume_handlers_add(E_Border *bd);
+static void _policy_border_illume_handlers_remove(E_Border *bd);
+static Eina_Bool _policy_border_cb_mouse_down(void *data, int type __UNUSED__, void *event);
+static Eina_Bool _policy_border_cb_mouse_up(void *data, int type __UNUSED__, void *event);
+static Eina_Bool _policy_border_cb_mouse_move(void *data, int type __UNUSED__, void *event);
 
 static int _policy_property_window_opaque_get (Ecore_X_Window win);
 
+static void _policy_border_focus_top_stack_set(E_Border *bd);
 
 /* for debugging */
 void _policy_border_list_print (Ecore_X_Window win);
-
-#if ILLUME_LOGGER_BUILD_ENABLE
-static Eina_Bool _policy_property_illume_log_change (Ecore_X_Event_Window_Property *ev);
-#endif /* ILLUME_LOGGER_BUILD_ENABLE */
 
 #ifdef COMP_MODULE_CONTROL
 static void _policy_property_composite_module_change (Ecore_X_Event_Window_Property *ev);
@@ -121,10 +127,15 @@ static void _policy_calculate_visibility (Ecore_X_Window win);
 #endif // visibility
 
 static E_Illume_XWin_Info* _policy_find_next_visible_window (E_Illume_XWin_Info* xwin_info);
-static void _policy_root_angle_set (Ecore_X_Window root, Ecore_X_Window win);
+static void _policy_root_angle_set(E_Border *bd);
 static void _policy_change_root_angle_by_border_angle (E_Border* bd);
 static void _policy_indicator_angle_change (E_Border* indi_bd, int angle);
 
+static void _policy_border_transient_for_group_make(E_Border *bd, Eina_List** list);
+static E_Border* _policy_border_transient_for_border_top_get(E_Border *bd);
+static void _policy_border_transient_for_layer_set(E_Border *bd, E_Border *parent_bd, int layer);
+
+static void _policy_border_set_root_angle_by_top_visible_win(void);
 
 /*******************/
 /* local variables */
@@ -162,12 +173,6 @@ static Ecore_X_Atom E_ILLUME_ATOM_WINDOW_OPAQUE;
 /* for debugging */
 static Ecore_X_Atom E_ILLUME_ATOM_STACK_DISPLAY;
 static Ecore_X_Atom E_ILLUME_ATOM_STACK_DISPLAY_DONE;
-
-/* for logger */
-#if ILLUME_LOGGER_BUILD_ENABLE
-static int _illume_logger_type = LT_NOTHING;
-static Ecore_X_Atom E_ILLUME_ATOM_ILLUME_LOG;
-#endif /* ILLUME_LOGGER_BUILD_ENABLE */
 
  #ifdef COMP_MODULE_CONTROL
 static Ecore_X_Atom E_ILLUME_ATOM_COMP_MODULE_ENABLED;
@@ -307,6 +312,7 @@ _policy_border_show_below(E_Border *bd)
              if (e_illume_border_is_indicator(b)) continue;
              if (e_illume_border_is_keyboard(b)) continue;
              if (e_illume_border_is_quickpanel(b)) continue;
+             if (e_illume_border_is_quickpanel_popup(b)) continue;
              if (e_illume_border_is_sliding_win(b)) continue;
 
              if ((bd->fullscreen) || (bd->need_fullscreen))
@@ -356,6 +362,7 @@ _policy_zone_layout_update(E_Zone *zone)
         /* skip special windows */
         if (e_illume_border_is_keyboard(bd)) continue;
         if (e_illume_border_is_quickpanel(bd)) continue;
+        if (e_illume_border_is_quickpanel_popup(bd)) continue;
 
         /* signal a changed pos here so layout gets updated */
         bd->changes.pos = 1;
@@ -366,7 +373,7 @@ _policy_zone_layout_update(E_Zone *zone)
 static void
 _policy_zone_layout_indicator(E_Border *bd, E_Illume_Config_Zone *cz)
 {
-   ILLUME2_TRACE ("[ILLUME2] %s (%d) win = %x\n", __func__, __LINE__, bd->client.win);
+   ILLUME2_TRACE ("[ILLUME2] %s (%d) win = 0x%07x\n", __func__, __LINE__, bd->client.win);
 
    if ((!bd) || (!cz)) return;
 
@@ -436,6 +443,13 @@ _policy_zone_layout_quickpanel(E_Border *bd)
           }
      }
 */
+}
+
+static void _policy_zone_layout_quickpanel_popup(E_Border *bd)
+{
+   if (!bd) return;
+
+   // Do something
 }
 
 static void
@@ -567,7 +581,7 @@ _policy_border_add(E_Border *bd)
     * to it's current zone */
    ecore_x_e_illume_zone_set(bd->client.win, bd->zone->black_win);
 
-   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... bd = %x\n", __func__, __LINE__, bd->client.win);
+   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... bd = 0x%07x\n", __func__, __LINE__, bd->client.win);
    // 1. create border_info
    E_Illume_Border_Info* bd_info = NULL;
    bd_info = _policy_get_border_info(bd);
@@ -582,7 +596,8 @@ _policy_border_add(E_Border *bd)
    /* ignore stolen borders. These are typically quickpanel or keyboards */
    if (bd->stolen)
      {
-        if (bd->client.illume.quickpanel.quickpanel)
+        if (e_illume_border_is_quickpanel(bd) ||
+            e_illume_border_is_quickpanel_popup(bd))
           {
              E_Border* indi_bd;
              E_Illume_Border_Info* indi_bd_info = NULL;
@@ -617,7 +632,7 @@ _policy_border_add(E_Border *bd)
         cz = e_illume_zone_config_get(bd->zone->id);
         if (cz)
           {
-             ILLUME2_TRACE ("[ILLUME2] ADD INDICATOR WINDOW... win = %x, Save indicator's size = %d!!!\n", bd->client.win, bd->h);
+             ILLUME2_TRACE ("[ILLUME2] ADD INDICATOR WINDOW... win = 0x%07x, Save indicator's size = %d!!!\n", bd->client.win, bd->h);
              cz->indicator.size = bd->h;
           }
 
@@ -629,7 +644,8 @@ _policy_border_add(E_Border *bd)
              if (active_bd)
                {
                   is_show = _policy_border_indicator_state_get (active_bd);
-                  if (e_illume_border_is_notification (active_bd))
+                  if ((e_illume_border_is_notification(active_bd)) ||
+                      (active_bd->layer == POL_NOTIFICATION_LAYER))
                     {
                        int level;
                        E_Illume_Border_Info* active_bd_info;
@@ -703,16 +719,16 @@ _policy_border_del(E_Border *bd)
                {
                   E_Illume_XWin_Info* next_xwin_info = NULL;
                   next_xwin_info = _policy_find_next_visible_window (xwin_info);
-                  L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. next_win:%x\n", __func__, __LINE__, next_xwin_info ? (unsigned int)next_xwin_info->bd_info->border->client.win : (unsigned int)NULL);
+                  L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. next_win:0x%07x\n", __func__, __LINE__, next_xwin_info ? (unsigned int)next_xwin_info->bd_info->border->client.win : (unsigned int)NULL);
                   if (next_xwin_info)
                     {
-                       L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. CALL _policy_change_root_angle_by_border_angle!!! win:%x\n", __func__, __LINE__, next_xwin_info->bd_info->border->client.win);
+                       L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. CALL _policy_change_root_angle_by_border_angle!!! win:0x%07x\n", __func__, __LINE__, next_xwin_info->bd_info->border->client.win);
                        _policy_change_root_angle_by_border_angle (next_xwin_info->bd_info->border);
                     }
                   else
                     {
-                       L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d)... CALL _policy_root_angle_set.. win:%x\n", __func__, __LINE__, (unsigned int)NULL);
-                       _policy_root_angle_set (bd->zone->container->manager->root, 0);
+                       L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d)... CALL _policy_root_angle_set.. win:0x%07x\n", __func__, __LINE__, (unsigned int)NULL);
+                       _policy_root_angle_set(NULL);
                     }
 
                }
@@ -749,6 +765,8 @@ _policy_border_del(E_Border *bd)
              e_illume_util_mem_trim();
           }
      }
+
+   _policy_border_illume_handlers_remove(bd);
 }
 
 void
@@ -777,6 +795,13 @@ _policy_border_focus_out(E_Border *bd)
                 _policy_border_set_focus(parent);
           }
      }
+   else
+     {
+        if (e_illume_border_is_app_tray(bd))
+          {
+             _policy_border_focus_top_stack_set(bd);
+          }
+     }
 }
 
 void
@@ -799,16 +824,17 @@ _policy_border_activate(E_Border *bd)
    if ((bd->iconic) && (!bd->lock_user_iconify))
       e_border_uniconify(bd);
 
-   ILLUME2_TRACE ("[ILLUME2] _policy_border_activate.. (%d) ACTIVE WIN = %x\n", __LINE__, bd->client.win);
+   ILLUME2_TRACE ("[ILLUME2] _policy_border_activate.. (%d) ACTIVE WIN = 0x%07x\n", __LINE__, bd->client.win);
 
-   if (e_illume_border_is_notification (bd))
+   if ((e_illume_border_is_notification(bd)) ||
+       (bd->layer == POL_NOTIFICATION_LAYER))
      {
         // create border_info
         bd_info = _policy_get_border_info(bd);
         if (bd_info == NULL) return;
 
         level = _policy_border_get_notification_level (bd->client.win);
-        L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (%x) is notification window... level = %d\n", __func__, __LINE__, bd->client.win, level);
+        L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (0x%07x) is notification window... level = %d\n", __func__, __LINE__, bd->client.win, level);
         _policy_border_update_notification_stack (bd, level, EINA_TRUE);
      }
 
@@ -859,6 +885,7 @@ void
 _policy_border_post_new_border(E_Border *bd)
 {
    int level;
+   unsigned int state;
    E_Illume_Border_Info* bd_info = NULL;
 
    if (bd->new_client)
@@ -871,9 +898,12 @@ _policy_border_post_new_border(E_Border *bd)
                 bd_info = _policy_add_border_info_list (bd);
 
              level = _policy_border_get_notification_level (bd->client.win);
-             L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (%x) is notification window... level = %d\n", __func__, __LINE__, bd->client.win, level);
+             L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (0x%07x) is notification window... level = %d\n", __func__, __LINE__, bd->client.win, level);
              _policy_border_update_notification_stack (bd, level, EINA_TRUE);
           }
+
+        state = ecore_x_e_illume_window_state_get(bd->client.win);
+        _policy_border_illume_window_state_change(bd, state);
      }
 }
 
@@ -882,6 +912,14 @@ void
 _policy_border_pre_fetch(E_Border *bd)
 {
    if (!bd) return;
+
+   if (bd->new_client)
+     {
+        E_Illume_Border_Info* bd_info = NULL;
+        bd_info = _policy_get_border_info(bd);
+        if (bd_info == NULL)
+           bd_info = _policy_add_border_info_list(bd);
+     }
 
    /* Below code are same to _e_border_eval0 in e_border.c.
       But we added code to handle notification window */
@@ -908,9 +946,9 @@ _policy_border_pre_fetch(E_Border *bd)
           {
              if (bd_parent != bd)
                {
-                  bd_parent->transients = eina_list_append(bd_parent->transients, bd);
                   bd->parent = bd_parent;
-                  e_border_layer_set(bd, bd->parent->layer);
+                  _policy_border_transient_for_layer_set(bd, bd->parent, bd->parent->layer);
+                  bd_parent->transients = eina_list_append(bd_parent->transients, bd);
 
                   if ((e_config->modal_windows) && (bd->client.netwm.state.modal))
                      bd->parent->modal = bd;
@@ -939,7 +977,7 @@ _policy_border_pre_fetch(E_Border *bd)
                          {
                             level = _policy_border_get_notification_level (bd_parent->client.win);
                          }
-                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (%x) is notification window... level = %d\n", __func__, __LINE__, bd->client.win, level);
+                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (0x%07x) is notification window... level = %d\n", __func__, __LINE__, bd->client.win, level);
                        _policy_border_update_notification_stack (bd, level, EINA_TRUE);
                     }
                }
@@ -964,13 +1002,22 @@ _policy_border_pre_fetch(E_Border *bd)
                          {
                             level = _policy_border_get_notification_level (bd_parent->client.win);
                          }
-                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (%x) is notification window... level = %d\n", __func__, __LINE__, bd->client.win, level);
+                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (0x%07x) is notification window... level = %d\n", __func__, __LINE__, bd->client.win, level);
                        _policy_border_update_notification_stack (bd, level, EINA_TRUE);
                     }
                }
           }
         bd->client.icccm.fetch.transient_for = 0;
      }
+}
+
+void
+_policy_border_new_border(E_Border *bd)
+{
+   if (!bd) return;
+
+   if (bd->zone)
+     ecore_x_e_illume_zone_set(bd->client.win, bd->zone->black_win);
 }
 
 void
@@ -1000,7 +1047,7 @@ _policy_border_post_assign(E_Border *bd)
 
    if (e_illume_border_is_utility (bd))
      {
-        ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... win(%x) is UTILITY type.. SET REQUEST_POS!!!\n", __func__, __LINE__, bd->client.win);
+        ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... win(0x%07x) is UTILITY type.. SET REQUEST_POS!!!\n", __func__, __LINE__, bd->client.win);
         bd->client.icccm.request_pos = 1;
      }
 
@@ -1019,6 +1066,7 @@ _policy_border_show(E_Border *bd)
    /* trap for special windows so we can ignore hides below them */
    if (e_illume_border_is_indicator(bd)) return;
    if (e_illume_border_is_quickpanel(bd)) return;
+   if (e_illume_border_is_quickpanel_popup(bd)) return;
    if (e_illume_border_is_keyboard(bd)) return;
    if (e_illume_border_is_sliding_win(bd))
      {
@@ -1069,6 +1117,9 @@ _policy_zone_layout(E_Zone *zone)
         /* are we layout out a quickpanel ? */
         else if (e_illume_border_is_quickpanel(bd))
            _policy_zone_layout_quickpanel(bd);
+
+        else if (e_illume_border_is_quickpanel_popup(bd))
+           _policy_zone_layout_quickpanel_popup(bd);
 
         /* are we laying out a keyboard ? */
         else if (e_illume_border_is_keyboard(bd))
@@ -1216,6 +1267,12 @@ _policy_drag_start(E_Border *bd)
    /* ignore stolen borders */
    if (bd->stolen) return;
 
+   if (!bd->visible) return;
+   if (!bd->client.illume.win_state.state) return;
+   if (!bd->client.illume.win_state.mouse.down) return;
+
+   bd->client.illume.win_state.mouse.locked = 1;
+
    /* set property on this border to say we are dragging */
    ecore_x_e_illume_drag_set(bd->client.win, 1);
 
@@ -1233,11 +1290,64 @@ _policy_drag_end(E_Border *bd)
    /* ignore stolen borders */
    if (bd->stolen) return;
 
+   if (!bd->client.illume.win_state.state) return;
+   if (!bd->client.illume.win_state.mouse.down) return;
+
+   bd->client.illume.win_state.mouse.locked = 0;
+
    /* set property on this border to say we are done dragging */
    ecore_x_e_illume_drag_set(bd->client.win, 0);
 
    /* set property on zone window that a drag is finished */
    ecore_x_e_illume_drag_set(bd->zone->black_win, 0);
+}
+
+void
+_policy_resize_start(E_Border *bd)
+{
+   E_Manager *m;
+   Evas *canvas;
+   Evas_Object *o;
+
+   if (!bd) return;
+   if (bd->stolen) return;
+   if (!bd->client.illume.win_state.state) return;
+   if (!bd->client.illume.win_state.mouse.down) return;
+
+   bd->client.illume.win_state.need_change = 0;
+   bd->client.illume.win_state.mouse.locked = 1;
+   bd->client.illume.win_state.mouse.resize = 1;
+   int ang = _policy_window_rotation_angle_get(bd->client.win);
+   if (ang == -1) ang = 0;
+   bd->client.illume.win_state.angle = ang;
+
+   m = e_manager_current_get();
+   if (!m) return;
+   canvas = e_manager_comp_evas_get(m);
+   if (!canvas) return;
+
+   o = evas_object_rectangle_add(canvas);
+   evas_object_color_set(o, 100, 100, 100, 100);
+   evas_object_move(o, bd->x, bd->y);
+   evas_object_resize(o, bd->w, bd->h);
+   e_object_data_set(E_OBJECT(bd), o);
+   evas_object_show(o);
+}
+
+void
+_policy_resize_end(E_Border *bd)
+{
+   if (!bd) return;
+
+   Evas_Object *o = (Evas_Object *)e_object_data_get(E_OBJECT(bd));
+   if (o) evas_object_del(o);
+
+   if (bd->stolen) return;
+   if (!bd->client.illume.win_state.state) return;
+   if (!bd->client.illume.win_state.mouse.down) return;
+
+   bd->client.illume.win_state.mouse.locked = 0;
+   bd->client.illume.win_state.mouse.resize = 0;
 }
 
 void
@@ -1530,6 +1640,7 @@ static void _policy_property_sliding_win_geometry_change (Ecore_X_Event_Window_P
         if (e_illume_border_is_indicator(bd)) continue;
         if (e_illume_border_is_keyboard(bd)) continue;
         if (e_illume_border_is_quickpanel(bd)) continue;
+        if (e_illume_border_is_quickpanel_popup(bd)) continue;
 
         ecore_x_e_illume_sliding_win_geometry_set(bd->client.win, x, y, w, h);
      }
@@ -1555,6 +1666,7 @@ static void _policy_property_sliding_win_state_change (Ecore_X_Event_Window_Prop
         if (e_illume_border_is_indicator(bd)) continue;
         if (e_illume_border_is_keyboard(bd)) continue;
         if (e_illume_border_is_quickpanel(bd)) continue;
+        if (e_illume_border_is_quickpanel_popup(bd)) continue;
 
         ecore_x_e_illume_sliding_win_state_set (bd->client.win, is_visible);
      }
@@ -1589,7 +1701,7 @@ static void _policy_property_rotate_win_angle_change (Ecore_X_Event_Window_Prope
    E_Border* bd;
    E_Illume_XWin_Info* xwin_info;
 
-   L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. win:%x\n", __func__, __LINE__, event->win);
+   L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. win:0x%07x\n", __func__, __LINE__, event->win);
 
    if (!(bd = e_border_find_by_client_window(event->win))) return;
 
@@ -1598,10 +1710,13 @@ static void _policy_property_rotate_win_angle_change (Ecore_X_Event_Window_Prope
      {
         if (xwin_info->visibility == E_ILLUME_VISIBILITY_UNOBSCURED)
           {
-             L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. CALL _policy_change_root_angle_by_border_angle!!! win:%x\n", __func__, __LINE__, bd->client.win);
+             L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. CALL _policy_change_root_angle_by_border_angle!!! win:0x%07x\n", __func__, __LINE__, bd->client.win);
              _policy_change_root_angle_by_border_angle (bd);
           }
      }
+
+   bd->changes.pos = 1;
+   bd->changed = 1;
 }
 
 static void _policy_property_indicator_state_change (Ecore_X_Event_Window_Property *event)
@@ -1620,10 +1735,11 @@ static void _policy_property_indicator_state_change (Ecore_X_Event_Window_Proper
         int indi_show = _policy_border_indicator_state_get(bd);
         if (indi_show == 1)
           {
-             ILLUME2_TRACE ("[ILLUME2] Get ECORE_X_ATOM_E_ILLUME_INDICATOR_STATE (%d)   SHOW Indicator... bd = %x\n", __LINE__, event->win);
+             ILLUME2_TRACE ("[ILLUME2] Get ECORE_X_ATOM_E_ILLUME_INDICATOR_STATE (%d)   SHOW Indicator... bd = 0x%07x\n", __LINE__, event->win);
              e_border_show(indi_bd);
 
-             if (e_illume_border_is_notification (bd))
+             if ((e_illume_border_is_notification(bd)) ||
+                 (bd->layer == POL_NOTIFICATION_LAYER))
                {
                   int level;
                   E_Illume_Border_Info* active_bd_info;
@@ -1636,13 +1752,13 @@ static void _policy_property_indicator_state_change (Ecore_X_Event_Window_Proper
                     {
                        level = 250;
                     }
-                  L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Notification Win:%x, Update Indicator's layer to NOTIFICATION.. level = %d\n", __func__, __LINE__, bd->client.win, level);
+                  L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Notification Win:0x%07x, Update Indicator's layer to NOTIFICATION.. level = %d\n", __func__, __LINE__, bd->client.win, level);
                   _policy_change_indicator_layer (indi_bd, POL_NOTIFICATION_LAYER, level);
                }
           }
         else if (indi_show == 0)
           {
-             ILLUME2_TRACE ("[ILLUME2] Get ECORE_X_ATOM_E_ILLUME_INDICATOR_STATE (%d)  HIDE Indicator... bd = %x\n", __LINE__, event->win);
+             ILLUME2_TRACE ("[ILLUME2] Get ECORE_X_ATOM_E_ILLUME_INDICATOR_STATE (%d)  HIDE Indicator... bd = 0x%07x\n", __LINE__, event->win);
              e_border_hide(indi_bd, 2);
           }
      }
@@ -1686,13 +1802,13 @@ static void _policy_property_active_win_change (Ecore_X_Event_Window_Property *e
         printf ("\n=========================================================================================\n");
         if (active_border)
           {
-             printf ("[WM] Active window is changed.  OLD(win:%x,pid:%d) --> NEW(win:%x,pid:%d,name:%s)\n", g_active_win, g_active_pid, active_win, active_pid, active_border->client.netwm.name);
-             LOG(LOG_DEBUG, "LAUNCH", "[WM] Active window is changed. OLD(win:%x,pid:%d) --> NEW(win:%x,pid:%d,name:%s)", g_active_win, g_active_pid, active_win, active_pid, active_border->client.netwm.name);
+             printf ("[WM] Active window is changed.  OLD(win:0x%07x,pid:%d) --> NEW(win:0x%07x,pid:%d,name:%s)\n", g_active_win, g_active_pid, active_win, active_pid, active_border->client.netwm.name);
+             LOG(LOG_DEBUG, "LAUNCH", "[WM] Active window is changed. OLD(win:0x%07x,pid:%d) --> NEW(win:0x%07x,pid:%d,name:%s)", g_active_win, g_active_pid, active_win, active_pid, active_border->client.netwm.name);
           }
         else
           {
-             printf ("[WM] Active window is changed.  OLD(win:%x,pid:%d) --> NEW(win:%x,pid:%d,name:NULL)\n", g_active_win, g_active_pid, active_win, active_pid);
-             LOG(LOG_DEBUG, "LAUNCH", "[WM] Active window is changed. OLD(win:%x,pid:%d) --> NEW(win:%x,pid:%d,name:NULL)", g_active_win, g_active_pid, active_win, active_pid);
+             printf ("[WM] Active window is changed.  OLD(win:0x%07x,pid:%d) --> NEW(win:0x%07x,pid:%d,name:NULL)\n", g_active_win, g_active_pid, active_win, active_pid);
+             LOG(LOG_DEBUG, "LAUNCH", "[WM] Active window is changed. OLD(win:0x%07x,pid:%d) --> NEW(win:0x%07x,pid:%d,name:NULL)", g_active_win, g_active_pid, active_win, active_pid);
           }
         printf ("=========================================================================================\n\n");
         g_active_win = active_win;
@@ -1701,6 +1817,8 @@ static void _policy_property_active_win_change (Ecore_X_Event_Window_Property *e
 
    if (active_border)
      {
+        _policy_root_angle_set(active_border);
+
         indi_bd = e_illume_border_indicator_get (active_border->zone);
         if (indi_bd)
           {
@@ -1715,7 +1833,8 @@ static void _policy_property_active_win_change (Ecore_X_Event_Window_Property *e
              if (indi_show == 1)
                {
                   // if border is notification, the indicator's layer is changed
-                  if (e_illume_border_is_notification (active_border))
+                  if ((e_illume_border_is_notification(active_border)) ||
+                      (active_border->layer == POL_NOTIFICATION_LAYER))
                     {
                        int level;
                        E_Illume_Border_Info* active_bd_info;
@@ -1728,26 +1847,26 @@ static void _policy_property_active_win_change (Ecore_X_Event_Window_Property *e
                          {
                             level = 250;
                          }
-                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Notification Win:%x, Update Indicator's layer to NOTIFICATION.. level = %d\n", __func__, __LINE__, indi_bd->client.win, level);
+                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Notification Win:0x%07x, Update Indicator's layer to NOTIFICATION.. level = %d\n", __func__, __LINE__, indi_bd->client.win, level);
                        _policy_change_indicator_layer (indi_bd, POL_NOTIFICATION_LAYER, level);
                     }
                   else
                     {
-                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Notification Win:%x, Update Indicator's layer to NOTIFICATION.. level = %d\n", __func__, __LINE__, indi_bd->client.win, 50);
+                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Notification Win:0x%07x, Update Indicator's layer to NOTIFICATION.. level = %d\n", __func__, __LINE__, indi_bd->client.win, 50);
                        _policy_change_indicator_layer (indi_bd, POL_INDICATOR_LAYER, 50);
                     }
 
-                  ILLUME2_TRACE ("[ILLUME2] Get ECORE_X_ATOM_NET_ACTIVE_WINDOW (%d)   SHOW Indicator... bd = %x\n", __LINE__, active_win);
+                  ILLUME2_TRACE ("[ILLUME2] Get ECORE_X_ATOM_NET_ACTIVE_WINDOW (%d)   SHOW Indicator... bd = 0x%07x\n", __LINE__, active_win);
                   e_border_show(indi_bd);
                }
              else if (indi_show == 0)
                {
-                  ILLUME2_TRACE ("[ILLUME2] Get ECORE_X_ATOM_NET_ACTIVE_WINDOW (%d)  HIDE Indicator... bd = %x\n", __LINE__, active_win);
+                  ILLUME2_TRACE ("[ILLUME2] Get ECORE_X_ATOM_NET_ACTIVE_WINDOW (%d)  HIDE Indicator... bd = 0x%07x\n", __LINE__, active_win);
                   e_border_hide(indi_bd, 2);
                }
           }
 
-        ILLUME2_TRACE ("[ILLUME2] ACTIVE WINDOW... (%d) active win = %x HIDE quickpanel\n", __LINE__, active_win);
+        ILLUME2_TRACE ("[ILLUME2] ACTIVE WINDOW... (%d) active win = 0x%07x HIDE quickpanel\n", __LINE__, active_win);
         e_illume_quickpanel_hide (active_border->zone, 0);
      }
 }
@@ -1762,12 +1881,12 @@ static void _policy_property_win_type_change (Ecore_X_Event_Window_Property *eve
    e_hints_window_type_get (bd);
    if (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_NOTIFICATION)
      {
-        ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... WINDOW TYPE is CHANGED to NOTIFICATION!!!!! win = %x\n", __func__, __LINE__, bd->client.win);
+        ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... WINDOW TYPE is CHANGED to NOTIFICATION!!!!! win = 0x%07x\n", __func__, __LINE__, bd->client.win);
         if (bd->layer != POL_NOTIFICATION_LAYER)
            e_border_layer_set(bd, POL_NOTIFICATION_LAYER);
 
         level = _policy_border_get_notification_level (bd->client.win);
-        L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (%x) is notification window... level = %d\n", __func__, __LINE__, bd->client.win, level);
+        L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (0x%07x) is notification window... level = %d\n", __func__, __LINE__, bd->client.win, level);
         _policy_border_update_notification_stack (bd, level, EINA_TRUE);
 
         if (_policy_active_window_get (bd->zone->container->manager->root) == bd->client.win)
@@ -1781,7 +1900,7 @@ static void _policy_property_win_type_change (Ecore_X_Event_Window_Property *eve
                   show_indi = _policy_border_indicator_state_get (bd);
                   if (show_indi == 1)
                     {
-                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Notification Win:%x, Update Indicator's layer to NOTIFICATION.. level = %d\n", __func__, __LINE__, indi_bd->client.win, level);
+                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Notification Win:0x%07x, Update Indicator's layer to NOTIFICATION.. level = %d\n", __func__, __LINE__, indi_bd->client.win, level);
                        _policy_change_indicator_layer (indi_bd, POL_NOTIFICATION_LAYER, level);
                     }
                }
@@ -1789,10 +1908,11 @@ static void _policy_property_win_type_change (Ecore_X_Event_Window_Property *eve
      }
    else if (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_NORMAL)
      {
-        ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... WINDOW TYPE is CHANGED to NORMAL!!!!! win = %x\n", __func__, __LINE__, bd->client.win);
+        ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... WINDOW TYPE is CHANGED to NORMAL!!!!! win = 0x%07x\n", __func__, __LINE__, bd->client.win);
         if (bd->layer != POL_APP_LAYER)
           {
              if ( (!e_illume_border_is_quickpanel(bd)) &&
+                  (!e_illume_border_is_quickpanel_popup(bd)) &&
                   (!e_illume_border_is_keyboard(bd)))
                {
                   e_border_layer_set(bd, POL_APP_LAYER);
@@ -1810,7 +1930,7 @@ static void _policy_property_win_type_change (Ecore_X_Event_Window_Property *eve
                   show_indi = _policy_border_indicator_state_get (bd);
                   if (show_indi == 1)
                     {
-                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Notification Win:%x, Update Indicator's layer to NOTIFICATION.. level = %d\n", __func__, __LINE__, indi_bd->client.win, 50);
+                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Notification Win:0x%07x, Update Indicator's layer to NOTIFICATION.. level = %d\n", __func__, __LINE__, indi_bd->client.win, 50);
                        _policy_change_indicator_layer (indi_bd, POL_INDICATOR_LAYER, 50);
                     }
                }
@@ -1870,7 +1990,7 @@ static void _policy_property_rotate_root_angle_change (Ecore_X_Event_Window_Prop
                   if (!bd_temp) continue;
                   if (!bd_temp->visible) continue;
 
-                  L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d)... win = %x..  SEND client Event with angle = %d\n", __func__, __LINE__, bd_temp->client.win, angle);
+                  L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d)... win = 0x%07x..  SEND client Event with angle = %d\n", __func__, __LINE__, bd_temp->client.win, angle);
                   ecore_x_client_message32_send (bd_temp->client.win, ECORE_X_ATOM_E_ILLUME_ROTATE_ROOT_ANGLE,
                                                  ECORE_X_EVENT_MASK_WINDOW_CONFIGURE, angle, g_active_win, 0, 0, 0);
                }
@@ -1890,7 +2010,7 @@ static void _policy_property_notification_level_change (Ecore_X_Event_Window_Pro
       2. Get and Set level
       3. Change Stack
     */
-   L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... E_ILLUME_ATOM_NOTIFICATION_LEVEL property!!!  win = %x\n", __func__, __LINE__, event->win);
+   L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... E_ILLUME_ATOM_NOTIFICATION_LEVEL property!!!  win = 0x%07x\n", __func__, __LINE__, event->win);
 
    E_Border* bd;
    int level;
@@ -1898,20 +2018,20 @@ static void _policy_property_notification_level_change (Ecore_X_Event_Window_Pro
    // 0.
    if (!(bd = e_border_find_by_client_window(event->win)))
      {
-        L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... Win (%x) doesn't have border... So return..\n", __func__, __LINE__, event->win);
+        L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... Win (0x%07x) doesn't have border... So return..\n", __func__, __LINE__, event->win);
         return;
      }
 
    // 1.
    if (!e_illume_border_is_notification (bd))
      {
-        L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... Win (%x) gets NOTIFICATION_LEVEL notifiy... But this is NOT notification window... IGNORE!!!!!\n", __func__, __LINE__, bd->client.win);
+        L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... Win (0x%07x) gets NOTIFICATION_LEVEL notifiy... But this is NOT notification window... IGNORE!!!!!\n", __func__, __LINE__, bd->client.win);
         return;
      }
 
    // 2.
    level = _policy_border_get_notification_level (bd->client.win);
-   L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... Win (%x) is notification window... level = %d\n", __func__, __LINE__, bd->client.win, level);
+   L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... Win (0x%07x) is notification window... level = %d\n", __func__, __LINE__, bd->client.win, level);
 
    // 3.
    _policy_border_update_notification_stack (bd, level, EINA_TRUE);
@@ -1928,7 +2048,7 @@ static void _policy_property_notification_level_change (Ecore_X_Event_Window_Pro
              show_indi = _policy_border_indicator_state_get (bd);
              if (show_indi == 1)
                {
-                  L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Notification Win:%x, Update Indicator's layer to NOTIFICATION.. level = %d\n", __func__, __LINE__, indi_bd->client.win, level);
+                  L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Notification Win:0x%07x, Update Indicator's layer to NOTIFICATION.. level = %d\n", __func__, __LINE__, indi_bd->client.win, level);
                   _policy_change_indicator_layer (indi_bd, POL_NOTIFICATION_LAYER, level);
                }
           }
@@ -1947,7 +2067,7 @@ static void _policy_property_overlay_win_change (Ecore_X_Event_Window_Property *
 
    if (prop_data) free (prop_data);
 
-   L (LT_XWIN, "[ILLUME2][XWIN] %s(%d)... OVERAY_WINDOW:%x\n", __func__, __LINE__, _e_overlay_win);
+   L (LT_XWIN, "[ILLUME2][XWIN] %s(%d)... OVERAY_WINDOW:0x%07x\n", __func__, __LINE__, _e_overlay_win);
    _policy_xwin_info_delete (_e_overlay_win);
 }
 
@@ -1983,6 +2103,250 @@ static void _policy_property_window_opaque_change (Ecore_X_Event_Window_Property
 
    // recalculate visibility
    _policy_calculate_visibility (bd_info->border->win);
+}
+
+static void
+_policy_property_illume_window_state_change(Ecore_X_Event_Window_Property *event)
+{
+   E_Border *bd;
+
+   if (!(bd = e_border_find_by_client_window(event->win))) return;
+   if ((bd->stolen) || (!bd->visible)) return;
+
+   unsigned int state = ecore_x_e_illume_window_state_get(event->win);
+   _policy_border_illume_window_state_change(bd, state);
+}
+
+static void
+_policy_border_illume_window_state_change(E_Border *bd, unsigned int state)
+{
+   Eina_Bool accepts_focus;
+
+   if (!bd) return;
+   if (bd->client.illume.win_state.state == state) return;
+
+   bd->client.illume.win_state.state = state;
+   switch (state)
+     {
+      case ECORE_X_ILLUME_WINDOW_STATE_INSET:
+         _policy_border_illume_handlers_add(bd);
+         ecore_x_window_raise(bd->event_win);
+         e_hints_window_state_update(bd, ECORE_X_WINDOW_STATE_ABOVE, ECORE_X_WINDOW_STATE_ACTION_ADD);
+
+         bd->client.icccm.accepts_focus = EINA_FALSE;
+         bd->client.icccm.request_pos = EINA_TRUE;
+
+         _policy_border_focus_top_stack_set(bd);
+         break;
+
+      case ECORE_X_ILLUME_WINDOW_STATE_NORMAL:
+         _policy_border_illume_handlers_remove(bd);
+         ecore_x_window_raise(bd->client.shell_win);
+         e_hints_window_state_update(bd, ECORE_X_WINDOW_STATE_ABOVE, ECORE_X_WINDOW_STATE_ACTION_REMOVE);
+
+         accepts_focus = EINA_TRUE;
+         if (ecore_x_icccm_hints_get(bd->client.win,
+                                     &accepts_focus,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     NULL))
+           {
+              bd->client.icccm.accepts_focus = accepts_focus;
+           }
+         bd->client.icccm.request_pos = EINA_FALSE;
+
+         _policy_border_focus_top_stack_set(bd);
+         break;
+     }
+   bd->changes.size = 1;
+   bd->changes.pos = 1;
+   bd->changed = 1;
+}
+
+static void
+_policy_border_illume_handlers_add(E_Border *bd)
+{
+   if (!bd) return;
+   if (bd->client.illume.win_state.handlers) return;
+
+   bd->client.illume.win_state.handlers = eina_list_append(bd->client.illume.win_state.handlers,
+                                                 ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_DOWN,
+                                                                         _policy_border_cb_mouse_down, bd));
+   bd->client.illume.win_state.handlers = eina_list_append(bd->client.illume.win_state.handlers,
+                                                 ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_UP,
+                                                                         _policy_border_cb_mouse_up, bd));
+   bd->client.illume.win_state.handlers = eina_list_append(bd->client.illume.win_state.handlers,
+                                                 ecore_event_handler_add(ECORE_EVENT_MOUSE_MOVE,
+                                                                         _policy_border_cb_mouse_move, bd));
+}
+
+static void
+_policy_border_illume_handlers_remove(E_Border *bd)
+{
+   Ecore_Event_Handler *hdl;
+
+   if (!bd) return;
+   if (!bd->client.illume.win_state.handlers) return;
+
+   EINA_LIST_FREE(bd->client.illume.win_state.handlers, hdl)
+     ecore_event_handler_del(hdl);
+}
+
+static Eina_Bool
+_policy_border_cb_mouse_down(void *data,
+                             int   type __UNUSED__,
+                             void *event)
+{
+   Ecore_Event_Mouse_Button *ev;
+   E_Border *bd;
+
+   ev = event;
+   bd = data;
+
+   if (ev->window != bd->event_win &&
+       ev->event_window != bd->event_win)
+     return ECORE_CALLBACK_PASS_ON;
+
+   if (bd->client.illume.win_state.mouse.down)
+     return ECORE_CALLBACK_PASS_ON;
+
+   bd->client.illume.win_state.mouse.down = 1;
+
+   bd->client.illume.win_state.mouse.dx = bd->x - ev->root.x;
+   bd->client.illume.win_state.mouse.dy = bd->y - ev->root.y;
+
+   bd->client.illume.win_state.mouse.x = bd->x;
+   bd->client.illume.win_state.mouse.y = bd->y;
+
+   e_border_raise(bd);
+   ecore_x_mouse_down_send(bd->client.win, ev->x, ev->y, ev->buttons);
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static void
+_resize_rect_geometry_get(E_Border             *bd,
+                          Evas_Coord_Rectangle *r,
+                          int                   ev_x,
+                          int                   ev_y)
+{
+   int x, y, w, h;
+   switch (bd->client.illume.win_state.angle)
+     {
+      case   0: x = bd->x; y = bd->y; w = ev_x - bd->x;        h = ev_y - bd->y;        break;
+      case  90: x = bd->x; y = ev_y;  w = ev_x - x;            h = (bd->y + bd->h) - y; break;
+      case 180: x = ev_x;  y = ev_y;  w = (bd->x + bd->w) - x; h = (bd->y + bd->h) - y; break;
+      case 270: x = ev_x;  y = bd->y; w = (bd->x + bd->w) - x; h = ev_y - y;            break;
+      default: break;
+     }
+   r->x = x;
+   r->y = y;
+   r->w = w;
+   r->h = h;
+}
+
+static Eina_Bool
+_policy_border_cb_mouse_up(void *data,
+                           int   type __UNUSED__,
+                           void *event)
+{
+   Ecore_Event_Mouse_Button *ev;
+   E_Border *bd;
+
+   ev = event;
+   bd = data;
+   if (ev->window != bd->event_win &&
+       ev->event_window != bd->event_win)
+     return ECORE_CALLBACK_PASS_ON;
+
+   if (!bd->client.illume.win_state.mouse.down)
+     return ECORE_CALLBACK_PASS_ON;
+
+   ecore_x_mouse_up_send(bd->client.win, ev->x, ev->y, ev->buttons);
+
+   if (bd->client.illume.win_state.mouse.resize)
+     {
+        Evas_Coord_Rectangle r;
+        _resize_rect_geometry_get(bd, &r, ev->root.x, ev->root.y);
+        bd->client.illume.win_state.mouse.x = r.x;
+        bd->client.illume.win_state.mouse.y = r.y;
+        bd->client.illume.win_state.mouse.w = r.w;
+        bd->client.illume.win_state.mouse.h = r.h;
+        bd->client.illume.win_state.need_change = 1;
+        bd->changes.pos = 1;
+        bd->changes.size = 1;
+        bd->changed = 1;
+        Evas_Object *o = (Evas_Object *)e_object_data_get(E_OBJECT(bd));
+        if (o)
+          {
+             evas_object_del(o);
+             printf("[IL2] DEL OBJ in UP\n");
+          }
+     }
+   else
+     {
+        bd->client.illume.win_state.mouse.x = ev->root.x + bd->client.illume.win_state.mouse.dx;
+        bd->client.illume.win_state.mouse.y = ev->root.y + bd->client.illume.win_state.mouse.dy;
+     }
+
+   bd->client.illume.win_state.mouse.down = 0;
+   bd->client.illume.win_state.mouse.resize = 0;
+   bd->client.illume.win_state.mouse.locked = 0;
+
+   /* set property on this border to say we are done dragging */
+   ecore_x_e_illume_drag_set(bd->client.win, 0);
+
+   /* set property on zone window that a drag is finished */
+   ecore_x_e_illume_drag_set(bd->zone->black_win, 0);
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static Eina_Bool
+_policy_border_cb_mouse_move(void *data,
+                             int   type __UNUSED__,
+                             void *event)
+{
+   Ecore_Event_Mouse_Move *ev;
+   E_Border *bd;
+
+   ev = event;
+   bd = data;
+   if (ev->window != bd->event_win &&
+       ev->event_window != bd->event_win)
+     return ECORE_CALLBACK_PASS_ON;
+
+   if (!bd->client.illume.win_state.mouse.down)
+     return ECORE_CALLBACK_PASS_ON;
+
+   if (!bd->client.illume.win_state.mouse.locked)
+     {
+        ecore_x_mouse_move_send(bd->client.win, ev->x, ev->y);
+        return ECORE_CALLBACK_PASS_ON;
+     }
+
+   if (bd->client.illume.win_state.mouse.resize)
+     {
+        Evas_Object *o = (Evas_Object *)e_object_data_get(E_OBJECT(bd));
+        if (!o) return ECORE_CALLBACK_PASS_ON;
+
+        Evas_Coord_Rectangle r;
+        _resize_rect_geometry_get(bd, &r, ev->root.x, ev->root.y);
+        evas_object_move(o, r.x, r.y);
+        evas_object_resize(o, r.w, r.h);
+     }
+   else
+     {
+        bd->client.illume.win_state.mouse.x = ev->root.x + bd->client.illume.win_state.mouse.dx;
+        bd->client.illume.win_state.mouse.y = ev->root.y + bd->client.illume.win_state.mouse.dy;
+        bd->changes.pos = 1;
+        bd->changed = EINA_TRUE;
+     }
+
+   return ECORE_CALLBACK_PASS_ON;
 }
 
 void
@@ -2056,12 +2420,10 @@ _policy_property_change(Ecore_X_Event_Window_Property *event)
      {
         _policy_property_window_opaque_change (event);
      }
-#if ILLUME_LOGGER_BUILD_ENABLE
-   else if (event->atom == E_ILLUME_ATOM_ILLUME_LOG)
+   else if (event->atom == ECORE_X_ATOM_E_ILLUME_WINDOW_STATE)
      {
-        _policy_property_illume_log_change (event);
+        _policy_property_illume_window_state_change(event);
      }
-#endif
    /* enable/disable composite module - 100320 yigl */
 #ifdef COMP_MODULE_CONTROL
    else if (event->atom == E_ILLUME_ATOM_COMP_MODULE_ENABLED)
@@ -2103,7 +2465,7 @@ _policy_border_list_print (Ecore_X_Window win)
           {
              i = 1;
              fprintf (out, "--------------------------------BORDER INFO--------------------------------------------------\n" );
-             fprintf (out, " No  Border     ClientWin     w     h     x     y   layer  visible  WinName\n" );
+             fprintf (out, " No  Border     ClientWin     w     h       x       y   layer  visible  WinName\n" );
              fprintf (out, "---------------------------------------------------------------------------------------------\n" );
 
              EINA_LIST_FOREACH(border_list, l, bd)
@@ -2111,7 +2473,7 @@ _policy_border_list_print (Ecore_X_Window win)
                   if (!bd) continue;
                   if (temp_bd == NULL) temp_bd = bd;
 
-                  fprintf (out, "%3i  0x%07x  0x%07x  %4i  %4i  %4i  %4i  %5i  %5i     %-30s \n",
+                  fprintf (out, "%3i  0x%07x  0x%07x  %4i  %4i  %6i  %6i  %5i  %5i     %-30s \n",
                           i++, bd->win, bd->client.win, bd->w, bd->h, bd->x, bd->y, bd->layer, bd->visible, bd->client.netwm.name);
                }
              fprintf (out, "---------------------------------------------------------------------------------------------\n" );
@@ -2123,13 +2485,13 @@ _policy_border_list_print (Ecore_X_Window win)
           {
              i = 1;
              fprintf (out, "--------------------------------ILLUME BORDER INFO------------------------------------------------------------------\n" );
-             fprintf (out, " No  Border     ClientWin     w     h     x     y   isKBD layer level  WinName\n" );
+             fprintf (out, " No  Border     ClientWin     w     h       x       y   isKBD layer level  WinName\n" );
              fprintf (out, "--------------------------------------------------------------------------------------------------------------------\n" );
 
              EINA_LIST_FOREACH(e_border_info_list, l, bd_info)
                {
                   if (!bd_info) continue;
-                  fprintf (out, "%3i  0x%07x  0x%07x  %4i  %4i  %4i  %4i  %3i  %5i %5i   %-30s \n",
+                  fprintf (out, "%3i  0x%07x  0x%07x  %4i  %4i  %6i  %6i  %3i  %5i %5i   %-30s \n",
                           i++, bd_info->border->win, bd_info->border->client.win, bd_info->border->w, bd_info->border->h, bd_info->border->x, bd_info->border->y,
                           bd_info->border->client.vkbd.vkbd, bd_info->border->layer, bd_info->level, bd_info->border->client.netwm.name);
                }
@@ -2141,15 +2503,15 @@ _policy_border_list_print (Ecore_X_Window win)
 
         E_Border_List *bl;
 
-        fprintf (out, "\n\n-------------------------------- E17 STACK INFO--------------------------------------------\n" );
-        fprintf (out, " No  Border     ClientWin     w     h     x     y   layer  visible  WinName\n" );
+        fprintf (out, "-------------------------------- E17 STACK INFO--------------------------------------------\n" );
+        fprintf (out, " No  Border     ClientWin     w     h       x       y   layer  visible  WinName\n" );
         fprintf (out, "---------------------------------------------------------------------------------------------\n" );
 
         i = 1;
         bl = e_container_border_list_last(temp_bd->zone->container);
         while ((bd = e_container_border_list_prev(bl)))
           {
-             fprintf (out, "%3i  0x%07x  0x%07x  %4i  %4i  %4i  %4i  %5i  %5i     %-30s \n",
+             fprintf (out, "%3i  0x%07x  0x%07x  %4i  %4i  %6i  %6i  %5i  %5i     %-30s \n",
                      i++, bd->win, bd->client.win, bd->w, bd->h, bd->x, bd->y, bd->layer, bd->visible, bd->client.netwm.name);
           }
         e_container_border_list_free(bl);
@@ -2167,7 +2529,7 @@ _policy_border_list_print (Ecore_X_Window win)
           {
              i = 1;
              fprintf (out, "--------------------------------BORDER INFO--------------------------------------------------\n" );
-             fprintf (out, " No  Win          w     h     x     y   depth  viewable  visibility is_border(Client Win)\n" );
+             fprintf (out, " No  Win          w     h       x       y   depth  viewable  visibility is_border(Client Win)\n" );
              fprintf (out, "---------------------------------------------------------------------------------------------\n" );
 
              EINA_INLIST_REVERSE_FOREACH (xwin_info_list, xwin_info)
@@ -2176,18 +2538,18 @@ _policy_border_list_print (Ecore_X_Window win)
                     {
                        if (xwin_info->bd_info->border)
                          {
-                            fprintf (out, "%3i  0x%07x  %4i  %4i  %4i  %4i  %5i   %5i      %5i        yes(0x%07x)\n",
+                            fprintf (out, "%3i  0x%07x  %4i  %4i  %6i  %6i  %5i   %5i      %5i        yes(0x%07x)\n",
                                     i++, xwin_info->id, xwin_info->attr.w, xwin_info->attr.h, xwin_info->attr.x, xwin_info->attr.y, xwin_info->attr.depth, xwin_info->attr.visible, xwin_info->visibility, xwin_info->bd_info->border->client.win);
                          }
                        else
                          {
-                            fprintf (out, "%3i  0x%07x  %4i  %4i  %4i  %4i  %5i   %5i      %5i        no(NULL)\n",
+                            fprintf (out, "%3i  0x%07x  %4i  %4i  %6i  %6i  %5i   %5i      %5i        no(NULL)\n",
                                     i++, xwin_info->id, xwin_info->attr.w, xwin_info->attr.h, xwin_info->attr.x, xwin_info->attr.y, xwin_info->attr.depth, xwin_info->attr.visible, xwin_info->visibility);
                          }
                     }
                   else
                     {
-                       fprintf (out, "%3i  0x%07x  %4i  %4i  %4i  %4i  %5i   %5i      %5i        no(NULL)\n",
+                       fprintf (out, "%3i  0x%07x  %4i  %4i  %6i  %6i  %5i   %5i      %5i        no(NULL)\n",
                                i++, xwin_info->id, xwin_info->attr.w, xwin_info->attr.h, xwin_info->attr.x, xwin_info->attr.y, xwin_info->attr.depth, xwin_info->attr.visible, xwin_info->visibility);
                     }
                }
@@ -2200,8 +2562,8 @@ _policy_border_list_print (Ecore_X_Window win)
 finish:
 
    fprintf (out, "--------------------------------GLOBAL INFO--------------------------------------------------\n" );
-   fprintf (out, "g_rotated_win:%x (g_root_angle:%d)\n", g_rotated_win, g_root_angle);
-   fprintf (out, "g_active_win:%x (pid:%d, angle:%d)\n", g_active_win, g_active_pid, _policy_window_rotation_angle_get(g_active_win));
+   fprintf (out, "g_rotated_win:0x%07x (g_root_angle:%d)\n", g_rotated_win, g_root_angle);
+   fprintf (out, "g_active_win:0x%07x (pid:%d, angle:%d)\n", g_active_win, g_active_pid, _policy_window_rotation_angle_get(g_active_win));
    fprintf (out, "---------------------------------------------------------------------------------------------\n" );
 
    if (out != stderr)
@@ -2313,22 +2675,22 @@ static void _policy_layout_quickpanel_rotate (E_Illume_Quickpanel* qp, int angle
              if (diff == 90 || diff == 270)
                {
                   temp = bd->w;
-                  ILLUME2_TRACE ("[ILLUME2-QUICKPANEL] Portrait quick panel...(%d) quick win = %x  old (%d, %d)  new (%d, %d)\n", __LINE__, bd->client.win, bd->w, bd->h, bd->zone->w, temp);
+                  ILLUME2_TRACE ("[ILLUME2-QUICKPANEL] Portrait quick panel...(%d) quick win = 0x%07x  old (%d, %d)  new (%d, %d)\n", __LINE__, bd->client.win, bd->w, bd->h, bd->zone->w, temp);
                   _policy_border_resize (bd, bd->zone->w, temp);
                }
              else
-                ILLUME2_TRACE ("[ILLUME2-QUICKPANEL] Portrait quick panel...(%d) quick win = %x..  But size is not change\n", __LINE__, bd->client.win);
+                ILLUME2_TRACE ("[ILLUME2-QUICKPANEL] Portrait quick panel...(%d) quick win = 0x%07x..  But size is not change\n", __LINE__, bd->client.win);
           }
         else
           {
              if (diff == 90 || diff == 270)
                {
                   temp = bd->h;
-                  ILLUME2_TRACE ("[ILLUME2-QUICKPANEL] Landscape quick panel...(%d) quick win = %x  old (%d, %d)  new (%d, %d)\n", __LINE__, bd->client.win, bd->w, bd->h, temp, bd->zone->h);
+                  ILLUME2_TRACE ("[ILLUME2-QUICKPANEL] Landscape quick panel...(%d) quick win = 0x%07x  old (%d, %d)  new (%d, %d)\n", __LINE__, bd->client.win, bd->w, bd->h, temp, bd->zone->h);
                   _policy_border_resize (bd, temp, bd->zone->h);
                }
              else
-                ILLUME2_TRACE ("[ILLUME2-QUICKPANEL] Landscape quick panel...(%d) quick win = %x..  But size is not change\n", __LINE__, bd->client.win);
+                ILLUME2_TRACE ("[ILLUME2-QUICKPANEL] Landscape quick panel...(%d) quick win = 0x%07x..  But size is not change\n", __LINE__, bd->client.win);
           }
      }
 
@@ -2343,7 +2705,7 @@ static void _policy_layout_quickpanel_rotate (E_Illume_Quickpanel* qp, int angle
 
         bd = panel->bd;
 
-        ILLUME2_TRACE ("[ILLUME2-QUICKPANEL] SEND CLIENT MESSAGE TO QUICKPANEL!!!!(%d)  win:%x, angle = %d\n", __LINE__, bd->client.win, angle);
+        ILLUME2_TRACE ("[ILLUME2-QUICKPANEL] SEND CLIENT MESSAGE TO QUICKPANEL!!!!(%d)  win:0x%07x, angle = %d\n", __LINE__, bd->client.win, angle);
         ecore_x_client_message32_send (bd->client.win, ECORE_X_ATOM_E_ILLUME_ROTATE_WINDOW_ANGLE,
                                        ECORE_X_EVENT_MASK_WINDOW_CONFIGURE,
                                        angle, 0, 0, 0, 0);
@@ -2355,7 +2717,7 @@ static void _policy_layout_quickpanel_rotate (E_Illume_Quickpanel* qp, int angle
 void
 _policy_window_focus_in(Ecore_X_Event_Window_Focus_In *event)
 {
-   ILLUME2_TRACE("[ILLUME2-FOCUS] _policy_window_focus_in... win = %x\n", event->win);
+   ILLUME2_TRACE("[ILLUME2-FOCUS] _policy_window_focus_in... win = 0x%07x\n", event->win);
 
    E_Border *bd;
 
@@ -2398,23 +2760,23 @@ _policy_window_focus_in(Ecore_X_Event_Window_Focus_In *event)
 
 void _policy_border_stack_change (E_Border* bd, E_Border* sibling, int stack_mode)
 {
-   L (LT_STACK, "[ILLUME2][STACK] %s(%d)... win = %x, sibling = %x, stack mode = %d\n", __func__, __LINE__, bd->client.win, sibling->client.win, stack_mode);
+   L (LT_STACK, "[ILLUME2][STACK] %s(%d)... win = 0x%07x, sibling = 0x%07x, stack mode = %d\n", __func__, __LINE__, bd->client.win, sibling->client.win, stack_mode);
 
    if (bd->layer != sibling->layer)
      {
-        L (LT_STACK, "[ILLUME2][STACK] %s(%d)... Sibling layer is different!!! win = %x (layer = %d), sibling = %x (layer = %d)\n", __func__, __LINE__, bd->client.win, bd->layer, sibling->client.win, sibling->layer);
+        L (LT_STACK, "[ILLUME2][STACK] %s(%d)... Sibling layer is different!!! win = 0x%07x (layer = %d), sibling = 0x%07x (layer = %d)\n", __func__, __LINE__, bd->client.win, bd->layer, sibling->client.win, sibling->layer);
         return;
      }
 
-   L (LT_STACK, "[ILLUME2][STACK] %s(%d)... Restack Window.. win = %x,  sibling = %x, stack_mode = %d\n", __func__, __LINE__, bd->win, sibling->win, stack_mode);
+   L (LT_STACK, "[ILLUME2][STACK] %s(%d)... Restack Window.. win = 0x%07x,  sibling = 0x%07x, stack_mode = %d\n", __func__, __LINE__, bd->win, sibling->win, stack_mode);
    if (stack_mode == E_ILLUME_STACK_ABOVE)
      {
-        L (LT_STACK, "[ILLUME2][STACK] %s(%d)... STACK CHANGE with ABOVE... win:%x, above_win:%x\n", __func__, __LINE__, bd->client.win, sibling->client.win);
+        L (LT_STACK, "[ILLUME2][STACK] %s(%d)... STACK CHANGE with ABOVE... win:0x%07x, above_win:0x%07x\n", __func__, __LINE__, bd->client.win, sibling->client.win);
         e_border_stack_above (bd, sibling);
      }
    else if (stack_mode == E_ILLUME_STACK_BELOW)
      {
-        L (LT_STACK, "[ILLUME2][STACK] %s(%d)... STACK CHANGE with BELOW... win:%x, below_win:%x\n", __func__, __LINE__, bd->client.win, sibling->client.win);
+        L (LT_STACK, "[ILLUME2][STACK] %s(%d)... STACK CHANGE with BELOW... win:0x%07x, below_win:0x%07x\n", __func__, __LINE__, bd->client.win, sibling->client.win);
         e_border_stack_below (bd, sibling);
      }
 }
@@ -2482,15 +2844,6 @@ int _policy_atom_init (void)
         return 0;
      }
 #endif
-
-#if ILLUME_LOGGER_BUILD_ENABLE
-   E_ILLUME_ATOM_ILLUME_LOG = ecore_x_atom_get ("_E_ILLUME_LOG");
-   if(!E_ILLUME_ATOM_ILLUME_LOG)
-     {
-        fprintf (stderr, "[ILLUME2] Critical Error!!! Cannot create _E_ILLUME_LOG Atom...\n");
-        return 0;
-     }
-#endif /* ILLUME_LOGGER_BUILD_ENABLE */
 
    // for screen lock
    E_ILLUME_ATOM_SCREEN_LOCK = ecore_x_atom_get ("_E_COMP_LOCK_SCREEN");
@@ -2571,7 +2924,7 @@ _policy_compare_cb_border (E_Illume_Border_Info* data1, E_Illume_Border_Info* da
 static E_Illume_Border_Info*
 _policy_get_border_info (E_Border* bd)
 {
-   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... bd = %x, bd's client = %x\n", __func__, __LINE__, bd, bd->client.win);
+   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... bd = %x, bd's client = 0x%07x\n", __func__, __LINE__, bd, bd->client.win);
    E_Illume_Border_Info tmp_win;
    tmp_win.border = bd;
    return (E_Illume_Border_Info*) eina_list_search_unsorted (
@@ -2581,7 +2934,7 @@ _policy_get_border_info (E_Border* bd)
 
 static E_Illume_Border_Info* _policy_add_border_info_list (E_Border* bd)
 {
-   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... bd = %x, bd's client = %x\n", __func__, __LINE__, bd, bd->client.win);
+   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... bd = %x, bd's client = 0x%07x\n", __func__, __LINE__, bd, bd->client.win);
 
    if (e_object_is_del(E_OBJECT(bd))) return NULL;
 
@@ -2611,12 +2964,12 @@ static E_Illume_Border_Info* _policy_add_border_info_list (E_Border* bd)
    if (temp_bd_info)
      {
         e_border_info_list = eina_list_prepend_relative(e_border_info_list, bd_info, temp_bd_info);
-        L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ bd(win:%x) -> other(win:%x) ]\n", __func__, __LINE__, bd->client.win, temp_bd_info->border->client.win);
+        L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ bd(win:0x%07x) -> other(win:0x%07x) ]\n", __func__, __LINE__, bd->client.win, temp_bd_info->border->client.win);
      }
    else
      {
         e_border_info_list = eina_list_append (e_border_info_list, bd_info);
-        L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ ---> bd(win:%x) ]\n", __func__, __LINE__, bd->client.win);
+        L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ ---> bd(win:0x%07x) ]\n", __func__, __LINE__, bd->client.win);
      }
 
    return bd_info;
@@ -2625,17 +2978,17 @@ static E_Illume_Border_Info* _policy_add_border_info_list (E_Border* bd)
 
 static void _policy_delete_border_info_list (E_Border* bd)
 {
-   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)...  bd = %x, bd's client = %x\n", __func__, __LINE__, bd, bd->client.win);
+   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)...  bd = %x, bd's client = 0x%07x\n", __func__, __LINE__, bd, bd->client.win);
    E_Illume_Border_Info* bd_info = _policy_get_border_info (bd);
 
    if (bd_info == NULL)
      {
-        ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... There is no border in the list... bd = %x, bd's client = %x\n", __func__, __LINE__, bd, bd->client.win);
+        ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... There is no border in the list... bd = %x, bd's client = 0x%07x\n", __func__, __LINE__, bd, bd->client.win);
         return;
      }
 
    e_border_info_list = eina_list_remove (e_border_info_list, bd_info);
-   L (LT_STACK, "[ILLUME2][STACK] %s(%d)... remove bd(win:%x)\n", __func__, __LINE__, bd->client.win);
+   L (LT_STACK, "[ILLUME2][STACK] %s(%d)... remove bd(win:0x%07x)\n", __func__, __LINE__, bd->client.win);
    free (bd_info);
 }
 
@@ -2665,12 +3018,12 @@ _policy_zone_layout_app_layer_check (E_Border* bd)
 
    if (bd->client.netwm.state.stacking == E_STACKING_BELOW)
      {
-        ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... WIN:%x  is BELOW state.. Change layer to 50\n", __func__, __LINE__, bd->client.win);
+        ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... WIN:0x%07x  is BELOW state.. Change layer to 50\n", __func__, __LINE__, bd->client.win);
         layer = POL_STATE_BELOW_LAYER;
      }
    else if (bd->client.netwm.state.stacking == E_STACKING_ABOVE)
      {
-        ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... WIN:%x  is ABOVE state.. Change layer to 150\n", __func__, __LINE__, bd->client.win);
+        ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... WIN:0x%07x  is ABOVE state.. Change layer to 150\n", __func__, __LINE__, bd->client.win);
         layer = POL_STATE_ABOVE_LAYER;
      }
 
@@ -2707,7 +3060,7 @@ _policy_zone_layout_app_single_new (E_Illume_Border_Info* bd_info, E_Illume_Conf
    E_Border* bd;
    int layer;
 
-   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... LAYOUT_SINGLE... bd_info's border = %x, client win = %x\n", __func__, __LINE__, bd_info->border, bd_info->border->client.win);
+   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... LAYOUT_SINGLE... bd_info's border = %x, client win = 0x%07x\n", __func__, __LINE__, bd_info->border, bd_info->border->client.win);
 
    bd = bd_info->border;
    if (!bd)
@@ -2723,16 +3076,78 @@ _policy_zone_layout_app_single_new (E_Illume_Border_Info* bd_info, E_Illume_Conf
    /* check if user defined position */
    if (bd->client.icccm.request_pos)
      {
+        if (bd->client.illume.win_state.state)
+          {
+             if (bd->client.illume.win_state.need_change)
+               {
+                  if ((bd->x != bd->client.illume.win_state.mouse.x) ||
+                      (bd->y != bd->client.illume.win_state.mouse.y))
+                    _policy_border_move(bd,
+                                        bd->client.illume.win_state.mouse.x,
+                                        bd->client.illume.win_state.mouse.y);
+
+                  if ((bd->w != bd->client.illume.win_state.mouse.w) ||
+                      (bd->h != bd->client.illume.win_state.mouse.h))
+                    _policy_border_resize(bd,
+                                          bd->client.illume.win_state.mouse.w,
+                                          bd->client.illume.win_state.mouse.h);
+
+                  bd->client.illume.win_state.need_change = 0;
+               }
+
+             if (bd->client.illume.win_state.mouse.down &&
+                 bd->client.illume.win_state.mouse.locked)
+               {
+                  if ((bd->x != bd->client.illume.win_state.mouse.x) ||
+                      (bd->y != bd->client.illume.win_state.mouse.y))
+                    _policy_border_move(bd,
+                                        bd->client.illume.win_state.mouse.x,
+                                        bd->client.illume.win_state.mouse.y);
+               }
+          }
+
         _policy_zone_layout_app_layer_set (bd, layer);
         return;
      }
 
-   /* resize if needed */
-   if ((bd->w != bd->zone->w) || (bd->h != bd->zone->h))
-      _policy_border_resize(bd, bd->zone->w, bd->zone->h);
+   /* resize & move if needed */
+   if (bd->client.illume.win_state.state)
+     {
+        if (bd->client.illume.win_state.need_change)
+          {
+             if ((bd->x != bd->client.illume.win_state.mouse.x) ||
+                 (bd->y != bd->client.illume.win_state.mouse.y))
+               _policy_border_move(bd,
+                                   bd->client.illume.win_state.mouse.x,
+                                   bd->client.illume.win_state.mouse.y);
 
-   if ((bd->x != bd->zone->x) || (bd->y != bd->zone->y))
-      _policy_border_move(bd, bd->zone->x, bd->zone->y);
+             if ((bd->w != bd->client.illume.win_state.mouse.w) ||
+                 (bd->h != bd->client.illume.win_state.mouse.h))
+               _policy_border_resize(bd,
+                                     bd->client.illume.win_state.mouse.w,
+                                     bd->client.illume.win_state.mouse.h);
+
+             bd->client.illume.win_state.need_change = 0;
+          }
+
+        if (bd->client.illume.win_state.mouse.down &&
+            bd->client.illume.win_state.mouse.locked)
+          {
+             if ((bd->x != bd->client.illume.win_state.mouse.x) ||
+                 (bd->y != bd->client.illume.win_state.mouse.y))
+               _policy_border_move(bd,
+                                   bd->client.illume.win_state.mouse.x,
+                                   bd->client.illume.win_state.mouse.y);
+          }
+     }
+   else
+     {
+        if ((bd->w != bd->zone->w) || (bd->h != bd->zone->h))
+           _policy_border_resize(bd, bd->zone->w, bd->zone->h);
+
+        if ((bd->x != bd->zone->x) || (bd->y != bd->zone->y))
+           _policy_border_move(bd, bd->zone->x, bd->zone->y);
+     }
 
    /* set layer if needed */
    _policy_zone_layout_app_layer_set (bd, layer);
@@ -2747,7 +3162,7 @@ _policy_zone_layout_app_dual_top_new (E_Illume_Border_Info* bd_info, E_Illume_Co
    int ny, nh;
    int layer;
 
-   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... LAYOUT_DUAL_TOP... bd_info's border = %x, client win = %x\n", __func__, __LINE__, bd_info->border, bd_info->border->client.win);
+   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... LAYOUT_DUAL_TOP... bd_info's border = %x, client win = 0x%07x\n", __func__, __LINE__, bd_info->border, bd_info->border->client.win);
 
    bd = bd_info->border;
 
@@ -2793,7 +3208,7 @@ _policy_zone_layout_app_dual_left_new (E_Illume_Border_Info* bd_info, E_Illume_C
    int ky, kh, nx, nw;
    int layer;
 
-   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... LAYOUT_DUAL_LEFT... bd_info's border = %x, client win = %x\n", __func__, __LINE__, bd_info->border, bd_info->border->client.win);
+   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... LAYOUT_DUAL_LEFT... bd_info's border = %x, client win = 0x%07x\n", __func__, __LINE__, bd_info->border, bd_info->border->client.win);
 
    bd = bd_info->border;
 
@@ -2840,7 +3255,7 @@ _policy_zone_layout_app_dual_custom_new (E_Illume_Border_Info* bd_info, E_Illume
    E_Border *app;
    int iy, ny, nh;
 
-   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... LAYOUT_DUAL_CUSTOM... bd_info's border = %x, client win = %x\n", __func__, __LINE__, bd_info->border, bd_info->border->client.win);
+   ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... LAYOUT_DUAL_CUSTOM... bd_info's border = %x, client win = 0x%07x\n", __func__, __LINE__, bd_info->border, bd_info->border->client.win);
 
    bd = bd_info->border;
    if (!bd)
@@ -2912,6 +3327,10 @@ static void _update_notification_stack (E_Illume_Border_Info* bd_info, int level
    below_bd_info = NULL;
    upper_bd_info = NULL;
 
+   if ((e_illume_border_is_quickpanel(bd_info->border)) ||
+       (e_illume_border_is_quickpanel_popup(bd_info->border)))
+     return;
+
    EINA_LIST_FOREACH(e_border_info_list, l, temp_bd_info)
      {
         if (!temp_bd_info) continue;
@@ -2928,13 +3347,13 @@ static void _update_notification_stack (E_Illume_Border_Info* bd_info, int level
              below_bd = temp_bd;
              below_bd_info = temp_bd_info;
 
-             L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... Stack Change!!! (Top) Win (%x) -> Sibling (%x) (Bottom)\n", __func__, __LINE__, bd_info->border->client.win, below_bd->client.win);
+             L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... Stack Change!!! (Top) Win (0x%07x) -> Sibling (0x%07x) (Bottom)\n", __func__, __LINE__, bd_info->border->client.win, below_bd->client.win);
 
              _policy_border_stack_change (bd_info->border, below_bd, E_ILLUME_STACK_ABOVE);
 
              e_border_info_list = eina_list_remove (e_border_info_list, bd_info);
              e_border_info_list = eina_list_prepend_relative (e_border_info_list, bd_info, below_bd_info);
-             L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ bd(win:%x) -> other(win:%x) ]\n", __func__, __LINE__, bd_info->border->client.win, below_bd_info->border->client.win);
+             L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ bd(win:0x%07x) -> other(win:0x%07x) ]\n", __func__, __LINE__, bd_info->border->client.win, below_bd_info->border->client.win);
              return;
           }
         else
@@ -2946,13 +3365,13 @@ static void _update_notification_stack (E_Illume_Border_Info* bd_info, int level
 
    if (upper_bd_info)
      {
-        L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... Stack Change!!! (Top) Sibling (%x) -> Win (%x) (Bottom)\n", __func__, __LINE__, upper_bd->client.win, bd_info->border->client.win);
+        L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... Stack Change!!! (Top) Sibling (0x%07x) -> Win (0x%07x) (Bottom)\n", __func__, __LINE__, upper_bd->client.win, bd_info->border->client.win);
 
         _policy_border_stack_change (bd_info->border, upper_bd, E_ILLUME_STACK_BELOW);
 
         e_border_info_list = eina_list_remove (e_border_info_list, bd_info);
         e_border_info_list = eina_list_append_relative (e_border_info_list, bd_info, upper_bd_info);
-        L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ other(win:%x) -> bd(win:%x) ]\n", __func__, __LINE__, upper_bd_info->border->client.win, bd_info->border->client.win);
+        L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ other(win:0x%07x) -> bd(win:0x%07x) ]\n", __func__, __LINE__, upper_bd_info->border->client.win, bd_info->border->client.win);
      }
    else
      {
@@ -3008,7 +3427,7 @@ static void _policy_border_update_notification_stack (E_Border* bd, int level, E
    bd_info = _policy_get_border_info(bd);
    if (bd_info == NULL) return;
 
-   L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... Update Stack!!! Win (%x). old level = %d  new level = %d\n", __func__, __LINE__, bd->client.win, bd_info->level, level);
+   L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... Update Stack!!! Win (0x%07x). old level = %d  new level = %d\n", __func__, __LINE__, bd->client.win, bd_info->level, level);
    bd_info->level = level;
 
    /*
@@ -3032,7 +3451,7 @@ static void _policy_border_update_notification_stack (E_Border* bd, int level, E
               */
              if ((!child->iconic) && (child->visible))
                {
-                  L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (%x) is notification window... level = %d\n", __func__, __LINE__, child->client.win, level);
+                  L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (0x%07x) is notification window... level = %d\n", __func__, __LINE__, child->client.win, level);
                   _policy_border_update_notification_stack (child, level, EINA_FALSE);
                }
           }
@@ -3080,7 +3499,7 @@ void _policy_border_stack (E_Event_Border_Stack *event)
 
    ev = event;
 
-   L (LT_STACK, "[ILLUME2][STACK] %s(%d)... bd(win:%x), stack(win:%x), stack type: %d\n", __func__, __LINE__, ev->border->client.win, ev->stack ? (unsigned int)ev->stack->client.win:(unsigned int)NULL, ev->type);
+   L (LT_STACK, "[ILLUME2][STACK] %s(%d)... bd(win:0x%07x), stack(win:0x%07x), stack type: %d\n", __func__, __LINE__, ev->border->client.win, ev->stack ? (unsigned int)ev->stack->client.win:(unsigned int)NULL, ev->type);
 
    bd_info = _policy_get_border_info(ev->border);
    if (bd_info == NULL)
@@ -3106,7 +3525,7 @@ void _policy_border_stack (E_Event_Border_Stack *event)
                {
                   e_border_info_list = eina_list_remove (e_border_info_list, bd_info);
                   e_border_info_list = eina_list_prepend_relative (e_border_info_list, bd_info, stack_bd_info);
-                  L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ bd(win:%x) -> stack(win:%x) ]\n", __func__, __LINE__, ev->border->client.win, ev->stack->client.win);
+                  L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ bd(win:0x%07x) -> stack(win:0x%07x) ]\n", __func__, __LINE__, ev->border->client.win, ev->stack->client.win);
 
                   if (ev->border->layer == POL_NOTIFICATION_LAYER)
                     {
@@ -3117,7 +3536,7 @@ void _policy_border_stack (E_Event_Border_Stack *event)
                          {
                             if (bd_info->level < next_bd_info->level)
                               {
-                                 L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... RESTACK... bd(win:%x) level:%d.. stack(win:%x) level:%d..\n", __func__, __LINE__, ev->border->client.win, bd_info->level, ev->stack->client.win, stack_bd_info->level);
+                                 L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... RESTACK... bd(win:0x%07x) level:%d.. stack(win:0x%07x) level:%d..\n", __func__, __LINE__, ev->border->client.win, bd_info->level, ev->stack->client.win, stack_bd_info->level);
                                  _policy_border_stack_change (bd_info->border, next_bd_info->border, E_ILLUME_STACK_BELOW);
                               }
                          }
@@ -3140,7 +3559,7 @@ void _policy_border_stack (E_Event_Border_Stack *event)
                     {
                        e_border_info_list = eina_list_remove (e_border_info_list, bd_info);
                        e_border_info_list = eina_list_prepend_relative(e_border_info_list, bd_info, temp_bd_info);
-                       L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ bd(win:%x) -> other(win:%x).. No stack(win:%x) info ]\n", __func__, __LINE__, ev->border->client.win, temp_bd_info ? (unsigned int)temp_bd_info->border->client.win:(unsigned int)NULL, ev->stack->client.win);
+                       L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ bd(win:0x%07x) -> other(win:0x%07x).. No stack(win:0x%07x) info ]\n", __func__, __LINE__, ev->border->client.win, temp_bd_info ? (unsigned int)temp_bd_info->border->client.win:(unsigned int)NULL, ev->stack->client.win);
                     }
                }
           }
@@ -3148,7 +3567,7 @@ void _policy_border_stack (E_Event_Border_Stack *event)
           {
              e_border_info_list = eina_list_remove (e_border_info_list, bd_info);
              e_border_info_list = eina_list_append (e_border_info_list, bd_info);
-             L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ ---> bd(win:%x) ]\n", __func__, __LINE__, ev->border->client.win);
+             L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ ---> bd(win:0x%07x) ]\n", __func__, __LINE__, ev->border->client.win);
           }
      }
    else if (ev->type == E_STACKING_BELOW)
@@ -3159,7 +3578,7 @@ void _policy_border_stack (E_Event_Border_Stack *event)
                {
                   e_border_info_list = eina_list_remove (e_border_info_list, bd_info);
                   e_border_info_list = eina_list_append_relative (e_border_info_list, bd_info, stack_bd_info);
-                  L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ stack(win:%x) -> bd(win:%x) ]\n", __func__, __LINE__, ev->stack->client.win, ev->border->client.win);
+                  L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ stack(win:0x%07x) -> bd(win:0x%07x) ]\n", __func__, __LINE__, ev->stack->client.win, ev->border->client.win);
 
                   if (ev->border->layer == POL_NOTIFICATION_LAYER)
                     {
@@ -3170,7 +3589,7 @@ void _policy_border_stack (E_Event_Border_Stack *event)
                          {
                             if (bd_info->level < next_bd_info->level)
                               {
-                                 L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... RESTACK... bd(win:%x) level:%d.. stack(win:%x) level:%d..\n", __func__, __LINE__, ev->border->client.win, bd_info->level, ev->stack->client.win, stack_bd_info->level);
+                                 L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... RESTACK... bd(win:0x%07x) level:%d.. stack(win:0x%07x) level:%d..\n", __func__, __LINE__, ev->border->client.win, bd_info->level, ev->stack->client.win, stack_bd_info->level);
                                  _policy_border_stack_change (bd_info->border, next_bd_info->border, E_ILLUME_STACK_BELOW);
                               }
                          }
@@ -3193,7 +3612,7 @@ void _policy_border_stack (E_Event_Border_Stack *event)
                     {
                        e_border_info_list = eina_list_remove (e_border_info_list, bd_info);
                        e_border_info_list = eina_list_prepend_relative(e_border_info_list, bd_info, temp_bd_info);
-                       L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ bd(win:%x) -> other(win:%x).. No stack(win:%x) info ]\n", __func__, __LINE__, ev->border->client.win, temp_bd_info ? (unsigned int)temp_bd_info->border->client.win:(unsigned int)NULL, ev->stack->client.win);
+                       L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ bd(win:0x%07x) -> other(win:0x%07x).. No stack(win:0x%07x) info ]\n", __func__, __LINE__, ev->border->client.win, temp_bd_info ? (unsigned int)temp_bd_info->border->client.win:(unsigned int)NULL, ev->stack->client.win);
                     }
                }
           }
@@ -3201,16 +3620,17 @@ void _policy_border_stack (E_Event_Border_Stack *event)
           {
              e_border_info_list = eina_list_remove (e_border_info_list, bd_info);
              e_border_info_list = eina_list_prepend (e_border_info_list, bd_info);
-             L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ bd(win:%x) ---> ]\n", __func__, __LINE__, ev->border->client.win);
+             L (LT_STACK, "[ILLUME2][STACK] %s(%d)... changed to [ bd(win:0x%07x) ---> ]\n", __func__, __LINE__, ev->border->client.win);
           }
      }
    else
      {
-        ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... Unknown type... border (%x), win (%x), type = %d\n", __func__, __LINE__, ev->border, ev->border->client.win, ev->type);
+        ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... Unknown type... border (0x%07x), win (0x%07x), type = %d\n", __func__, __LINE__, ev->border, ev->border->client.win, ev->type);
      }
 
-   /*restack indicator when a active window stack is changed */
-   if (ev->border->client.win == g_active_win)
+   /* restack indicator when a active window stack is changed */
+   if ((ev->border->client.win == g_active_win) &&
+       (ev->border->layer == POL_NOTIFICATION_LAYER))
      {
         E_Border* indi_bd;
         indi_bd = e_illume_border_indicator_get (ev->border->zone);
@@ -3222,7 +3642,7 @@ void _policy_border_stack (E_Event_Border_Stack *event)
                {
                   if (indi_bd->layer == POL_NOTIFICATION_LAYER)
                     {
-                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Notification Win:%x, Update Indicator's layer to NOTIFICATION.. level = %d\n", __func__, __LINE__, indi_bd->client.win, indi_bd_info->level);
+                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Notification Win:0x%07x, Update Indicator's layer to NOTIFICATION.. level = %d\n", __func__, __LINE__, indi_bd->client.win, indi_bd_info->level);
                        _policy_change_indicator_layer (indi_bd, indi_bd->layer, indi_bd_info->level);
                     }
                }
@@ -3244,16 +3664,13 @@ static void _policy_change_quickpanel_layer (E_Illume_Quickpanel* qp, E_Border* 
 
    if (!qp) return;
 
-   EINA_LIST_FOREACH(qp->borders, bd_list, panel)
+   if (qp->popup)
      {
-        if (!panel) continue;
-        if (e_object_is_del(E_OBJECT(panel->bd))) continue;
-
-        bd_info = _policy_get_border_info(panel->bd);
+        bd_info = _policy_get_border_info(qp->popup->border);
         if (bd_info)
           {
              bd_info->level = level;
-             e_border_stack_below (panel->bd, indi_bd);
+             e_border_stack_below (qp->popup->border, indi_bd);
           }
      }
 
@@ -3270,6 +3687,18 @@ static void _policy_change_quickpanel_layer (E_Illume_Quickpanel* qp, E_Border* 
           }
      }
 
+   EINA_LIST_FOREACH(qp->borders, bd_list, panel)
+     {
+        if (!panel) continue;
+        if (e_object_is_del(E_OBJECT(panel->bd))) continue;
+
+        bd_info = _policy_get_border_info(panel->bd);
+        if (bd_info)
+          {
+             bd_info->level = level;
+             e_border_stack_below (panel->bd, indi_bd);
+          }
+     }
 }
 
 /* Recommend to use this function when targer border is viewable, activate and show indicator */
@@ -3288,7 +3717,7 @@ static void _policy_change_indicator_layer (E_Border* indi_bd, int layer, int le
    if (indi_bd->layer != layer)
       e_border_layer_set(indi_bd, layer);
 
-   L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (%x) is notification window... level = %d\n", __func__, __LINE__, indi_bd->client.win, level);
+   L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (0x%07x) is notification window... level = %d\n", __func__, __LINE__, indi_bd->client.win, level);
    _policy_border_update_notification_stack (indi_bd, level, EINA_FALSE);
 
    if ((qp = e_illume_quickpanel_by_zone_get(indi_bd->zone)))
@@ -3333,6 +3762,7 @@ _policy_calculate_visibility (Ecore_X_Window win)
    int is_fully_obscured;
    int old_vis;
    int is_opaque;
+   int set_root_angle;
 
    xwin_info = NULL;
    is_opaque = 0;
@@ -3340,8 +3770,9 @@ _policy_calculate_visibility (Ecore_X_Window win)
    rect.y = 0;
    rect.width = _g_root_width;
    rect.height = _g_root_height;
+   set_root_angle = 0;
 
-   L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] Change win:%x... root_width:%d, root_height:%d\n", win, _g_root_width, _g_root_height);
+   L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] Change win:0x%07x... root_width:%d, root_height:%d\n", win, _g_root_width, _g_root_height);
 
    // create screen size's region
    region = ecore_x_xregion_new();
@@ -3357,7 +3788,7 @@ _policy_calculate_visibility (Ecore_X_Window win)
      {
         EINA_INLIST_REVERSE_FOREACH (xwin_info_list, xwin_info)
           {
-             L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] xwin_info(win:%x, (%d, %d, %d x %d)\n", xwin_info->id, xwin_info->attr.x, xwin_info->attr.y, xwin_info->attr.w, xwin_info->attr.h);
+             L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] xwin_info(win:0x%07x, (%d, %d, %d x %d)\n", xwin_info->id, xwin_info->attr.x, xwin_info->attr.y, xwin_info->attr.w, xwin_info->attr.h);
              is_opaque = 0;
              if (xwin_info->id == win) break;
 
@@ -3372,7 +3803,7 @@ _policy_calculate_visibility (Ecore_X_Window win)
                   is_opaque = xwin_info->bd_info->opaque;
                }
 
-             if ((!xwin_info->argb) ||
+             if (((!xwin_info->argb) && (!xwin_info->attr.input_only)) ||
                  (is_opaque))
                {
                   temp_rect.x = xwin_info->attr.x;
@@ -3423,18 +3854,24 @@ _policy_calculate_visibility (Ecore_X_Window win)
 
              if (is_fully_obscured)
                {
-                  L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] Win:%x is FULLY OBSCURED...\n", xwin_info->id);
+                  L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] Win:0x%07x is FULLY OBSCURED...\n", xwin_info->id);
 
                   /* if temp_bd's visibility is not fully obscured, then set and send event */
                   xwin_info->visibility = E_ILLUME_VISIBILITY_FULLY_OBSCURED;
 
-                  if (old_vis  != xwin_info->visibility)
+                  if (old_vis != xwin_info->visibility)
                     {
                        // send event
                        if (xwin_info->bd_info && xwin_info->bd_info->border)
                          {
-                            L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] SEND VISIBILITY NOTIFY (Line:%d)... win:%x (old:%d -> new:%d)\n", __LINE__, xwin_info->bd_info->border->client.win, old_vis, xwin_info->visibility);
+                            L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] SEND VISIBILITY NOTIFY (Line:%d)... win:0x%07x (old:%d -> new:%d)\n", __LINE__, xwin_info->bd_info->border->client.win, old_vis, xwin_info->visibility);
                             _policy_send_visibility_notify (xwin_info->bd_info->border->client.win, xwin_info->visibility);
+
+                            if (xwin_info->bd_info->border->client.win == g_rotated_win)
+                              {
+                                 L(LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. g_rotated_win(0x%07x) is obscured.\n", __func__, __LINE__, xwin_info->bd_info->border->client.win);
+                                 set_root_angle = 1;
+                              }
                          }
                     }
 
@@ -3446,38 +3883,46 @@ _policy_calculate_visibility (Ecore_X_Window win)
              temp_rect.width = xwin_info->attr.w;
              temp_rect.height = xwin_info->attr.h;
 
-             L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] xwin_info(win:%x, (%d, %d, %d x %d)\n", xwin_info->id, xwin_info->attr.x, xwin_info->attr.y, xwin_info->attr.w, xwin_info->attr.h);
+             L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] xwin_info(win:0x%07x, (%d, %d, %d x %d) input_only:%d\n", xwin_info->id, xwin_info->attr.x, xwin_info->attr.y, xwin_info->attr.w, xwin_info->attr.h, xwin_info->attr.input_only);
              placed = ecore_x_xregion_rect_contain (region, &temp_rect);
              if (placed == EINA_TRUE)
                {
                   // Unobscured or partially obscured
-                  L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] Win:%x is UN-OBSCURED...\n", xwin_info->id);
+                  L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] Win:0x%07x is UN-OBSCURED...\n", xwin_info->id);
                   xwin_info->visibility = E_ILLUME_VISIBILITY_UNOBSCURED;
                }
              else
                {
                   // Fully obscured
-                  L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] Win:%x is Fully OBSCURED...\n", xwin_info->id);
+                  L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] Win:0x%07x is Fully OBSCURED...\n", xwin_info->id);
                   xwin_info->visibility = E_ILLUME_VISIBILITY_FULLY_OBSCURED;
                }
 
-             if (old_vis  != xwin_info->visibility)
+             if (old_vis != xwin_info->visibility)
                {
                   // send event
                   if (xwin_info->bd_info && xwin_info->bd_info->border)
                     {
-                       L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] SEND VISIBILITY NOTIFY (Line:%d)... win:%x (old:%d -> new:%d)\n", __LINE__, xwin_info->bd_info->border->client.win, old_vis, xwin_info->visibility);
+                       L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] SEND VISIBILITY NOTIFY (Line:%d)... win:0x%07x (old:%d -> new:%d)\n", __LINE__, xwin_info->bd_info->border->client.win, old_vis, xwin_info->visibility);
                        _policy_send_visibility_notify (xwin_info->bd_info->border->client.win, xwin_info->visibility);
 
                        if (xwin_info->visibility == E_ILLUME_VISIBILITY_UNOBSCURED)
                          {
-                            L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. CALL _policy_change_root_angle_by_border_angle!!! win:%x\n", __func__, __LINE__, xwin_info->bd_info->border->client.win);
-                            _policy_change_root_angle_by_border_angle (xwin_info->bd_info->border);
+                            L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. CALL _policy_change_root_angle_by_border_angle!!! win:0x%07x\n", __func__, __LINE__, xwin_info->bd_info->border->client.win);
+                            set_root_angle = 1;
+                         }
+                       else if (xwin_info->visibility == E_ILLUME_VISIBILITY_FULLY_OBSCURED)
+                         {
+                            if (xwin_info->bd_info->border->client.win == g_rotated_win)
+                              {
+                                 L(LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. g_rotated_win(0x%07x) is obscured.\n", __func__, __LINE__, xwin_info->bd_info->border->client.win);
+                                 set_root_angle = 1;
+                              }
                          }
                     }
                }
 
-             if ((!xwin_info->argb) ||
+             if (((!xwin_info->argb) && (!xwin_info->attr.input_only)) ||
                  (is_opaque))
                {
                   temp_region = ecore_x_xregion_new();
@@ -3495,6 +3940,13 @@ _policy_calculate_visibility (Ecore_X_Window win)
      }
 
    ecore_x_xregion_free (region);
+
+   if (set_root_angle)
+     {
+        L(LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. FIND NEW ANGLE.\n", __func__, __LINE__);
+        _policy_border_set_root_angle_by_top_visible_win();
+     }
+
 }
 
 
@@ -3535,7 +3987,7 @@ _policy_xwin_info_add (Ecore_X_Window win)
    E_Illume_XWin_Info* xwin_info = _policy_xwin_info_find (win);
    if (xwin_info)
      {
-        L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:%x EXIST in the list...\n", __func__, __LINE__, win);
+        L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:0x%07x EXIST in the list...\n", __func__, __LINE__, win);
         return EINA_FALSE;
      }
 
@@ -3572,7 +4024,7 @@ _policy_xwin_info_delete (Ecore_X_Window win)
    E_Illume_XWin_Info* xwin_info = _policy_xwin_info_find (win);
    if (xwin_info == NULL)
      {
-        L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. No win:%x in the list...\n", __func__, __LINE__, win);
+        L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. No win:0x%07x in the list...\n", __func__, __LINE__, win);
         return EINA_FALSE;
      }
 
@@ -3587,7 +4039,7 @@ _policy_xwin_info_delete (Ecore_X_Window win)
 
 void _policy_window_create (Ecore_X_Event_Window_Create *event)
 {
-   L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:%x...\n", __func__, __LINE__, event->win);
+   L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:0x%07x...\n", __func__, __LINE__, event->win);
 
    _policy_xwin_info_add (event->win);
 }
@@ -3595,7 +4047,7 @@ void _policy_window_create (Ecore_X_Event_Window_Create *event)
 
 void _policy_window_destroy (Ecore_X_Event_Window_Destroy *event)
 {
-   L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:%x...\n", __func__, __LINE__, event->win);
+   L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:0x%07x...\n", __func__, __LINE__, event->win);
 
    _policy_xwin_info_delete (event->win);
 }
@@ -3603,7 +4055,7 @@ void _policy_window_destroy (Ecore_X_Event_Window_Destroy *event)
 
 void _policy_window_reparent (Ecore_X_Event_Window_Reparent *event)
 {
-   L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:%x...\n", __func__, __LINE__, event->win);
+   L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:0x%07x...\n", __func__, __LINE__, event->win);
 
    if (event->parent == ecore_x_window_root_first_get())
       _policy_xwin_info_add (event->win);
@@ -3614,12 +4066,12 @@ void _policy_window_reparent (Ecore_X_Event_Window_Reparent *event)
 
 void _policy_window_show (Ecore_X_Event_Window_Show *event)
 {
-   L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:%x...\n", __func__, __LINE__, event->win);
+   L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:0x%07x...\n", __func__, __LINE__, event->win);
 
    E_Illume_XWin_Info* xwin_info = _policy_xwin_info_find (event->win);
    if (xwin_info == NULL)
      {
-        L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. No win:%x in the list...\n", __func__, __LINE__, event->win);
+        L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. No win:0x%07x in the list...\n", __func__, __LINE__, event->win);
         return ;
      }
 
@@ -3631,12 +4083,12 @@ void _policy_window_show (Ecore_X_Event_Window_Show *event)
 
 void _policy_window_hide (Ecore_X_Event_Window_Hide *event)
 {
-   L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:%x...\n", __func__, __LINE__, event->win);
+   L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:0x%07x...\n", __func__, __LINE__, event->win);
 
    E_Illume_XWin_Info* xwin_info = _policy_xwin_info_find (event->win);
    if (xwin_info == NULL)
      {
-        L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. No win:%x in the list...\n", __func__, __LINE__, event->win);
+        L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. No win:0x%07x in the list...\n", __func__, __LINE__, event->win);
         return;
      }
 
@@ -3656,7 +4108,7 @@ void _policy_window_configure (Ecore_X_Event_Window_Configure *event)
    int check_visibility;
    Ecore_X_Window target_win;
 
-   L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:%x...\n", __func__, __LINE__, event->win);
+   L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:0x%07x...\n", __func__, __LINE__, event->win);
 
    xwin_info = NULL;
    old_above_xwin_info = NULL;
@@ -3667,7 +4119,7 @@ void _policy_window_configure (Ecore_X_Event_Window_Configure *event)
    xwin_info = _policy_xwin_info_find (event->win);
    if (xwin_info == NULL)
      {
-        L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. No win:%x in the list...\n", __func__, __LINE__, event->win);
+        L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. No win:0x%07x in the list...\n", __func__, __LINE__, event->win);
         return;
      }
 
@@ -3738,7 +4190,7 @@ void _policy_window_configure_request (Ecore_X_Event_Window_Configure_Request *e
                   bd_info = _policy_get_border_info(bd);
                   if (bd_info)
                     {
-                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Win (%x) is notification layer... level = %d\n", __func__, __LINE__, bd->client.win, bd_info->level);
+                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Win (0x%07x) is notification layer... level = %d\n", __func__, __LINE__, bd->client.win, bd_info->level);
                        _policy_border_update_notification_stack (bd, bd_info->level, EINA_TRUE);
                     }
                }
@@ -3757,7 +4209,7 @@ void _policy_window_configure_request (Ecore_X_Event_Window_Configure_Request *e
                   bd_info = _policy_get_border_info(bd);
                   if (bd_info)
                     {
-                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Win (%x) is notification layer... level = %d\n", __func__, __LINE__, bd->client.win, bd_info->level);
+                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Win (0x%07x) is notification layer... level = %d\n", __func__, __LINE__, bd->client.win, bd_info->level);
                        _policy_border_update_notification_stack (bd, bd_info->level, EINA_TRUE);
                     }
                }
@@ -3770,59 +4222,6 @@ void _policy_window_configure_request (Ecore_X_Event_Window_Configure_Request *e
           }
      }
 }
-
-
-#if ILLUME_LOGGER_BUILD_ENABLE
-static Eina_Bool
-_policy_property_illume_log_change (Ecore_X_Event_Window_Property *ev)
-{
-   int ret, count;
-   unsigned int info_type;
-   unsigned char* prop_data = NULL;
-
-   info_type = 0;
-   ret = ecore_x_window_prop_property_get (ev->win, E_ILLUME_ATOM_ILLUME_LOG, ECORE_X_ATOM_CARDINAL, 32, &prop_data, &count);
-   if( ret && prop_data )
-     {
-        fprintf(stdout, "[E17-ILLUME2] %s(%d) _illume_logger_type: ",  __func__, __LINE__);
-
-        if (_illume_logger_type == LT_NOTHING) fprintf (stdout, "LT_NOTHING ");
-        else if (_illume_logger_type == LT_ALL) fprintf (stdout, "LT_ALL "    );
-        else
-          {
-             if ((_illume_logger_type & LT_STACK) == LT_STACK) fprintf (stdout, "LT_STACK, ");
-             if ((_illume_logger_type & LT_NOTIFICATION) == LT_NOTIFICATION) fprintf (stdout, "LT_NOTIFICATION, ");
-             if ((_illume_logger_type & LT_NOTIFICATION_LEVEL) == LT_NOTIFICATION_LEVEL) fprintf (stdout, "LT_NOTIFICATION_LEVEL, ");
-             if ((_illume_logger_type & LT_VISIBILITY) == LT_VISIBILITY) fprintf (stdout, "LT_VISIBILITY, ");
-             if ((_illume_logger_type & LT_LOCK_SCREEN) == LT_LOCK_SCREEN) fprintf (stdout, "LT_LOCK_SCREEN, ");
-             if ((_illume_logger_type & LT_ANGLE) == LT_ANGLE) fprintf (stdout, "LT_ANGLE, ");
-          }
-
-        fprintf(stdout, "-> ");
-
-        memcpy (&_illume_logger_type, prop_data, sizeof(unsigned int));
-
-        if      (_illume_logger_type == LT_NOTHING ) fprintf (stdout, "LT_NOTHING\n");
-        else if (_illume_logger_type == LT_ALL     ) fprintf (stdout, "LT_ALL\n"    );
-        else
-          {
-             if ((_illume_logger_type & LT_STACK) == LT_STACK) fprintf (stdout, "LT_STACK, ");
-             if ((_illume_logger_type & LT_NOTIFICATION) == LT_NOTIFICATION) fprintf (stdout, "LT_NOTIFICATION, ");
-             if ((_illume_logger_type & LT_NOTIFICATION_LEVEL) == LT_NOTIFICATION_LEVEL) fprintf (stdout, "LT_NOTIFICATION_LEVEL, ");
-             if ((_illume_logger_type & LT_VISIBILITY) == LT_VISIBILITY) fprintf (stdout, "LT_VISIBILITY, ");
-             if ((_illume_logger_type & LT_LOCK_SCREEN) == LT_LOCK_SCREEN) fprintf (stdout, "LT_LOCK_SCREEN, ");
-             if ((_illume_logger_type & LT_ANGLE) == LT_ANGLE) fprintf (stdout, "LT_ANGLE, ");
-
-             fprintf (stdout, "\n");
-          }
-     }
-
-   if (prop_data) free (prop_data);
-
-   return EINA_TRUE;
-}
-#endif /* ILLUME_LOGGER_BUILD_ENABLE */
-
 
 void _policy_window_sync_draw_done (Ecore_X_Event_Client_Message* event)
 {
@@ -3930,7 +4329,7 @@ static void  _policy_border_add_block_list (E_Border* bd)
 
    if (bd->zone->container->manager != g_screen_lock_info->man) return;
 
-   L (LT_LOCK_SCREEN, "[ILLUME2][LOCK]  %s(%d)... ADD to the block list. Win:%x\n", __func__, __LINE__, bd->client.win);
+   L (LT_LOCK_SCREEN, "[ILLUME2][LOCK]  %s(%d)... ADD to the block list. Win:0x%07x\n", __func__, __LINE__, bd->client.win);
    g_screen_lock_info->blocked_list = eina_list_append (g_screen_lock_info->blocked_list, bd);
 
 }
@@ -3942,7 +4341,7 @@ static void  _policy_border_remove_block_list (E_Border* bd)
 
    if (bd->zone->container->manager != g_screen_lock_info->man) return;
 
-   L (LT_LOCK_SCREEN, "[ILLUME2][LOCK]  %s(%d)... REMOVE from the block list. Win:%x\n", __func__, __LINE__, bd->client.win);
+   L (LT_LOCK_SCREEN, "[ILLUME2][LOCK]  %s(%d)... REMOVE from the block list. Win:0x%07x\n", __func__, __LINE__, bd->client.win);
    g_screen_lock_info->blocked_list = eina_list_remove (g_screen_lock_info->blocked_list, bd);
 
    if (g_screen_lock_info->blocked_list == NULL)
@@ -3981,6 +4380,7 @@ _policy_find_next_visible_window (E_Illume_XWin_Info* xwin_info)
         if (e_illume_border_is_indicator(temp_bd)) continue;
         if (e_illume_border_is_keyboard(temp_bd)) continue;
         if (e_illume_border_is_quickpanel(temp_bd)) continue;
+        if (e_illume_border_is_quickpanel_popup(temp_bd)) continue;
 
         break;
      }
@@ -3989,45 +4389,54 @@ _policy_find_next_visible_window (E_Illume_XWin_Info* xwin_info)
 }
 
 static void
-_policy_root_angle_set (Ecore_X_Window root, Ecore_X_Window win)
+_policy_root_angle_set(E_Border *bd)
 {
    int angle;
+   Ecore_X_Window root;
 
-   if(win)
+   if (bd)
      {
-        angle = _policy_window_rotation_angle_get(win);
-        if(angle == -1) return;
+        angle = _policy_window_rotation_angle_get(bd->client.win);
+        if (angle == -1) return;
+        if (!(((bd->w == bd->zone->w) && (bd->h == bd->zone->h)) ||
+              ((bd->w == bd->zone->h) && (bd->h == bd->zone->w))))
+           return;
+
+        g_rotated_win = bd->client.win;
+        root = bd->zone->container->manager->root;
      }
    else
-      angle = g_root_angle;
-   L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. old_win:%x -> new_win:%x,  old angle:%d -> new_angle:%d\n", __func__, __LINE__, g_rotated_win, win, g_root_angle, angle);
-
-   g_rotated_win = win;
-
+     {
+        angle = g_root_angle;
+        g_rotated_win = 0;
+        root = 0;
+     }
+   L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. new_win:0x%07x,  old angle:%d -> new_angle:%d\n", __func__, __LINE__, g_rotated_win, g_root_angle, angle);
    L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. SET ROOT ANGLE... angle:%d\n\n", __func__, __LINE__, angle);
    // set root window property
-   ecore_x_window_prop_property_set (root, ECORE_X_ATOM_E_ILLUME_ROTATE_ROOT_ANGLE, ECORE_X_ATOM_CARDINAL, 32, &angle, 1);
- }
+   ecore_x_window_prop_property_set(root, ECORE_X_ATOM_E_ILLUME_ROTATE_ROOT_ANGLE, ECORE_X_ATOM_CARDINAL, 32, &angle, 1);
+}
 
 static void
 _policy_change_root_angle_by_border_angle (E_Border* bd)
 {
-   L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d)... win:%x\n", __func__, __LINE__, bd ? (unsigned int)bd->client.win:(unsigned int)NULL);
+   L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d)... win:0x%07x\n", __func__, __LINE__, bd ? (unsigned int)bd->client.win:(unsigned int)NULL);
    if (!bd) return;
 
    // ignore the angle of special borders - like indicator, keyboard, quickpanel, etc.
    if (e_illume_border_is_indicator(bd)) return;
    if (e_illume_border_is_keyboard(bd)) return;
    if (e_illume_border_is_quickpanel(bd)) return;
+   if (e_illume_border_is_quickpanel_popup(bd)) return;
 
-   L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d)... CALL _policy_root_angle_set.. win:%x\n", __func__, __LINE__, bd->client.win);
-   _policy_root_angle_set (bd->zone->container->manager->root, bd->client.win);
+   L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d)... CALL _policy_root_angle_set.. win:0x%07x\n", __func__, __LINE__, bd->client.win);
+   _policy_root_angle_set(bd);
 }
 
 static void
 _policy_indicator_angle_change (E_Border* indi_bd, int angle)
 {
-   L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d)... indicator:%x\n", __func__, __LINE__, indi_bd ? (unsigned int)indi_bd->client.win:(unsigned int)NULL);
+   L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d)... indicator:0x%07x\n", __func__, __LINE__, indi_bd ? (unsigned int)indi_bd->client.win:(unsigned int)NULL);
    if (!indi_bd) return;
 
    int old_angle = _policy_window_rotation_angle_get (indi_bd->client.win);
@@ -4054,8 +4463,167 @@ _policy_indicator_angle_change (E_Border* indi_bd, int angle)
         qp = e_illume_quickpanel_by_zone_get (indi_bd->zone);
         if (qp)
           {
-             if (qp->visible)
-                _policy_layout_quickpanel_rotate (qp, angle);
+             _policy_layout_quickpanel_rotate (qp, angle);
+          }
+     }
+}
+
+static void
+_policy_border_transient_for_group_make(E_Border  *bd,
+                                        Eina_List **list)
+{
+   E_Border *child;
+   Eina_List *l;
+
+   if (!bd) return;
+
+   E_OBJECT_CHECK(bd);
+   E_OBJECT_TYPE_CHECK(bd, E_BORDER_TYPE);
+
+   if (e_config->transient.raise)
+     {
+        EINA_LIST_FOREACH(bd->transients, l, child)
+          {
+             if (!child) continue;
+             if (!child->iconic)
+               {
+                  *list = eina_list_prepend(*list, child);
+                  _policy_border_transient_for_group_make(child, list);
+               }
+          }
+     }
+}
+
+static E_Border *
+_policy_border_transient_for_border_top_get(E_Border *bd)
+{
+   E_Border *top_border;
+   Eina_List *transient_list = NULL;
+
+   _policy_border_transient_for_group_make(bd, &transient_list);
+
+   if (transient_list)
+     {
+        Eina_List *l = NULL;
+        E_Border *temp_bd;
+        E_Border *temp_bd2;
+        E_Border_List *bl;
+
+        bl = e_container_border_list_last(bd->zone->container);
+        while ((temp_bd = e_container_border_list_prev(bl)))
+          {
+             if (top_border) break;
+
+             EINA_LIST_FOREACH(transient_list, l, temp_bd2)
+               {
+                  if (temp_bd == temp_bd2)
+                    {
+                       top_border = temp_bd2;
+                       break;
+                    }
+               }
+          }
+        e_container_border_list_free(bl);
+     }
+   else
+     top_border = NULL;
+
+   L (LT_TRANSIENT_FOR, "[ILLUME2][TRANSIENT] %s(%d).. win:0x%07x, transient_for_top_win:0x%07x\n", __func__, __LINE__, bd->client.win, top_border ? (unsigned int)top_border->client.win:(unsigned int)NULL);
+
+   eina_list_free(transient_list);
+
+   return top_border;
+}
+
+static void
+_policy_border_transient_for_layer_set(E_Border *bd,
+                                       E_Border *parent_bd,
+                                       int       layer)
+{
+   int raise;
+   E_Border *top_border;
+
+   E_OBJECT_CHECK(bd);
+   E_OBJECT_TYPE_CHECK(bd, E_BORDER_TYPE);
+
+   L (LT_TRANSIENT_FOR, "[ILLUME2][TRANSIENT] %s(%d).. win:0x%07x, transient_for:0x%07x, layer:%d\n", __func__, __LINE__, bd->client.win, parent_bd ? (unsigned int)parent_bd->client.win:(unsigned int)NULL, layer);
+
+   ecore_x_window_shadow_tree_flush();
+
+   raise = e_config->transient.raise;
+
+   bd->saved.layer = bd->layer;
+   bd->layer = layer;
+   if (e_config->transient.layer)
+     {
+        Eina_List *l;
+        E_Border *child;
+
+        /* We need to set raise to one, else the child wont
+         * follow to the new layer. It should be like this,
+         * even if the user usually doesn't want to raise
+         * the transients.
+         */
+        e_config->transient.raise = 1;
+        EINA_LIST_FOREACH(bd->transients, l, child)
+          {
+             if (!child) continue;
+             child->layer = layer;
+          }
+     }
+
+   top_border = _policy_border_transient_for_border_top_get(parent_bd);
+   if (top_border)
+     {
+        if (top_border != bd)
+          {
+             L (LT_STACK, "[ILLUME2][STACK] %s(%d)... STACK CHANGE with ABOVE... win:0x%07x, above_win:0x%07x\n", __func__, __LINE__, bd->client.win, top_border->client.win);
+             e_border_stack_above(bd, top_border);
+          }
+     }
+   else
+     {
+        L (LT_STACK, "[ILLUME2][STACK] %s(%d)... STACK CHANGE with ABOVE... win:0x%07x, above_win:0x%07x\n", __func__, __LINE__, bd->client.win, parent_bd->client.win);
+        e_border_stack_above(bd, parent_bd);
+     }
+
+   e_config->transient.raise = raise;
+}
+
+static void
+_policy_border_set_root_angle_by_top_visible_win(void)
+{
+   Eina_Inlist *xwin_info_list;
+   E_Illume_XWin_Info *xwin_info;
+   E_Border *bd;
+
+   xwin_info = NULL;
+   xwin_info_list = _e_illume_xwin_info_list;
+
+   if (xwin_info_list)
+     {
+        EINA_INLIST_REVERSE_FOREACH (xwin_info_list, xwin_info)
+          {
+             if (xwin_info->visibility != E_ILLUME_VISIBILITY_FULLY_OBSCURED)
+               {
+                  if (xwin_info->bd_info)
+                    {
+                       bd = xwin_info->bd_info->border;
+
+                       if (!bd) continue;
+                       if (!bd->visible) continue;
+
+                       // ignore special borders - like indicator, keyboard, quickpanel, etc.
+                       if (e_illume_border_is_indicator(bd)) continue;
+                       if (e_illume_border_is_quickpanel(bd)) continue;
+                       if (e_illume_border_is_quickpanel_popup(bd)) continue;
+                       if (e_illume_border_is_keyboard(bd)) continue;
+
+                       L(LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. first visible win:0x%07x\n", __func__, __LINE__, bd->client.win);
+                       _policy_root_angle_set(bd);
+                       break;
+                    }
+               }
           }
      }
 }

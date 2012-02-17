@@ -18,21 +18,47 @@ INCLUDES               = -I. \
 			 
 pkgdir                 = $(libdir)/enlightenment/modules/$(MODULE)/$(MODULE_ARCH)
 pkg_LTLIBRARIES        = module.la
-module_la_SOURCES      = e_mod_main.c \
-                         e_mod_main.h \
-                         e_mod_config.c \
-                         e_mod_config.h \
-                         e_mod_comp_data.h \
+module_la_SOURCES      = e_mod_comp_animation.c \
+                         e_mod_comp_animation.h \
+                         e_mod_comp_atoms.c \
+                         e_mod_comp_atoms.h \
+                         e_mod_comp_bg_win.c \
+                         e_mod_comp_bg_win.h \
                          e_mod_comp.c \
                          e_mod_comp.h \
+                         e_mod_comp_debug.c \
+                         e_mod_comp_debug.h \
+                         e_mod_comp_effect.c \
+                         e_mod_comp_effect.h \
+                         e_mod_comp_effect_image_launch.c \
+                         e_mod_comp_effect_image_launch.h \
+                         e_mod_comp_effect_screen_capture.c \
+                         e_mod_comp_effect_screen_capture.h \
+                         e_mod_comp_effect_tm.c \
+                         e_mod_comp_effect_tm.h \
+                         e_mod_comp_effect_win_rotation.c \
+                         e_mod_comp_effect_win_rotation.h \
+                         e_mod_comp_pixmap_rotation.c \
+                         e_mod_comp_pixmap_rotation.h \
+                         e_mod_comp_pixmap_rotation_handler.c \
+                         e_mod_comp_pixmap_rotation_handler.h \
+                         e_mod_comp_policy.c \
+                         e_mod_comp_policy.h \
+                         e_mod_comp_screen.c \
+                         e_mod_comp_screen.h \
+                         e_mod_comp_shared_types.h \
                          e_mod_comp_update.c \
                          e_mod_comp_update.h \
-                         e_mod_comp_rotation.c \
-                         e_mod_comp_rotation.h \
-                         e_mod_comp_policy.c \
-                         e_mod_comp_effect.c \
-                         e_mod_comp_animation.c \
-                         e_mod_comp_animation.h
+                         e_mod_comp_util.c \
+                         e_mod_comp_util.h \
+                         e_mod_comp_win_type.c \
+                         e_mod_comp_win_type.h \
+                         e_mod_comp_win_shape_input.c \
+                         e_mod_comp_win_shape_input.h \
+                         e_mod_config.c \
+                         e_mod_config.h \
+                         e_mod_main.c \
+                         e_mod_main.h
 
 module_la_LIBADD       = @ENLIGHTENMENT_LIBS@ @dlopen_libs@
 module_la_LDFLAGS      = -module -avoid-version

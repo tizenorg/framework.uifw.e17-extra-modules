@@ -39,7 +39,7 @@ export CFLAGS+=" -D_ENV_ARM"
 %endif
 
 
-for FILE in comp-slp illume2-slp keyrouter wmready
+for FILE in comp-slp illume2-slp keyrouter wmready accessibility
 do 
         (cd $FILE && ./autogen.sh && ./configure --prefix=/usr && make )
 done

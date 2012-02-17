@@ -183,6 +183,16 @@ struct _E_Illume_Policy
         /**< pointer to the function that Illume will call when properties
          * change on a window. @note This function is optional. */
 
+        void (*resize_start) (E_Border *bd);
+        /**< pointer to the function that Illume will call when the user has
+         * started to resize the inset mode windows.
+         * @note This function is optional. */
+
+        void (*resize_end) (E_Border *bd);
+        /**< pointer to the function that Illume will call when the user has
+         * stopped resizing the inset mode windows.
+         * @note This function is optional. */
+
         void (*window_focus_in) (Ecore_X_Event_Window_Focus_In *event);
 
         void (*border_restack_request) (E_Border* bd, E_Border* sibling, int mode);
@@ -191,6 +201,7 @@ struct _E_Illume_Policy
         void (*border_post_new_border) (E_Border *bd);
 
         void (*border_pre_fetch) (E_Border *bd);
+        void (*border_new_border) (E_Border *bd);
         void (*window_configure_request) (Ecore_X_Event_Window_Configure_Request *event);
 
         /* for visibility */
@@ -284,7 +295,6 @@ struct _E_Illume_Config_Zone
 struct _E_Illume_Quickpanel_Info
 {
    E_Border *bd;
-   Eina_Bool draw_done;
    int angle;
 
    /* for mini controller */
@@ -319,7 +329,7 @@ struct _E_Illume_Quickpanel
    unsigned char visible;
    /**< flag to indicate if the quickpanel is currently visible */
 
-   E_Popup *popup;
+   E_Win *popup;
    Ecore_Evas *ee;
    Evas *evas;
 
@@ -374,5 +384,8 @@ EAPI E_Illume_Quickpanel *e_illume_quickpanel_by_zone_get(E_Zone *zone);
 EAPI Eina_List* e_illume_quickpanel_get (void);
 EAPI void e_illume_quickpanel_show(E_Zone *zone, int isAni);
 EAPI void e_illume_quickpanel_hide(E_Zone *zone, int isAni);
+EAPI Eina_Bool e_illume_border_is_quickpanel_popup(E_Border *bd);
 
+/* app tray functions */
+EAPI Eina_Bool e_illume_border_is_app_tray(E_Border *bd);
 #endif

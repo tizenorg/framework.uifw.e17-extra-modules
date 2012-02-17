@@ -705,3 +705,39 @@ e_illume_quickpanel_hide(E_Zone *zone, int isAni)
    e_mod_quickpanel_hide(qp, isAni);
 }
 
+EAPI Eina_Bool
+e_illume_border_is_quickpanel_popup(E_Border *bd)
+{
+   /* make sure we have a border */
+   if (!bd) return EINA_FALSE;
+
+   /* check if we are matching on class */
+   if ((bd->client.icccm.class) &&
+       (!strcmp(bd->client.icccm.class,
+                "QUICKPANEL_BASE")))
+      return EINA_TRUE;
+
+   /* return a fallback */
+   return EINA_FALSE;
+}
+
+
+EAPI Eina_Bool
+e_illume_border_is_app_tray(E_Border *bd)
+{
+   const char *name = NULL;
+   const char *clas = NULL;
+
+   if (!bd) return EINA_FALSE;
+
+   name = bd->client.icccm.name;
+   clas = bd->client.icccm.class;
+
+   if (clas == NULL) return EINA_FALSE;
+   if (strncmp(clas,"APP_TRAY",strlen("APP_TRAY"))!= 0) return EINA_FALSE;
+   if (name == NULL) return EINA_FALSE;
+   if (strncmp(name,"APP_TRAY",strlen("APP_TRAY"))!= 0) return EINA_FALSE;
+
+   return EINA_TRUE;
+}
+

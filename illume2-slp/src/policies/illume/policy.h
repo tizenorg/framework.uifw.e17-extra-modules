@@ -96,6 +96,8 @@ void _policy_drag_end(E_Border *bd);
 void _policy_focus_back(E_Zone *zone);
 void _policy_focus_forward(E_Zone *zone);
 void _policy_property_change(Ecore_X_Event_Window_Property *event);
+void _policy_resize_start(E_Border *bd);
+void _policy_resize_end(E_Border *bd);
 
 void _policy_window_focus_in(Ecore_X_Event_Window_Focus_In *event);
 
@@ -104,6 +106,7 @@ void _policy_border_stack (E_Event_Border_Stack *ev);
 
 void _policy_border_post_new_border(E_Border *bd);
 void _policy_border_pre_fetch(E_Border *bd);
+void _policy_border_new_border(E_Border *bd);
 
 void _policy_window_configure_request (Ecore_X_Event_Window_Configure_Request *event);
 

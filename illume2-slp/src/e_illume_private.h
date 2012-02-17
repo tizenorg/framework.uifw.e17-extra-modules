@@ -2,6 +2,7 @@
 # define E_ILLUME_PRIVATE_H
 
 # include "e_illume.h"
+# include "e_illume_log.h"
 
 /* define policy object type */
 # define E_ILLUME_POLICY_TYPE 0xE0b200b

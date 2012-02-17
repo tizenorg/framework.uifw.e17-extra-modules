@@ -21,37 +21,32 @@ static Eina_Bool _e_mod_quickpanel_cb_border_add(void *data __UNUSED__, int type
 static Eina_Bool _e_mod_quickpanel_cb_border_remove(void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_quickpanel_cb_border_resize(void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_quickpanel_cb_property (void *data __UNUSED__, int type __UNUSED__, void *event);
+static Eina_Bool _e_mod_quickpanel_cb_border_show(void *data __UNUSED__, int type __UNUSED__, void *event);
 
 static void _e_mod_quickpanel_cb_post_fetch(void *data __UNUSED__, void *data2);
 static void _e_mod_quickpanel_cb_free(E_Illume_Quickpanel *qp);
-static void _e_mod_quickpanel_slide(E_Illume_Quickpanel *qp, int visible, double len);
-static Eina_Bool _e_mod_quickpanel_cb_animate(void *data);
+
 static void _e_mod_quickpanel_position_update(E_Illume_Quickpanel *qp);
-static void _e_mod_quickpanel_animate_down(E_Illume_Quickpanel *qp);
-static void _e_mod_quickpanel_animate_up(E_Illume_Quickpanel *qp);
+
+static void _e_quickpanel_handle_input_region_set (Ecore_X_Window win, int x, int y, int w, int h);
+static void _e_quickpanel_layout_position_set (Ecore_X_Window win, int x, int y);
 
 static void _e_quickpanel_position_update(E_Illume_Quickpanel *qp);
 static int _e_quickpanel_priority_sort_cb (const void* d1, const void* d2);
-static void _e_quickpanel_after_animate (E_Illume_Quickpanel* qp);
 static int _e_mod_quickpanel_root_angle_get (E_Illume_Quickpanel* qp);
+
+static Ecore_X_Window _e_mod_quickpanel_active_window_get(Ecore_X_Window root);
+static void _e_mod_quickpanel_property_root_angle_change(Ecore_X_Event_Window_Property *event);
+static void _e_mod_quickpanel_property_active_win_change(Ecore_X_Event_Window_Property *event);
 
 static int _e_mod_quickpanel_bg_layout_add(E_Illume_Quickpanel *qp);
 static int _e_mod_quickpanel_bg_layout_del(E_Illume_Quickpanel *qp);
 
-static void _e_mod_quickpanel_cb_event_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info);
-static void _e_mod_quickpanel_cb_event_mouse_up(void *data, Evas *e, Evas_Object *obj, void *event_info);
-static void _e_mod_quickpanel_cb_event_mouse_move(void *data, Evas *e, Evas_Object *obj, void *event_info);
-
 static void _e_mod_quickpanel_send_message (E_Illume_Quickpanel *qp, Ecore_X_Illume_Quickpanel_State state);
-
-static void _e_mod_quickpanel_border_show (E_Illume_Quickpanel* qp, E_Border* bd);
-static void _e_mod_quickpanel_border_hide (E_Border* bd);
 
 static Eina_Bool _e_mod_quickpanel_popup_new (E_Illume_Quickpanel* qp);
 static void _e_mod_quickpanel_popup_del (E_Illume_Quickpanel* qp);
 static Eina_Bool _e_mod_quickpanel_popup_update (E_Illume_Quickpanel* qp);
-
-static Eina_Bool _e_mod_quickpanel_cb_key_down (void *data, int type __UNUSED__, void *event);
 
 static void _e_mod_quickpanel_hib_enter (void);
 static void _e_mod_quickpanel_hib_leave (void);
@@ -59,9 +54,6 @@ static void _e_mod_quickpanel_hib_leave (void);
 static void _e_mod_quickpanel_check_lock_screen (E_Illume_Quickpanel* qp);
 static E_Illume_Quickpanel_Info* _e_mod_quickpanel_current_mini_controller_get (E_Illume_Quickpanel* qp);
 static void _e_mod_quickpanel_window_list_set (E_Illume_Quickpanel* qp);
-
-static void _e_mod_quickpanel_extra_panel_show(E_Illume_Quickpanel *qp);
-static void _e_mod_quickpanel_extra_panel_hide(E_Illume_Quickpanel *qp);
 
 /* local variables */
 static Eina_List *_qp_hdls = NULL;
@@ -72,6 +64,9 @@ static Ecore_X_Atom hibernation_state_atom = 0;
 
 static Ecore_X_Atom mini_controller_win_atom = 0;
 static Ecore_X_Atom quickpanel_list_atom = 0;
+
+static Ecore_X_Atom quickpanel_layout_position_atom = 0;
+static Ecore_X_Atom quickpanel_handle_input_region_atom = 0;
 
 int e_mod_quickpanel_init(void)
 {
@@ -102,6 +97,12 @@ int e_mod_quickpanel_init(void)
       eina_list_append(_qp_hdls,
                        ecore_event_handler_add(ECORE_X_EVENT_WINDOW_PROPERTY,
                                                _e_mod_quickpanel_cb_property,
+                                               NULL));
+
+   _qp_hdls =
+      eina_list_append(_qp_hdls,
+                       ecore_event_handler_add(E_EVENT_BORDER_SHOW,
+                                               _e_mod_quickpanel_cb_border_show,
                                                NULL));
 
    /* add hook for new borders so we can test for qp borders */
@@ -159,209 +160,23 @@ E_Illume_Quickpanel *e_mod_quickpanel_new(E_Zone *zone)
 
    qp->key_hdl = NULL;
 
+   if (_e_mod_quickpanel_popup_new(qp) == EINA_FALSE)
+     {
+        e_object_del (E_OBJECT(qp));
+        return NULL;
+     }
+
    return qp;
 }
 
 
 void e_mod_quickpanel_show(E_Illume_Quickpanel *qp, int isAni)
 {
-   int duration;
-
-   if (!qp) return;
-
-   if (qp->ani_type == E_ILLUME_QUICKPANEL_ANI_HIDE)
-     {
-        if (qp->visible) qp->visible = 0;
-        else qp->visible = 1;
-     }
-   else if (qp->ani_type == E_ILLUME_QUICKPANEL_ANI_SHOW)
-     {
-        return;
-     }
-
-   /* delete the animator if it exists */
-   if (qp->animator) ecore_animator_del(qp->animator);
-   qp->animator = NULL;
-
-   /* delete any existing timer */
-   if (qp->timer) ecore_timer_del(qp->timer);
-   qp->timer = NULL;
-
-   /* if it's already visible, or has no borders to show, then get out */
-   //if ((qp->visible) || (!qp->borders)) return;
-   if (qp->visible)
-     {
-        qp->ani_type = E_ILLUME_QUICKPANEL_ANI_NONE;
-        return;
-     }
-
-   if (_e_mod_quickpanel_popup_new(qp) == EINA_FALSE) return;
-
-   qp->ani_type = E_ILLUME_QUICKPANEL_ANI_SHOW;
-
-   if (qp->angle == 0 || qp->angle == 180)
-      qp->popup_len = qp->popup->h;
-   else
-      qp->popup_len = qp->popup->w;
-
-   duration = _e_illume_cfg->animation.quickpanel.duration;
-
-   /* grab the height of the indicator */
-   if (!qp->ind) qp->vert.isize = 0;
-   else
-     {
-        if (qp->angle == 0 || qp->angle == 180)
-          {
-             qp->vert.isize = qp->ind->h;
-          }
-        else
-          {
-             qp->vert.isize = qp->ind->w;
-          }
-     }
-
-   /* check animation duration */
-   if (duration <= 0 || !isAni)
-     {
-        Eina_List *l;
-        E_Illume_Quickpanel_Info *panel;
-        int ny = 0, nx = 0;
-
-        ny = qp->vert.isize;
-        if (qp->vert.dir == 1) ny = 0;
-
-        _e_quickpanel_after_animate (qp);
-
-        // FIXME: shouldnt have special case - just call anim with adjust @ end
-        // also don't use e_border_fx_offset but actuall;y move bd
-        /* if we are not animating, just show the borders */
-        if (qp->horiz_style)
-          {
-             EINA_LIST_FOREACH(qp->borders, l, panel)
-               {
-                  if (!panel) continue;
-                  if (!panel->bd->visible) _e_mod_quickpanel_border_show(qp, panel->bd);
-                  if (qp->vert.dir == 0)
-                    {
-                       e_border_fx_offset(panel->bd, qp->horiz.adjust + nx, ny);
-                       nx += panel->bd->w;
-                    }
-                  else
-                    {
-                       nx -= panel->bd->w;
-                       e_border_fx_offset(panel->bd, qp->horiz.adjust + nx, ny);
-                    }
-               }
-          }
-        else
-          {
-             EINA_LIST_FOREACH(qp->borders, l, panel)
-               {
-                  if (!panel) continue;
-                  if (!panel->bd->visible) _e_mod_quickpanel_border_show(qp, panel->bd);
-                  if (qp->vert.dir == 0)
-                    {
-                       if (qp->angle == 0)
-                         {
-                            e_border_move (panel->bd, qp->horiz.adjust, ny);
-                            ny += panel->bd->h;
-                         }
-                       else if (qp->angle == 180)
-                         {
-                            ny += panel->bd->h;
-                            e_border_move (panel->bd, qp->horiz.adjust, qp->zone->h - ny);
-                         }
-                       else if (qp->angle == 90)
-                         {
-                            e_border_move (panel->bd, ny, qp->horiz.adjust);
-                            ny += panel->bd->w;
-                         }
-                       else if (qp->angle == 270)
-                         {
-                            ny += panel->bd->w;
-                            e_border_move (panel->bd, qp->zone->w - ny, qp->horiz.adjust);
-                         }
-                    }
-                  else
-                    {
-                       ny -= panel->bd->h;
-                       e_border_fx_offset(panel->bd, qp->horiz.adjust, ny);
-                    }
-               }
-          }
-     }
-   else
-     {
-        if (!qp->popup->visible)
-          {
-             e_popup_show(qp->popup);
-
-             if (qp->ind)
-               {
-                  /* restack popup win under the bottom quickpanel win */
-                  ecore_x_window_configure (qp->popup->evas_win,
-                                            ECORE_X_WINDOW_CONFIGURE_MASK_SIBLING | ECORE_X_WINDOW_CONFIGURE_MASK_STACK_MODE,
-                                            0, 0, 0, 0, 0,
-                                            qp->ind->win, ECORE_X_WINDOW_STACK_BELOW);
-               }
-          }
-        _e_mod_quickpanel_slide(qp, 1, (double)duration / 1000.0);
-     }
 }
 
 
 void e_mod_quickpanel_hide(E_Illume_Quickpanel *qp, int isAni)
 {
-   int duration;
-
-   if (!qp) return;
-   if (!qp->popup) return;
-
-   if (qp->ani_type == E_ILLUME_QUICKPANEL_ANI_SHOW)
-     {
-        if (qp->visible) qp->visible = 0;
-        else qp->visible = 1;
-     }
-   else if (qp->ani_type == E_ILLUME_QUICKPANEL_ANI_HIDE)
-     {
-        return;
-     }
-
-   /* delete the animator if it exists */
-   if (qp->animator) ecore_animator_del(qp->animator);
-   qp->animator = NULL;
-
-   /* delete the timer if it exists */
-   if (qp->timer) ecore_timer_del(qp->timer);
-   qp->timer = NULL;
-
-   /* if it's not visible, we can't hide it */
-   if (!qp->visible)
-     {
-        qp->ani_type = E_ILLUME_QUICKPANEL_ANI_NONE;
-        return;
-     }
-
-   qp->ani_type = E_ILLUME_QUICKPANEL_ANI_HIDE;
-
-   if (qp->angle == 0 || qp->angle == 180)
-      qp->popup_len = qp->popup->h;
-   else
-      qp->popup_len = qp->popup->w;
-
-   duration = _e_illume_cfg->animation.quickpanel.duration;
-
-   _e_mod_quickpanel_extra_panel_hide(qp);
-
-   if (duration <= 0 || !isAni)
-     {
-        qp->vert.adjust = 0;
-        _e_quickpanel_after_animate (qp);
-     }
-   else
-     {
-        _e_mod_quickpanel_slide(qp, 0, (double)duration / 1000.0);
-     }
 }
 
 /* local functions */
@@ -395,49 +210,38 @@ static Eina_Bool _e_mod_quickpanel_atom_init (void)
         return EINA_FALSE;
      }
 
+   quickpanel_layout_position_atom = ecore_x_atom_get ("_E_COMP_QUICKPANEL_LAYOUT_POSITION");
+   if( !quickpanel_layout_position_atom)
+     {
+        fprintf (stderr, "[ILLUME2][QP] Critical Error!!! Cannot create _E_COMP_QUICKPANEL_LAYOUT_POSITION Atom...\n");
+        return EINA_FALSE;
+     }
+
+   quickpanel_handle_input_region_atom = ecore_x_atom_get ("_E_COMP_WINDOW_INPUT_REGION");
+   if( !quickpanel_handle_input_region_atom)
+     {
+        fprintf (stderr, "[ILLUME2][QP] Critical Error!!! Cannot create _E_COMP_WINDOW_INPUT_REGION Atom...\n");
+        return EINA_FALSE;
+     }
+
    return EINA_TRUE;
 }
 
 static Eina_Bool _e_mod_quickpanel_cb_client_message(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_X_Event_Client_Message *ev = event;
-   E_Zone *zone;
-   E_Illume_Quickpanel *qp;
-   E_Border *bd;
 
    if (ev->message_type == ECORE_X_ATOM_E_ILLUME_QUICKPANEL_STATE)
      {
-        if ((zone = e_util_zone_window_find(ev->win)))
-          {
-             if ((qp = e_illume_quickpanel_by_zone_get(zone)))
-               {
-                  if (ev->data.l[0] == (int)ECORE_X_ATOM_E_ILLUME_QUICKPANEL_OFF)
-                     e_mod_quickpanel_hide(qp, 1);
-                  else
-                     e_mod_quickpanel_show(qp, 1);
-               }
-          }
+        // TODO: do something
      }
    else if (ev->message_type == ECORE_X_ATOM_E_ILLUME_QUICKPANEL_STATE_TOGGLE)
      {
-        if ((zone = e_util_zone_window_find(ev->win)))
-          {
-             if ((qp = e_illume_quickpanel_by_zone_get(zone)))
-               {
-                  if (qp->visible)
-                     e_mod_quickpanel_hide(qp, 1);
-                  else
-                     e_mod_quickpanel_show(qp, 1);
-               }
-          }
+        // TODO: do something
      }
    else if (ev->message_type == ECORE_X_ATOM_E_ILLUME_QUICKPANEL_POSITION_UPDATE)
      {
-        if (!(bd = e_border_find_by_client_window(ev->win)))
-           return ECORE_CALLBACK_PASS_ON;
-        if (!(qp = e_illume_quickpanel_by_zone_get(bd->zone)))
-           return ECORE_CALLBACK_PASS_ON;
-        _e_mod_quickpanel_position_update(qp);
+        // TODO: do something
      }
    /* for hibernation state */
    else if (ev->message_type == hibernation_state_atom)
@@ -447,80 +251,9 @@ static Eina_Bool _e_mod_quickpanel_cb_client_message(void *data __UNUSED__, int 
         else
            _e_mod_quickpanel_hib_leave();
      }
-   else if (ev->message_type == ECORE_X_ATOM_E_COMP_SYNC_DRAW_DONE)
-     {
-        Eina_List *l;
-        E_Illume_Quickpanel_Info *panel;
 
-        if (!(bd = e_border_find_by_client_window(ev->win)))
-           return ECORE_CALLBACK_PASS_ON;
-        if (!(qp = e_illume_quickpanel_by_zone_get(bd->zone)))
-           return ECORE_CALLBACK_PASS_ON;
-
-        EINA_LIST_FOREACH(qp->borders, l, panel)
-          {
-             if (!panel) continue;
-
-             if (panel->bd->client.win == ev->win)
-               {
-                  panel->draw_done = EINA_TRUE;
-                  break;
-               }
-          }
-     }
    return ECORE_CALLBACK_PASS_ON;
 }
-
-
-static void _e_mod_quickpanel_size_adjust(E_Illume_Quickpanel *qp)
-{
-   Eina_List *l;
-   E_Illume_Quickpanel_Info *panel;
-
-   // FIXME: copy & pasted in _e_mod_quickpanel_cb_border_resize() too - make fn
-   qp->horiz.size = 0;
-   if (qp->horiz_style)
-     {
-        EINA_LIST_FOREACH(qp->borders, l, panel)
-          {
-             if (!panel) continue;
-
-             if (qp->is_lock)
-               {
-                  if (!panel->mini_controller) continue;
-               }
-
-             //if (panel->bd->h > qp->vert.size) qp->vert.size = bd->h;
-             qp->horiz.size += panel->bd->w;
-          }
-     }
-   else
-     {
-        qp->vert.size = qp->vert.isize;
-
-        EINA_LIST_FOREACH(qp->borders, l, panel)
-          {
-             if (!panel) continue;
-
-             if (qp->is_lock)
-               {
-                  if (!panel->mini_controller) continue;
-               }
-
-             if (qp->angle == 0 || qp->angle == 180)
-               {
-                  if (panel->bd->w > qp->horiz.size) qp->horiz.size = panel->bd->w;
-                  qp->vert.size += panel->bd->h;
-               }
-             else
-               {
-                  if (panel->bd->w > qp->horiz.size) qp->horiz.size = panel->bd->w;
-                  qp->vert.size += panel->bd->w;
-               }
-          }
-     }
-}
-
 
 static Eina_Bool _e_mod_quickpanel_cb_border_add(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
@@ -537,7 +270,36 @@ static Eina_Bool _e_mod_quickpanel_cb_border_add(void *data __UNUSED__, int type
         if ((qp = e_illume_quickpanel_by_zone_get(ev->border->zone)))
           {
              qp->ind = ev->border;
+             qp->vert.isize = qp->ind->h;
           }
+        return ECORE_CALLBACK_PASS_ON;
+     }
+
+   if (e_illume_border_is_quickpanel_popup (ev->border))
+     {
+        L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d).. QUICKPANEL POPUP... win:%x\n", __func__, __LINE__, ev->border->client.win);
+        if ((qp = e_illume_quickpanel_by_zone_get(ev->border->zone)))
+          {
+             if (qp->borders)
+               {
+                  E_Border* bd_last = NULL;
+                  Eina_List *bd_list;
+
+                  EINA_LIST_FOREACH(qp->borders, bd_list, panel)
+                    {
+                       if (!panel) continue;
+                       bd_last = panel->bd;
+                    }
+                  L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d).. QUICKPANEL POPUP (win:%x) is placed under qp:%x\n", __func__, __LINE__, ev->border->client.win, bd_last ? bd_last->client.win:NULL);
+                  e_border_stack_below (ev->border, bd_last);
+               }
+             else if (qp->ind)
+               {
+                  L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d).. QUICKPANEL POPUP (win:%x) is placed under indicator:%x\n", __func__, __LINE__, ev->border->client.win, qp->ind->client.win);
+                  e_border_stack_below (ev->border, qp->ind);
+               }
+          }
+
         return ECORE_CALLBACK_PASS_ON;
      }
 
@@ -584,7 +346,6 @@ static Eina_Bool _e_mod_quickpanel_cb_border_add(void *data __UNUSED__, int type
      }
 
    /* add this border to QP border collection */
-   panel->draw_done = EINA_FALSE;
    panel->bd = ev->border;
 
    /* for mini controller */
@@ -605,7 +366,6 @@ static Eina_Bool _e_mod_quickpanel_cb_border_add(void *data __UNUSED__, int type
                   qp->borders = eina_list_remove_list(qp->borders, l);
                   // add panel to hidden mini controller list
                   qp->hidden_mini_controllers = eina_list_prepend (qp->hidden_mini_controllers, temp);
-                  _e_mod_quickpanel_border_hide(temp->bd);
                   break;
                }
           }
@@ -621,19 +381,13 @@ static Eina_Bool _e_mod_quickpanel_cb_border_add(void *data __UNUSED__, int type
    qp->borders = eina_list_sorted_insert (qp->borders, _e_quickpanel_priority_sort_cb, panel);
    _e_mod_quickpanel_window_list_set (qp);
 
-   if (!qp->visible)
+   _e_quickpanel_position_update(qp);
+
+   // set transient_for to base window
+   if (qp->popup)
      {
-        ecore_x_e_illume_quickpanel_state_send(panel->bd->client.win, ECORE_X_ILLUME_QUICKPANEL_STATE_OFF);
-        if (qp->ind) e_border_stack_below (ev->border, qp->ind);
-        /* hide this border */
-        _e_mod_quickpanel_border_hide(ev->border);
-     }
-   else
-     {
-        _e_mod_quickpanel_size_adjust(qp);
-        _e_quickpanel_position_update (qp);
-        if (!qp->is_lock || panel->mini_controller)
-           _e_mod_quickpanel_border_show (qp, panel->bd);
+        L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d)... TRANSIENT_FOR.. win:%x, transient_win:%x\n", __func__, __LINE__, ev->border->client.win, qp->popup->evas_win);
+        ecore_x_icccm_transient_for_set (ev->border->client.win, qp->popup->evas_win);
      }
 
    return ECORE_CALLBACK_PASS_ON;
@@ -746,7 +500,12 @@ static Eina_Bool _e_mod_quickpanel_cb_border_remove(void *data __UNUSED__, int t
 
                   qp->borders = eina_list_sorted_insert (qp->borders, _e_quickpanel_priority_sort_cb, new_panel);
 
-                  if (qp->visible) _e_mod_quickpanel_border_show (qp, new_panel->bd);
+                  // set transient_for to base window
+                  if (qp->popup && new_panel->bd)
+                    {
+                       L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d)... TRANSIENT_FOR.. win:%x, transient_win:%x\n", __func__, __LINE__, ev->border->client.win, qp->popup->evas_win);
+                       ecore_x_icccm_transient_for_set (new_panel->bd->client.win, qp->popup->evas_win);
+                    }
                }
              else
                {
@@ -763,8 +522,7 @@ static Eina_Bool _e_mod_quickpanel_cb_border_remove(void *data __UNUSED__, int t
 
    _e_mod_quickpanel_window_list_set (qp);
 
-   _e_mod_quickpanel_size_adjust(qp);
-   _e_quickpanel_position_update (qp);
+   _e_quickpanel_position_update(qp);
 
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -780,8 +538,7 @@ static Eina_Bool _e_mod_quickpanel_cb_border_resize(void *data __UNUSED__, int t
    if (!(qp = e_illume_quickpanel_by_zone_get(ev->border->zone)))
       return ECORE_CALLBACK_PASS_ON;
 
-   _e_mod_quickpanel_size_adjust(qp);
-   _e_quickpanel_position_update (qp);
+   _e_quickpanel_position_update(qp);
 
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -804,35 +561,110 @@ static int _e_mod_quickpanel_root_angle_get (E_Illume_Quickpanel* qp)
    return angle;
 }
 
-static Eina_Bool _e_mod_quickpanel_cb_property (void *data __UNUSED__, int type __UNUSED__, void *event)
+static Ecore_X_Window
+_e_mod_quickpanel_active_window_get(Ecore_X_Window root)
 {
-   Ecore_X_Event_Window_Property *ev;
+   Ecore_X_Window win;
+   int ret;
 
-   ev = event;
-   if (ev->atom == ECORE_X_ATOM_E_ILLUME_ROTATE_ROOT_ANGLE)
+   ret = ecore_x_window_prop_xid_get(root,
+                                     ECORE_X_ATOM_NET_ACTIVE_WINDOW,
+                                     ECORE_X_ATOM_WINDOW,
+                                     &win, 1);
+
+   if ((ret == 1) && win)
+      return win;
+   else
+      return 0;
+}
+
+static void
+_e_mod_quickpanel_property_root_angle_change(Ecore_X_Event_Window_Property *event)
+{
+   E_Illume_Quickpanel *qp;
+   E_Zone* zone;
+   int old_angle;
+
+   zone = e_util_zone_current_get(e_manager_current_get());
+   if (zone)
      {
-        E_Illume_Quickpanel *qp;
-        E_Zone* zone;
-        int old_angle;
-
-        zone = e_util_zone_current_get(e_manager_current_get());
-        if (zone)
+        qp = e_illume_quickpanel_by_zone_get (zone);
+        if (qp)
           {
-             qp = e_illume_quickpanel_by_zone_get (zone);
-             if (qp)
-               {
-                  if (qp->visible)
-                    {
-                       old_angle = qp->angle;
-                       qp->angle = _e_mod_quickpanel_root_angle_get (qp);
+             old_angle = qp->angle;
+             qp->angle = _e_mod_quickpanel_root_angle_get (qp);
 
-                       if (qp->angle != old_angle)
-                         {
-                            _e_mod_quickpanel_popup_update (qp);
-                         }
-                    }
+             if (qp->angle != old_angle)
+               {
+                  L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d)... angle:%d\n", __func__, __LINE__, qp->angle);
+                  _e_quickpanel_position_update(qp);
                }
           }
+     }
+}
+
+static void
+_e_mod_quickpanel_property_active_win_change(Ecore_X_Event_Window_Property *event)
+{
+   Ecore_X_Window active_win;
+   E_Border* active_bd;
+   E_Illume_Quickpanel *qp;
+
+   active_win = _e_mod_quickpanel_active_window_get(event->win);
+   if (!active_win) return;
+
+   active_bd = e_border_find_by_client_window(active_win);
+   if (!active_bd) return;
+
+   if (!(qp = e_illume_quickpanel_by_zone_get(active_bd->zone)))
+     return;
+
+   if (e_illume_border_is_lock_screen(active_bd))
+     {
+        if (!qp->is_lock)
+          {
+             L(LT_QUICKPANEL, "[ILLUME2][QP] line:%d.. LOCK SCREEN....\n", __LINE__);
+             qp->is_lock = EINA_TRUE;
+             _e_quickpanel_position_update(qp);
+          }
+     }
+   else
+     {
+        if (qp->is_lock)
+          {
+             L(LT_QUICKPANEL, "[ILLUME2][QP] line:%d.. UNLOCK SCREEN....\n", __LINE__);
+             qp->is_lock = EINA_FALSE;
+             _e_quickpanel_position_update(qp);
+          }
+     }
+}
+
+static Eina_Bool _e_mod_quickpanel_cb_property(void *data __UNUSED__, int type __UNUSED__, void *event)
+{
+   Ecore_X_Event_Window_Property *ev;
+   ev = event;
+
+   if (ev->atom == ECORE_X_ATOM_E_ILLUME_ROTATE_ROOT_ANGLE)
+     {
+        _e_mod_quickpanel_property_root_angle_change(ev);
+     }
+   else if (ev->atom == ECORE_X_ATOM_NET_ACTIVE_WINDOW)
+     {
+        _e_mod_quickpanel_property_active_win_change(ev);
+     }
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static Eina_Bool _e_mod_quickpanel_cb_border_show(void *data __UNUSED__, int type __UNUSED__, void *event)
+{
+   E_Event_Border_Show *ev;
+
+   ev = event;
+   if (ev->border->client.illume.quickpanel.quickpanel ||
+       e_illume_border_is_quickpanel_popup (ev->border))
+     {
+        e_border_move (ev->border, -ev->border->zone->w, -ev->border->zone->h);
      }
 
    return ECORE_CALLBACK_PASS_ON;
@@ -843,8 +675,11 @@ static void _e_mod_quickpanel_cb_post_fetch(void *data __UNUSED__, void *data2)
    E_Border *bd;
 
    if (!(bd = data2)) return;
-   if (!bd->client.illume.quickpanel.quickpanel) return;
-   bd->stolen = 1;
+   if (bd->client.illume.quickpanel.quickpanel ||
+       e_illume_border_is_quickpanel_popup (bd))
+     {
+        bd->stolen = 1;
+     }
 }
 
 static void _e_mod_quickpanel_cb_free(E_Illume_Quickpanel *qp)
@@ -895,182 +730,6 @@ static void _e_mod_quickpanel_cb_free(E_Illume_Quickpanel *qp)
    E_FREE(qp);
 }
 
-static void _e_mod_quickpanel_slide(E_Illume_Quickpanel *qp, int visible, double len)
-{
-   if (!qp) return;
-   qp->start = ecore_loop_time_get();
-   qp->len = len;
-   qp->vert.adjust_start = qp->vert.adjust;
-   qp->vert.adjust_end = 0;
-   if (qp->vert.dir == 0)
-     {
-        if (visible) qp->vert.adjust_end = qp->vert.size;
-     }
-   else
-     {
-        if (visible) qp->vert.adjust_end = -qp->vert.size;
-     }
-
-   if (!qp->animator)
-      qp->animator = ecore_animator_add(_e_mod_quickpanel_cb_animate, qp);
-   _e_mod_quickpanel_cb_animate(qp);
-}
-
-static void _e_quickpanel_after_animate (E_Illume_Quickpanel* qp)
-{
-   Eina_List *l;
-   E_Illume_Quickpanel_Info *panel;
-
-   if (!qp) return;
-
-   qp->animator = NULL;
-
-   if (qp->visible)
-     {
-        EINA_LIST_FOREACH(qp->borders, l, panel)
-          {
-             if (!panel) continue;
-             if (panel->bd->visible) _e_mod_quickpanel_border_hide(panel->bd);
-          }
-        qp->visible = 0;
-
-        e_popup_hide(qp->popup);
-
-        // send message to quickpanel borders
-        _e_mod_quickpanel_send_message (qp, ECORE_X_ILLUME_QUICKPANEL_STATE_OFF);
-
-        _e_mod_quickpanel_popup_del (qp);
-     }
-   else
-     {
-        qp->visible = 1;
-
-        if (!qp->popup->visible)
-          {
-             e_popup_show(qp->popup);
-
-             if (qp->ind)
-               {
-                  /* restack popup win under the bottom quickpanel win */
-                  ecore_x_window_configure (qp->popup->evas_win,
-                                            ECORE_X_WINDOW_CONFIGURE_MASK_SIBLING | ECORE_X_WINDOW_CONFIGURE_MASK_STACK_MODE,
-                                            0, 0, 0, 0, 0,
-                                            qp->ind->win, ECORE_X_WINDOW_STACK_BELOW);
-               }
-          }
-
-        _e_mod_quickpanel_extra_panel_show(qp);
-
-        // send message to quickpanel borders
-        _e_mod_quickpanel_send_message (qp, ECORE_X_ILLUME_QUICKPANEL_STATE_ON);
-     }
-
-   qp->down = 0;
-   qp->ani_type = E_ILLUME_QUICKPANEL_ANI_NONE;
-}
-
-static Eina_Bool _e_mod_quickpanel_cb_animate(void *data)
-{
-   E_Illume_Quickpanel *qp;
-   double t, v, diff = 1.0;
-
-   if (!(qp = data)) return ECORE_CALLBACK_CANCEL;
-   t = (ecore_loop_time_get() - qp->start);
-   if (t > qp->len) t = qp->len;
-   if (qp->len > 0.0)
-     {
-        v = (t / qp->len);
-        v = (1.0 - v);
-        v = (v * v * v * v);
-        v = (1.0 - v);
-     }
-   else
-     {
-        t = qp->len;
-        v = 1.0;
-     }
-
-   diff = 1.0 - v;
-   qp->vert.adjust = ((qp->vert.adjust_end * v) +
-                      (qp->vert.adjust_start * diff));
-
-   if (qp->vert.dir == 0) _e_mod_quickpanel_animate_down(qp);
-   else _e_mod_quickpanel_animate_up(qp);
-
-   if (qp->visible)
-     {
-        int x, y;
-
-        if (qp->angle == 0)
-          {
-             x = qp->zone->x;
-             y = qp->zone->y - qp->popup_len + (qp->popup_len * diff);
-          }
-        else if (qp->angle == 180)
-          {
-             x = qp->zone->x;
-             y = qp->zone->h - qp->zone->y - (qp->popup_len * diff);
-          }
-        else if (qp->angle == 90)
-          {
-             x = qp->zone->x - qp->popup_len + (qp->popup_len * diff);
-             y = qp->zone->y;
-          }
-        else if (qp->angle == 270)
-          {
-             x = qp->zone->w - qp->zone->x - (qp->popup_len * diff);
-             y = qp->zone->y;
-          }
-        else
-          {
-             // error!!!
-             x = qp->zone->x;
-             y = qp->zone->y - qp->popup_len + (qp->popup_len * diff);
-          }
-        e_popup_move(qp->popup, x, y);
-     }
-   else
-     {
-        int x, y;
-
-        if (qp->angle == 0)
-          {
-             x = qp->zone->x;
-             y = qp->zone->y - qp->popup_len + (qp->popup_len * v);
-          }
-        else if (qp->angle == 180)
-          {
-             x = qp->zone->x;
-             y = qp->zone->h - qp->zone->y - (qp->popup_len * v);
-          }
-        else if (qp->angle == 90)
-          {
-             x = qp->zone->x - qp->popup_len + (qp->popup_len * v);
-             y = qp->zone->y;
-          }
-        else if (qp->angle == 270)
-          {
-             x = qp->zone->w - qp->zone->x - (qp->popup_len * v);
-             y = qp->zone->y;
-          }
-        else
-          {
-             // error!!!
-             x = qp->zone->x;
-             y = qp->zone->y - qp->popup_len + (qp->popup_len * v);
-          }
-        e_popup_move(qp->popup, x, y);
-     }
-
-   if (t == qp->len)
-     {
-        _e_quickpanel_after_animate (qp);
-        return ECORE_CALLBACK_CANCEL;
-     }
-
-   return ECORE_CALLBACK_RENEW;
-}
-
 static void _e_mod_quickpanel_position_update(E_Illume_Quickpanel *qp)
 {
    Eina_List *l;
@@ -1095,167 +754,6 @@ static void _e_mod_quickpanel_position_update(E_Illume_Quickpanel *qp)
    if ((iy + qp->vert.isize + qp->vert.size) > qp->zone->h) qp->vert.dir = 1;
 }
 
-static void _e_mod_quickpanel_animate_down(E_Illume_Quickpanel *qp)
-{
-   Eina_List *l;
-   E_Illume_Quickpanel_Info *panel;
-   int pbh = 0, pbw = 0;
-
-   if (!qp) return;
-
-   if (qp->horiz_style)
-     {
-        int p = 0;
-
-        if (qp->vert.size > 0)
-          {
-             p = (qp->vert.adjust * (qp->vert.size + qp->vert.isize))
-                / qp->vert.size + qp->item_pos_y;
-          }
-
-        EINA_LIST_FOREACH(qp->borders, l, panel)
-          {
-             if (!panel) continue;
-
-             /* don't adjust borders that are being deleted */
-             if (e_object_is_del(E_OBJECT(panel->bd))) continue;
-
-             if (qp->is_lock)
-               {
-                  if (!panel->mini_controller) continue;
-               }
-
-             e_border_move(panel->bd, qp->horiz.adjust + pbw, p - qp->vert.size);
-
-             pbw += qp->zone->w;
-
-             if (qp->down == 0)
-               {
-                  if (!qp->visible)
-                    {
-                       if (!panel->bd->visible)
-                         {
-                            _e_mod_quickpanel_border_show(qp, panel->bd);
-                         }
-                    }
-               }
-          }
-     }
-   else
-     {
-        int p = 0;
-        int h = 0;
-
-        if (qp->vert.size > 0)
-           p = (qp->vert.adjust * (qp->vert.size + qp->vert.isize))
-              / qp->vert.size;
-        EINA_LIST_FOREACH(qp->borders, l, panel)
-          {
-             if (!panel) continue;
-
-             /* don't adjust borders that are being deleted */
-             if (e_object_is_del(E_OBJECT(panel->bd))) continue;
-
-             if (qp->is_lock)
-               {
-                  if (!panel->mini_controller) continue;
-               }
-
-             if (qp->angle == 0)
-               {
-                  h = p - qp->vert.size + pbh;
-                  e_border_move(panel->bd, qp->horiz.adjust, h);
-                  pbh += panel->bd->h;
-               }
-             else if (qp->angle == 180)
-               {
-                  pbh += panel->bd->h;
-                  h = qp->zone->h - p + qp->vert.size - pbh;
-                  e_border_move(panel->bd, qp->horiz.adjust, h);
-               }
-             else if (qp->angle == 90)
-               {
-                  h = p - qp->vert.size + pbh;
-                  e_border_move(panel->bd, h, qp->horiz.adjust);
-                  pbh += panel->bd->w;
-               }
-             else if (qp->angle == 270)
-               {
-                  pbh += panel->bd->w;
-                  h = qp->zone->w - p + qp->vert.size - pbh;
-                  e_border_move(panel->bd, h, qp->horiz.adjust);
-               }
-
-             if (qp->down == 0)
-               {
-                  if (!qp->visible)
-                    {
-                       if (!panel->bd->visible)
-                         {
-                            _e_mod_quickpanel_border_show(qp, panel->bd);
-                         }
-                    }
-               }
-          }
-     }
-}
-
-static void _e_mod_quickpanel_animate_up(E_Illume_Quickpanel *qp)
-{
-   Eina_List *l;
-   E_Illume_Quickpanel_Info *panel;
-   int pbh = 0, pbw = 0;
-
-   if (!qp) return;
-   // FIXME: repeat of whats in _e_mod_quickpanel_animate_down() but for sliding
-   // vertially up form an indicator @ screen bottom. fix to make it 1 fn
-   pbh = qp->vert.size;
-
-   if (qp->horiz_style)
-     {
-        EINA_LIST_FOREACH(qp->borders, l, panel)
-          {
-             if (!panel) continue;
-
-             /* don't adjust borders that are being deleted */
-             if (e_object_is_del(E_OBJECT(panel->bd))) continue;
-             pbw -= panel->bd->w;
-             e_border_fx_offset(panel->bd, (qp->horiz.adjust + pbw), qp->vert.adjust);
-
-             if (!qp->visible)
-               {
-                  if (!panel->bd->visible) _e_mod_quickpanel_border_show(qp, panel->bd);
-               }
-             else
-               {
-                  if (panel->bd->visible) _e_mod_quickpanel_border_hide(panel->bd);
-               }
-          }
-     }
-   else
-     {
-        EINA_LIST_FOREACH(qp->borders, l, panel)
-          {
-             if (!panel) continue;
-
-             /* don't adjust borders that are being deleted */
-             if (e_object_is_del(E_OBJECT(panel->bd))) continue;
-             pbh -= panel->bd->h;
-             e_border_fx_offset(panel->bd, qp->horiz.adjust, (qp->vert.adjust + pbh));
-
-             if (!qp->visible)
-               {
-                  if (!panel->bd->visible) _e_mod_quickpanel_border_show(qp, panel->bd);
-               }
-             else
-               {
-                  if (panel->bd->visible) _e_mod_quickpanel_border_hide(panel->bd);
-               }
-          }
-     }
-}
-
-
 static int _e_mod_quickpanel_bg_layout_del(E_Illume_Quickpanel *qp)
 {
    if(qp == NULL) return -1;
@@ -1270,7 +768,7 @@ static int _e_mod_quickpanel_bg_layout_del(E_Illume_Quickpanel *qp)
 
 static int _e_mod_quickpanel_bg_layout_add(E_Illume_Quickpanel *qp)
 {
-   Evas_Object *eo;
+   if (!qp) return -1;
 
    qp->ly_base = edje_object_add(qp->evas);
    if (!qp->ly_base) return -1;
@@ -1280,23 +778,8 @@ static int _e_mod_quickpanel_bg_layout_add(E_Illume_Quickpanel *qp)
    edje_object_file_set(qp->ly_base, EDJ_FILE, "e/modules/illume2-slp/quickpanel/base");
    evas_object_resize(qp->ly_base, qp->zone->w, qp->zone->h);
 
-   /* Add quickpanel handle bar object */
-   eo = (Evas_Object*)edje_object_part_object_get(qp->ly_base, "quickpanel_handle_event");
-   if (!eo) goto failed;
-   evas_object_event_callback_add(eo, EVAS_CALLBACK_MOUSE_DOWN,
-                                  _e_mod_quickpanel_cb_event_mouse_down, qp);
-   evas_object_event_callback_add(eo, EVAS_CALLBACK_MOUSE_UP,
-                                  _e_mod_quickpanel_cb_event_mouse_up, qp);
-   evas_object_event_callback_add(eo, EVAS_CALLBACK_MOUSE_MOVE,
-                                  _e_mod_quickpanel_cb_event_mouse_move, qp);
-
-   e_popup_edje_bg_object_set(qp->popup, qp->ly_base);
-
    evas_object_show(qp->ly_base);
    return 0;
-failed:
-   _e_mod_quickpanel_bg_layout_del(qp);
-   return -1;
 }
 
 
@@ -1318,111 +801,6 @@ static void _e_mod_quickpanel_send_message (E_Illume_Quickpanel *qp, Ecore_X_Ill
       ecore_x_e_illume_quickpanel_state_send(qp->ind->client.win, state);
 }
 
-static void _e_mod_quickpanel_cb_event_mouse_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
-{
-   Evas_Event_Mouse_Down *ev = event_info;
-   E_Illume_Quickpanel *qp = data;
-   if (ev->button != 1) return;
-   // do not allow mouse event while the quickpanel is showing/hiding
-   if (qp->animator) return;
-
-   qp->down = 1;
-   qp->down_x = ev->canvas.x;
-   qp->down_y = ev->canvas.y;
-   qp->down_adjust = qp->horiz.adjust;
-   qp->dragging = 0;
-
-   qp->hide_trigger = 0;
-}
-
-
-static void _e_mod_quickpanel_cb_event_mouse_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
-{
-   Evas_Event_Mouse_Up *ev = event_info;
-   E_Illume_Quickpanel *qp = data;
-   if (ev->button != 1) return;
-   if (qp->down == 0) return;
-
-   qp->down = 0;
-
-   // do not allow mouse event while the quickpanel is showing/hiding
-   if (qp->animator) return;
-
-   int dy;
-   if (qp->hide_trigger == 1)
-     {
-        dy = qp->down_y - ev->canvas.y;
-        // check again delta y position.
-        if(dy > qp->threshold_y)
-          {
-             // we need to hide quickpanel
-             if (qp->visible) e_mod_quickpanel_hide(qp, 1);
-          }
-
-        qp->hide_trigger = 0;
-        return;
-     }
-}
-
-static void _e_mod_quickpanel_cb_event_mouse_move(void *data, Evas *e, Evas_Object *obj, void *event_info)
-{
-   Evas_Event_Mouse_Move *ev = event_info;
-   E_Illume_Quickpanel *qp = data;
-
-   // do not allow mouse event while the quickpanel is showing/hiding
-   if (qp->animator) return;
-
-   if (!qp->down) return;
-
-   if (!qp->dragging)
-     {
-        int dx, dy;
-
-        dx = ev->cur.canvas.x - qp->down_x;
-        dy = ev->cur.canvas.y - qp->down_y;
-
-        if (((dx * dx) > (qp->move_x_min * qp->move_x_min)) && (!qp->hide_trigger))
-          {
-             qp->dragging = 1;
-          }
-        else
-          {
-             if(!qp->hide_trigger)
-               {
-                  dy = qp->down_y - ev->cur.canvas.y;
-                  if(dy > qp->threshold_y)
-                    {
-                       qp->hide_trigger = 1;
-                    }
-               }
-             return;
-          }
-     }
-}
-
-static void _e_mod_quickpanel_border_show (E_Illume_Quickpanel* qp, E_Border* bd)
-{
-   if (!qp) return;
-
-   /* make sure we have a border */
-   if (!bd) return;
-
-   e_border_show (bd);
-   if (qp->ind)
-     {
-        e_border_stack_below (bd, qp->ind);
-     }
-}
-
-
-static void _e_mod_quickpanel_border_hide (E_Border* bd)
-{
-   /* make sure we have a border */
-   if (!bd) return;
-   e_border_hide (bd, 2);
-}
-
-
 static Eina_Bool _e_mod_quickpanel_popup_new (E_Illume_Quickpanel* qp)
 {
    if (!qp) return EINA_FALSE;
@@ -1432,15 +810,17 @@ static Eina_Bool _e_mod_quickpanel_popup_new (E_Illume_Quickpanel* qp)
    qp->angle = _e_mod_quickpanel_root_angle_get(qp);
    _e_mod_quickpanel_check_lock_screen(qp);
 
-   // FIXME: qp->zone->h height - should adapt to MAX of qp->zone->h or
-   // max height needed to fit talles qp child
-   qp->popup = e_popup_new (qp->zone,
-                            qp->zone->x, qp->zone->y - qp->zone->h,
-                            qp->zone->w, qp->zone->h);
+   qp->popup = e_win_new (qp->zone->container);
    if (!qp->popup) return EINA_FALSE;
 
-   e_popup_name_set(qp->popup, "quickpanel");
-   e_popup_layer_set(qp->popup, 151);
+   ecore_x_icccm_hints_set(qp->popup->evas_win, 0, 0, 0, 0, 0, 0, 0);
+   ecore_x_icccm_name_class_set(qp->popup->evas_win, "QUICKPANEL_BASE", "QUICKPANEL_BASE");
+   e_win_show(qp->popup);
+   e_win_move_resize (qp->popup, qp->zone->x, qp->zone->y - qp->zone->h,
+                            qp->zone->w, qp->zone->h);
+
+   e_win_title_set (qp->popup, "quickpanel_base");
+
    qp->ee = qp->popup->ecore_evas;
    qp->evas = qp->popup->evas;
 
@@ -1451,21 +831,6 @@ static Eina_Bool _e_mod_quickpanel_popup_new (E_Illume_Quickpanel* qp)
    ecore_x_window_prop_property_set (qp->popup->evas_win, effect_state_atom, ECORE_X_ATOM_CARDINAL, 32, &state, 1);
 
    _e_mod_quickpanel_bg_layout_add(qp);
-   if (!_e_mod_quickpanel_popup_update (qp))
-     {
-        // send message to quickpanel borders
-        _e_mod_quickpanel_send_message (qp, ECORE_X_ILLUME_QUICKPANEL_STATE_OFF);
-        _e_mod_quickpanel_popup_del (qp);
-        return EINA_FALSE;
-     }
-   _e_mod_quickpanel_size_adjust(qp);
-
-   if (!qp->key_hdl)
-     {
-        qp->key_hdl = ecore_event_handler_add (ECORE_EVENT_KEY_DOWN, _e_mod_quickpanel_cb_key_down, qp);
-     }
-   utilx_grab_key (ecore_x_display_get(), qp->popup->evas_win, KEY_END, TOP_POSITION_GRAB);
-   utilx_grab_key (ecore_x_display_get(), qp->popup->evas_win, KEY_SELECT, TOP_POSITION_GRAB);
 
    return EINA_TRUE;
 }
@@ -1474,14 +839,6 @@ static void _e_mod_quickpanel_popup_del (E_Illume_Quickpanel* qp)
 {
    if (!qp) return;
    if (!qp->popup) return;
-
-   if (qp->key_hdl)
-     {
-        ecore_event_handler_del (qp->key_hdl);
-        qp->key_hdl = NULL;
-     }
-   utilx_ungrab_key (ecore_x_display_get(), qp->popup->evas_win, KEY_END);
-   utilx_ungrab_key (ecore_x_display_get(), qp->popup->evas_win, KEY_SELECT);
 
    _e_mod_quickpanel_bg_layout_del(qp);
 
@@ -1496,6 +853,7 @@ static Eina_Bool _e_mod_quickpanel_popup_update (E_Illume_Quickpanel* qp)
 
    int w, h, extra_h;
    int tx, ty;
+   int handle_x, handle_y, handle_w, handle_h;
 
    if (qp->is_lock)
      {
@@ -1520,75 +878,106 @@ static Eina_Bool _e_mod_quickpanel_popup_update (E_Illume_Quickpanel* qp)
    // check current angle
    if(qp->angle == 0 || qp->angle == 180)
      {
-        // FIXME: POPUP_HANDLER_SIZE will be changed
-        if (qp->ind) extra_h = qp->ind->h + POPUP_HANDLER_SIZE * qp->scale;
-        else extra_h = POPUP_HANDLER_SIZE * qp->scale;
+        handle_w = qp->zone->w;
+        handle_h = POPUP_HANDLER_SIZE * qp->scale;
+
+        if (qp->ind) extra_h = qp->ind->h + handle_h;
+        else extra_h = handle_h;
 
         if (!qp->is_lock)
           {
-             e_popup_resize (qp->popup, w, h);
+             if (qp->angle == 0)
+               {
+                  handle_x = qp->zone->x;
+                  handle_y = qp->zone->h - handle_h;
+               }
+             else // qp->angle == 180
+               {
+                  handle_x = qp->zone->x;
+                  handle_y = qp->zone->y;
+               }
+
+             e_win_resize (qp->popup, w, h);
              evas_object_resize (qp->ly_base, w, h);
+
+             _e_quickpanel_handle_input_region_set (qp->popup->evas_win, handle_x, handle_y, handle_w, handle_h);
           }
         else
           {
              if (qp->angle == 0)
-                e_popup_resize (qp->popup, w, h + extra_h);
-             else
+               {
+                  tx = qp->zone->x;
+                  ty = qp->zone->y;
+
+                  handle_x = qp->zone->x;
+                  handle_y = h + extra_h - handle_h;
+               }
+             else // qp->angle == 180
                {
                   tx = qp->zone->x;
                   ty = qp->zone->h - (h + extra_h);
-                  e_popup_move_resize (qp->popup, tx, ty, w, h + extra_h);
+
+                  handle_x = qp->zone->x;
+                  handle_y = qp->zone->h - (h+ extra_h);
                }
 
+             e_win_resize(qp->popup, w, h + extra_h);
              evas_object_resize (qp->ly_base, w, h + extra_h);
+
+             _e_quickpanel_handle_input_region_set (qp->popup->evas_win, handle_x, handle_y, handle_w, handle_h);
           }
      }
    else
      {
-        // FIXME: POPUP_HANDLER_SIZE will be changed
-        if (qp->ind) extra_h = qp->ind->w + POPUP_HANDLER_SIZE * qp->scale;
-        else extra_h = POPUP_HANDLER_SIZE * qp->scale;
+        handle_w = POPUP_HANDLER_SIZE * qp->scale;
+        handle_h = qp->zone->h;
+
+        if (qp->ind) extra_h = qp->ind->w + handle_w;
+        else extra_h = handle_w;
 
         if (!qp->is_lock)
           {
-             e_popup_resize (qp->popup, w, h);
+             if (qp->angle == 90)
+               {
+                  handle_x = qp->zone->w - handle_w;
+                  handle_y = qp->zone->y;
+               }
+             else // qp->angle == 270
+               {
+                  handle_x = qp->zone->x;
+                  handle_y = qp->zone->y;
+               }
+
+             e_win_resize (qp->popup, w, h);
              evas_object_resize (qp->ly_base, h, w);
+
+             _e_quickpanel_handle_input_region_set (qp->popup->evas_win, handle_x, handle_y, handle_w, handle_h);
           }
         else
           {
              if (qp->angle == 90)
-                e_popup_resize (qp->popup, w + extra_h, h);
-             else
                {
-                  tx = qp->zone->w - (w + extra_h);
-                  ty = qp->zone->y;
-                  e_popup_move_resize (qp->popup, tx, ty, w + extra_h, h);
+                  handle_x = w + extra_h - handle_w;
+                  handle_y = qp->zone->y;
+               }
+             else // qp->angle == 270
+               {
+                  handle_x = qp->zone->w - (w + extra_h);
+                  handle_y = qp->zone->y;
                }
 
+             e_win_resize(qp->popup, w + extra_h, h);
              evas_object_resize( qp->ly_base, h, w + extra_h);
+
+             _e_quickpanel_handle_input_region_set (qp->popup->evas_win, handle_x, handle_y, handle_w, handle_h);
           }
      }
+   L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d)... angle:%d\n", __func__, __LINE__, qp->angle);
    ecore_evas_rotation_with_resize_set(qp->popup->ecore_evas, qp->angle);
 
    return EINA_TRUE;
 }
 
-static Eina_Bool _e_mod_quickpanel_cb_key_down (void *data, int type __UNUSED__, void *event)
-{
-   Ecore_Event_Key*ev;
-   E_Illume_Quickpanel *qp;
-
-   ev = event;
-   if (!(qp = data)) return ECORE_CALLBACK_PASS_ON;
-
-   if ((strcmp (ev->keyname, KEY_END) == 0) ||
-       (strcmp (ev->keyname, KEY_SELECT) == 0))
-     {
-        e_illume_quickpanel_hide (qp->zone, 1);
-     }
-
-   return ECORE_CALLBACK_PASS_ON;
-}
 
 static int
 _e_quickpanel_priority_sort_cb (const void* d1, const void* d2)
@@ -1624,6 +1013,40 @@ _e_quickpanel_priority_sort_cb (const void* d1, const void* d2)
 }
 
 static void
+_e_quickpanel_handle_input_region_set(Ecore_X_Window win, int x, int y, int w, int h)
+{
+   unsigned int position_list[4];
+
+   position_list[0] = x;
+   position_list[1] = y;
+   position_list[2] = w;
+   position_list[3] = h;
+
+   L(LT_QUICKPANEL, "[ILLUME2][QP] Position SET... win:%x, x:%d, y:%d, w:%d, h:%d\n", win, x, y, w, h);
+
+   ecore_x_window_prop_card32_set(win,
+                                  quickpanel_handle_input_region_atom,
+                                  position_list,
+                                  4);
+}
+
+static void
+_e_quickpanel_layout_position_set(Ecore_X_Window win, int x, int y)
+{
+   unsigned int position_list[2];
+
+   position_list[0] = x;
+   position_list[1] = y;
+
+   L(LT_QUICKPANEL, "[ILLUME2][QP] LAYOUT SET... win:%x, x:%d, y:%d\n", win, x, y);
+
+   ecore_x_window_prop_card32_set( win,
+                                   quickpanel_layout_position_atom,
+                                   position_list,
+                                   2);
+}
+
+static void
 _e_quickpanel_position_update(E_Illume_Quickpanel *qp)
 {
    Eina_List *l;
@@ -1634,98 +1057,44 @@ _e_quickpanel_position_update(E_Illume_Quickpanel *qp)
 
    if (qp->borders)
      {
-        if (qp->visible)
+        ty = qp->vert.isize;
+        if (qp->vert.dir == 1) ty = 0;
+
+        EINA_LIST_FOREACH(qp->borders, l, panel)
           {
-             int nx = 0;
+             if (!panel) continue;
 
-             ty = qp->vert.isize;
-             if (qp->vert.dir == 1) ty = 0;
-
-             // FIXME: shouldnt have special case - just call anim with adjust @ end
-             // also don't use e_border_fx_offset but actuall;y move bd
-             /* if we are not animating, just show the borders */
-             if (qp->horiz_style)
+             if (qp->is_lock)
                {
-                  EINA_LIST_FOREACH(qp->borders, l, panel)
+                  if (!panel->mini_controller)
                     {
-                       if (!panel) continue;
-
-                       if (qp->is_lock)
-                         {
-                            if (!panel->mini_controller) continue;
-                         }
-
-                       if (!panel->bd->visible) _e_mod_quickpanel_border_show(qp, panel->bd);
-                       if (qp->vert.dir == 0)
-                         {
-                            e_border_fx_offset(panel->bd, qp->horiz.adjust + nx, ty);
-                            nx += panel->bd->w;
-                         }
-                       else
-                         {
-                            nx -= panel->bd->w;
-                            e_border_fx_offset(panel->bd, qp->horiz.adjust + nx, ty);
-                         }
-                    }
-               }
-             else
-               {
-                  EINA_LIST_FOREACH(qp->borders, l, panel)
-                    {
-                       if (!panel) continue;
-
-                       if (qp->is_lock)
-                         {
-                            if (!panel->mini_controller) continue;
-                         }
-
-                       if (!panel->bd->visible) _e_mod_quickpanel_border_show(qp, panel->bd);
-                       if (qp->vert.dir == 0)
-                         {
-                            if (qp->angle == 0)
-                              {
-                                 e_border_move (panel->bd, qp->horiz.adjust, ty);
-                                 ty += panel->bd->h;
-                              }
-                            else if (qp->angle == 180)
-                              {
-                                 ty += panel->bd->h;
-                                 e_border_move (panel->bd, qp->horiz.adjust, qp->zone->h - ty);
-                              }
-                            else if (qp->angle == 90)
-                              {
-                                 e_border_move (panel->bd, ty, qp->horiz.adjust);
-                                 ty += panel->bd->w;
-                              }
-                            else if (qp->angle == 270)
-                              {
-                                 ty += panel->bd->w;
-                                 e_border_move (panel->bd, qp->zone->w - ty, qp->horiz.adjust);
-                              }
-                         }
-                       else
-                         {
-                            ty -= panel->bd->h;
-                            e_border_fx_offset(panel->bd, qp->horiz.adjust, ty);
-                         }
+                       _e_quickpanel_layout_position_set(panel->bd->client.win, -qp->zone->w, -qp->zone->h);
+                       continue;
                     }
                }
 
-             _e_mod_quickpanel_popup_update (qp);
-             qp->vert.adjust = ty;
+             if (qp->angle == 0)
+               {
+                  _e_quickpanel_layout_position_set (panel->bd->client.win, 0, ty);
+                  ty += panel->bd->h;
+               }
+             else if (qp->angle == 180)
+               {
+                  ty += panel->bd->h;
+                  _e_quickpanel_layout_position_set (panel->bd->client.win, 0, qp->zone->h - ty);
+               }
+             else if (qp->angle == 90)
+               {
+                  _e_quickpanel_layout_position_set (panel->bd->client.win, ty, 0);
+                  ty += panel->bd->w;
+               }
+             else if (qp->angle == 270)
+               {
+                  ty += panel->bd->w;
+                  _e_quickpanel_layout_position_set (panel->bd->client.win, qp->zone->w - ty, 0);
+               }
           }
-        else
-          {
-             qp->vert.adjust = 0;
-          }
-     }
-
-   if (qp->animator)
-     {
-        if (qp->ani_type == E_ILLUME_QUICKPANEL_ANI_SHOW)
-          {
-             qp->vert.adjust_end = qp->vert.size;
-          }
+        _e_mod_quickpanel_popup_update (qp);
      }
 }
 
@@ -1826,70 +1195,5 @@ static void _e_mod_quickpanel_window_list_set (E_Illume_Quickpanel* qp)
                                    quickpanels, i);
 
    E_FREE(quickpanels);
-}
-
-static void
-_e_mod_quickpanel_extra_panel_show(E_Illume_Quickpanel *qp)
-{
-   Eina_List *l;
-   E_Border *mini_bd;
-   E_Illume_Quickpanel_Info *panel;
-   int x,y,w,h;
-
-   if (!qp) return;
-
-   mini_bd = NULL;
-   EINA_LIST_FOREACH(qp->borders, l, panel)
-     {
-        if (!panel) continue;
-
-        if (panel->mini_controller == EINA_TRUE)
-          {
-             mini_bd = panel->bd;
-             break;
-          }
-     }
-
-   if (!mini_bd) return;
-
-   x = mini_bd->x;
-   y = mini_bd->y;
-   w = mini_bd->w;
-   h = mini_bd->h;
-
-   if (qp->hidden_mini_controllers)
-     {
-        EINA_LIST_FOREACH(qp->hidden_mini_controllers, l, panel)
-          {
-             if (!panel) continue;
-             if (!panel->bd) continue;
-
-             e_border_move_resize(panel->bd, x, y, w, h);
-             e_border_show(panel->bd);
-             e_border_stack_below(panel->bd, mini_bd);
-          }
-     }
-
-}
-
-static void
-_e_mod_quickpanel_extra_panel_hide(E_Illume_Quickpanel *qp)
-{
-   Eina_List *l;
-   E_Illume_Quickpanel_Info *panel;
-
-   if (!qp) return;
-
-   if (qp->hidden_mini_controllers)
-     {
-        EINA_LIST_FOREACH(qp->hidden_mini_controllers, l, panel)
-          {
-             if (!panel) continue;
-             if (!panel->bd) continue;
-
-             e_border_hide(panel->bd, 2);
-          }
-     }
-
 }
 
