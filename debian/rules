@@ -15,7 +15,7 @@ PREFIX ?= /usr
 
 # This package contains multiple modules as shipped by upstream. Each module is # contained in a subdirectory in the root dir of the package. You must list each
 # subdirectory explicitly so that the build system knows what to build
-DEF_SUBDIRS=comp-slp illume2-slp keyrouter wmready move-slp
+DEF_SUBDIRS=comp-slp illume2-slp keyrouter wmready
 SUBDIRS=$(DEF_SUBDIRS)
 BUILD_STAMPS = $(addprefix $(STAMP_DIR)/build-,$(SUBDIRS))
 

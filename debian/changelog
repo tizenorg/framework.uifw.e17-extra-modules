@@ -1,3 +1,11 @@
+e17-extra-modules (0.2-32) unstable; urgency=low
+
+  * [MOVE] remove MOVE module
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.2-32
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Tue, 21 Feb 2012 15:50:48 +0900
+
 e17-extra-modules (0.2-31) unstable; urgency=low
 
   * [ILLUME2] add app-in-app window resize feature.
