@@ -1,6 +1,6 @@
 Name:       e17-extra-modules
 Summary:    The E17 Extra Modules The E17 extra modules consists of modules made by SAMSUNG
-Version:    0.1
+Version:    0.2
 Release:    1
 Group:      TO_BE/FILLED_IN
 License:    TO BE FILLED IN
@@ -13,11 +13,12 @@ BuildRequires:  pkgconfig(x11)
 BuildRequires:  pkgconfig(xextproto)
 BuildRequires:  pkgconfig(xfixes)
 BuildRequires:  pkgconfig(xext)
-BuildRequires:  pkgconfig(edje) 
+BuildRequires:  pkgconfig(edje)
 BuildRequires:  pkgconfig(xrandr)
 BuildRequires:  pkgconfig(evas)
 BuildRequires:  pkgconfig(xi)
 BuildRequires:  pkgconfig(xtst)
+BuildRequires:  pkgconfig(pixman-1)
 BuildRequires:  embryo-bin
 BuildRequires:  edje-bin
 Requires: libX11
@@ -31,7 +32,8 @@ The E17 Extra Modules  The E17 extra modules consists of modules made by SAMSUNG
 
 %build
 
-export CFLAGS+=" -Wall -g -fPIC -rdynamic"
+export CFLAGS+=" -Wall -g -fPIC -rdynamic -D_F_COMP_SCREEN_LOCK_ -D_F_FOCUS_WINDOW_IF_TOP_STACK_"
+export CXXFLAGS+=" -fPIC"
 export LDFLAGS+=" -Wl,--hash-style=both -Wl,--as-needed -Wl,--rpath=/usr/lib"
 
 %ifarch %{arm}
@@ -39,7 +41,7 @@ export CFLAGS+=" -D_ENV_ARM"
 %endif
 
 
-for FILE in comp-slp illume2-slp keyrouter wmready accessibility
+for FILE in comp-slp illume2-slp keyrouter wmready
 do 
         (cd $FILE && ./autogen.sh && ./configure --prefix=/usr && make )
 done
