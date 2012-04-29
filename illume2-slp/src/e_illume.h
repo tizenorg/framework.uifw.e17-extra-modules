@@ -367,7 +367,7 @@ EAPI Eina_Bool e_illume_border_is_quickpanel(E_Border *bd);
 EAPI Eina_Bool e_illume_border_is_lock_screen(E_Border *bd);
 EAPI Eina_Bool e_illume_border_is_notification(E_Border *bd);
 EAPI Eina_Bool e_illume_border_is_utility(E_Border *bd);
-EAPI Eina_Bool e_illume_border_is_sliding_win(E_Border *bd);
+EAPI Eina_Bool e_illume_border_is_clipboard(E_Border *bd);
 
 EAPI void e_illume_border_min_get(E_Border *bd, int *w, int *h);
 EAPI E_Border *e_illume_border_at_xy_get(E_Zone *zone, int x, int y);

@@ -15,7 +15,7 @@
 
 #define STATE_INSET_CHECK(a) \
    ((a->bd) && \
-    (a->bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_INSET))
+    (a->bd->client.illume.win_state.state == E_COMP_ILLUME_WINDOW_STATE_INSET))
 
 EINTERN void           e_mod_comp_util_set(E_Comp *c, E_Manager *man);
 EINTERN E_Comp        *e_mod_comp_util_get(void);

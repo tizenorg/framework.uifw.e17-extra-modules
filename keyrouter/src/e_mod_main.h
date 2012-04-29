@@ -14,8 +14,10 @@
 //maximum number of hardkeys
 #define MAX_HARDKEYS	255
 
+#ifdef _F_ENABLE_MOUSE_POPUP
 #define POPUP_MENU_WIDTH	95
 #define POPUP_MENU_HEIGHT	120
+#endif//_F_ENABLE_MOUSE_POPUP
 
 //grab modes
 #define NONE_GRAB_MODE	0
@@ -32,6 +34,7 @@
 #define PROP_X_EXT_KEYBOARD_EXIST		"X External Keyboard Exist"
 #define PROP_X_EVDEV_AXIS_LABELS		"Axis Labels"
 #define PROP_XRROUTPUT       				"X_RR_PROPERTY_REMOTE_CONTROLLER"
+#define PROP_HWKEY_EMULATION			"_HWKEY_EMULATION"
 
 //key composition for screen capture
 #define NUM_COMPOSITION_KEY	2
@@ -87,12 +90,14 @@ typedef struct _ModifierKey
 	kinfo keys[NUM_COMPOSITION_KEY];
 } ModifierKey;
 
+#ifdef _F_ENABLE_MOUSE_POPUP
 const char *btns_label[] = {
 	"Volume Up",
 	"Volume Down",
 	"Go Home",
 	"Rotate"
 };
+#endif//_F_ENABLE_MOUSE_POPUP
 
 #define NUM_HWKEYS		18
 const char *HWKeys[] = {
@@ -138,10 +143,14 @@ typedef struct _tag_keyrouter
 {
 	Ecore_X_Display* disp;
 	Ecore_X_Window rootWin;
+	Ecore_X_Window input_window;
 
 	//screen capture related variables
 	ModifierKey modkey;
 
+	E_Zone *zone;
+
+#ifdef _F_ENABLE_MOUSE_POPUP
 	//mouse rbutton popup related variables
 	int toggle;
 	int rbutton_pressed_on_popup;
@@ -149,11 +158,11 @@ typedef struct _tag_keyrouter
 	int popup_rootx;
 	int popup_rooty;
 
-	E_Zone *zone;
 	E_Popup     *popup;
 	Evas_Object *popup_btns[4];
 	Evas_Object* popup_bg;
 	unsigned int btn_keys[3];
+#endif//_F_ENABLE_MOUSE_POPUP
 
 	//number of connected pointer and keyboard devices
 	int num_pointer_devices;
@@ -184,6 +193,7 @@ typedef struct _tag_keyrouter
 	struct FILE *fplog;
 
 	//atoms
+	Atom atomHWKeyEmulation;
 	Atom atomRROutput;
 	Atom atomPointerType;
 	Atom atomXMouseExist;
@@ -201,6 +211,7 @@ typedef struct _tag_keyrouter
 #endif
 
 	//event handlers
+	Ecore_Event_Handler *e_client_message_handler;
 	Ecore_Event_Handler *e_window_property_handler;
 	Ecore_Event_Handler *e_border_stack_handler;
 	Ecore_Event_Handler *e_border_remove_handler;
@@ -243,6 +254,7 @@ static int _e_keyrouter_cb_window_create(void *data, int ev_type, void *ev);
 static int _e_keyrouter_cb_window_destroy(void *data, int ev_type, void *ev);
 static int _e_keyrouter_cb_window_configure(void *data, int ev_type, void *ev);
 static int _e_keyrouter_cb_window_stack(void *data, int ev_type, void *ev);
+static int _e_keyrouter_cb_client_message (void* data, int type, void* event);
 static void _e_keyrouter_xi2_device_hierarchy_handler(XIHierarchyEvent *event);
 static int _e_keyrouter_is_relative_device(int deviceid);
 static void _e_keyrouter_device_add(int id, int type);
@@ -274,12 +286,14 @@ static void UngrabKeyDevices();
 #endif//_F_USE_XI_GRABDEVICE_
 
 //functions related to mouse rbutton popup
-static void InitHardKeyCodes();
 static E_Zone* _e_keyrouter_get_zone();
+#ifdef _F_ENABLE_MOUSE_POPUP
+static void InitHardKeyCodes();
 static void popup_update();
 static void popup_show();
 static void popup_destroy();
-static void _e_keyrouter_do_hardkey_emulation(const char *label, unsigned int key_event, unsigned int on_release);
+#endif//_F_ENABLE_MOUSE_POPUP
+static void _e_keyrouter_do_hardkey_emulation(const char *label, unsigned int key_event, unsigned int on_release, int keycode);
 
 //functions related to key composition for screen capture
 static void InitModKeys();

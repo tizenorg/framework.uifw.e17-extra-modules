@@ -123,10 +123,10 @@ e_mod_comp_effect_tm_raise_above(E_Comp_Win *cw,
    E_CHECK_RETURN(cw, 0);
    E_CHECK_RETURN(cw->c, 0);
 
+   cw->defer_raise = EINA_TRUE;
    raise = e_mod_comp_policy_win_restack_check(cw, cw2);
    E_CHECK_RETURN(raise, 0);
 
-   cw->defer_raise = EINA_TRUE;
    cw->c->switcher_animating = EINA_TRUE;
 
    e_mod_comp_animation_transfer_list_clear();

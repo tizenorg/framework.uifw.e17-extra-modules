@@ -44,7 +44,8 @@ static Eina_List *_policy_hdls = NULL, *_policy_hooks = NULL;
 Ecore_X_Atom E_ILLUME_BORDER_WIN_RESTACK;
 static Ecore_X_Atom ECORE_X_ATOM_E_ILLUME_RESIZE_START = 0;
 static Ecore_X_Atom ECORE_X_ATOM_E_ILLUME_RESIZE_END   = 0;
-
+static Ecore_X_Atom E_ILLUME_USER_CREATED_WINDOW = 0;
+static Ecore_X_Atom E_ILLUME_PARENT_BORDER_WINDOW = 0;
 
 /* external variables */
 int E_ILLUME_POLICY_EVENT_CHANGE = 0;
@@ -430,7 +431,7 @@ _e_mod_policy_cb_border_del(void *data __UNUSED__, int type __UNUSED__, void *ev
 
    ev = event;
 
-   ecore_x_window_prop_property_del(ev->border->client.win, ECORE_X_ATOM_E_PARENT_BORDER_WINDOW);
+   ecore_x_window_prop_property_del(ev->border->client.win, E_ILLUME_PARENT_BORDER_WINDOW);
 
    if ((_policy) && (_policy->funcs.border_del))
      _policy->funcs.border_del(ev->border);
@@ -663,8 +664,8 @@ _e_mod_policy_cb_hook_new_border(void *data __UNUSED__, void *data2)
 
    if (!(bd = data2)) return;
 
-   ecore_x_window_prop_window_set(bd->win, ECORE_X_ATOM_E_USER_CREATED_WINDOW, &(bd->client.win), 1);
-   ecore_x_window_prop_window_set(bd->client.win, ECORE_X_ATOM_E_PARENT_BORDER_WINDOW, &(bd->win), 1);
+   ecore_x_window_prop_window_set(bd->win, E_ILLUME_USER_CREATED_WINDOW, &(bd->client.win), 1);
+   ecore_x_window_prop_window_set(bd->client.win, E_ILLUME_PARENT_BORDER_WINDOW, &(bd->win), 1);
 
    if ((_policy) && (_policy->funcs.border_new_border))
      _policy->funcs.border_new_border(bd);
@@ -751,6 +752,22 @@ _e_mod_policy_init_atom (void)
      {
         fprintf(stderr,
                 "[ILLUME2] cannot create _E_ILLUME_RESIZE_END atom.\n");
+        return 0;
+     }
+
+   E_ILLUME_USER_CREATED_WINDOW = ecore_x_atom_get("_E_USER_CREATED_WINDOW");
+   if (!E_ILLUME_USER_CREATED_WINDOW)
+     {
+        fprintf(stderr,
+                "[ILLUME2] cannot create _E_USER_CREATED_WINDOW atom.\n");
+        return 0;
+     }
+
+   E_ILLUME_PARENT_BORDER_WINDOW = ecore_x_atom_get("_E_PARENT_BORDER_WINDOW");
+   if (!E_ILLUME_PARENT_BORDER_WINDOW)
+     {
+        fprintf(stderr,
+                "[ILLUME2] cannot create _E_PARENT_BORDER_WINDOW atom.\n");
         return 0;
      }
 

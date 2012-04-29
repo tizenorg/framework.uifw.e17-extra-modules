@@ -39,6 +39,7 @@ extern EINTERN Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_REQUEST_DONE;
 extern EINTERN Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_RESIZE_PIXMAP;
 extern EINTERN Ecore_X_Atom ATOM_CAPTURE_EFFECT;
 extern EINTERN Ecore_X_Atom ATOM_NET_CM_WINDOW_BACKGROUND;
+extern EINTERN Ecore_X_Atom ATOM_ILLUME_WINDOW_STATE;
 
 EINTERN int         e_mod_comp_atoms_init(void);
 EINTERN int         e_mod_comp_atoms_shutdown(void);

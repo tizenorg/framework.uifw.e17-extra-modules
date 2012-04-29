@@ -22,6 +22,7 @@ static Eina_Bool _e_mod_quickpanel_cb_border_remove(void *data __UNUSED__, int t
 static Eina_Bool _e_mod_quickpanel_cb_border_resize(void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_quickpanel_cb_property (void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_quickpanel_cb_border_show(void *data __UNUSED__, int type __UNUSED__, void *event);
+static Eina_Bool _e_mod_quickpanel_cb_border_zone_set(void *data __UNUSED__, int type __UNUSED__, void *event);
 
 static void _e_mod_quickpanel_cb_post_fetch(void *data __UNUSED__, void *data2);
 static void _e_mod_quickpanel_cb_free(E_Illume_Quickpanel *qp);
@@ -103,6 +104,11 @@ int e_mod_quickpanel_init(void)
       eina_list_append(_qp_hdls,
                        ecore_event_handler_add(E_EVENT_BORDER_SHOW,
                                                _e_mod_quickpanel_cb_border_show,
+                                               NULL));
+   _qp_hdls =
+      eina_list_append(_qp_hdls,
+                       ecore_event_handler_add(E_EVENT_BORDER_ZONE_SET,
+                                               _e_mod_quickpanel_cb_border_zone_set,
                                                NULL));
 
    /* add hook for new borders so we can test for qp borders */
@@ -665,6 +671,20 @@ static Eina_Bool _e_mod_quickpanel_cb_border_show(void *data __UNUSED__, int typ
        e_illume_border_is_quickpanel_popup (ev->border))
      {
         e_border_move (ev->border, -ev->border->zone->w, -ev->border->zone->h);
+     }
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static Eina_Bool _e_mod_quickpanel_cb_border_zone_set(void *data __UNUSED__, int type __UNUSED__, void *event)
+{
+   E_Event_Border_Zone_Set *ev;
+
+   ev = event;
+   if (ev->border->client.illume.quickpanel.quickpanel ||
+       e_illume_border_is_quickpanel_popup(ev->border))
+     {
+        e_border_move(ev->border, -ev->border->zone->w, -ev->border->zone->h);
      }
 
    return ECORE_CALLBACK_PASS_ON;

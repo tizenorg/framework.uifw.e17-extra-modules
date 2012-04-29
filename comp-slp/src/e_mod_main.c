@@ -93,7 +93,7 @@ e_modapi_init(E_Module *m)
         mod->conf->use_shadow = 0;
         mod->conf->shadow_file = NULL;
         mod->conf->shadow_style = eina_stringshare_add("default");
-        mod->conf->engine = E_EVAS_ENGINE_GL_X11;
+        mod->conf->engine = ENGINE_GL;
         mod->conf->indirect = 0;
         mod->conf->texture_from_pixmap = 1;
         mod->conf->lock_fps = 0;
@@ -165,7 +165,7 @@ _e_mod_config_new(E_Module *m)
    mod->conf->use_shadow = 1;
    mod->conf->shadow_file = NULL;
    mod->conf->shadow_style = eina_stringshare_add("default");
-   mod->conf->engine = E_EVAS_ENGINE_SOFTWARE_X11;
+   mod->conf->engine = ENGINE_SW;
    mod->conf->indirect = 0;
    mod->conf->texture_from_pixmap = 0;
    mod->conf->lock_fps = 0;

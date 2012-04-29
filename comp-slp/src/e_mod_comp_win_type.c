@@ -6,6 +6,7 @@ typedef enum _E_Comp_Win_Class_Type
 {
    E_COMP_WIN_CLASS_TYPE_UNKNOWN = 0,
    E_COMP_WIN_CLASS_TYPE_NORMAL,
+   E_COMP_WIN_CLASS_TYPE_MENUSCREEN,
    E_COMP_WIN_CLASS_TYPE_QUICKPANEL_BASE,
    E_COMP_WIN_CLASS_TYPE_QUICKPANEL,
    E_COMP_WIN_CLASS_TYPE_TASKMANAGER,
@@ -41,6 +42,7 @@ static E_Comp_Win_Type _ecore_type_to_e_comp_type(Ecore_X_Window_Type t);
 static const char *win_class[] =
 {
    "NORMAL_WINDOW",
+   "MENU_SCREEN",
    "QUICKPANEL_BASE",
    "QUICKPANEL",
    "TASK_MANAGER",
@@ -76,6 +78,7 @@ static const char *win_name[] =
 static E_Comp_Win_Class_Type win_class_vals[] =
 {
    E_COMP_WIN_CLASS_TYPE_NORMAL,
+   E_COMP_WIN_CLASS_TYPE_MENUSCREEN,
    E_COMP_WIN_CLASS_TYPE_QUICKPANEL_BASE,
    E_COMP_WIN_CLASS_TYPE_QUICKPANEL,
    E_COMP_WIN_CLASS_TYPE_TASKMANAGER,
@@ -194,6 +197,9 @@ e_mod_comp_win_type_setup(E_Comp_Win *cw)
 
    switch (ctype)
      {
+      case E_COMP_WIN_CLASS_TYPE_MENUSCREEN:
+         res = E_COMP_WIN_TYPE_MENUSCREEN;
+         break;
       case E_COMP_WIN_CLASS_TYPE_QUICKPANEL_BASE:
          res = E_COMP_WIN_TYPE_QUICKPANEL_BASE;
          break;
@@ -240,8 +246,6 @@ e_mod_comp_win_type_setup(E_Comp_Win *cw)
            res = E_COMP_WIN_TYPE_BACKGROUND;
          break;
       default:
-         if (ntype == E_COMP_WIN_NAME_TYPE_MENUSCREEN)
-           res = E_COMP_WIN_TYPE_MENUSCREEN;
          break;
      }
 

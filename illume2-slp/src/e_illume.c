@@ -355,7 +355,7 @@ e_illume_border_is_utility (E_Border* bd)
 }
 
 EAPI Eina_Bool
-e_illume_border_is_sliding_win(E_Border *bd)
+e_illume_border_is_clipboard(E_Border *bd)
 {
    /* make sure we have a border */
    if (!bd) return EINA_FALSE;

@@ -82,7 +82,7 @@ e_mod_comp_debug_info_dump(Eina_Bool to_file,
 
    i = 1;
    fprintf(fs, "--------------------------------------------------------------------------------------------------------------------------------------\n");
-   fprintf(fs, " No     WinID      shobj        obj    found_o    x    y    w    h   ex   ey   ew   eh | W S O\n");
+   fprintf(fs, " No     WinID      shobj        obj    found_o    x    y    w    h   ex   ey   ew   eh | W S O | V SYNC  DMG DONE |\n");
    fprintf(fs, "--------------------------------------------------------------------------------------------------------------------------------------\n");
    Evas_Object *o = evas_object_top_get(c->evas);
    Eina_Bool found = 0;
@@ -109,7 +109,7 @@ e_mod_comp_debug_info_dump(Eina_Bool to_file,
         if (found && cw->visible)
           {
              fprintf(fs,
-                     " %2d 0x%07x 0x%08x 0x%08x 0x%08x %4d,%4d %4dx%4d %4d,%4d %4dx%4d | %s %s %s %4d, %s, %s\n",
+                     " %2d 0x%07x 0x%08x 0x%08x 0x%08x %4d,%4d %4dx%4d %4d,%4d %4dx%4d | %s %s %s | %d %4d %4d %4d | %4d, %s, %s\n",
                      i,
                      e_mod_comp_util_client_xid_get(cw),
                      (unsigned int)cw->shobj,
@@ -120,6 +120,10 @@ e_mod_comp_debug_info_dump(Eina_Bool to_file,
                      cw->visible ? "O" : "X",
                      evas_object_visible_get(cw->shobj) ? "O" : "X",
                      evas_object_visible_get(o) ? "O" : "X",
+                     cw->sync_info.version,
+                     cw->sync_info.val,
+                     cw->dmg_updates,
+                     cw->sync_info.done_count,
                      pid, wname, wclas);
           }
         else if (o == c->bg_img)
@@ -133,7 +137,7 @@ e_mod_comp_debug_info_dump(Eina_Bool to_file,
              if (found)
                {
                   fprintf(fs,
-                          " %2d 0x%07x 0x%08x 0x%08x 0x%08x %4d,%4d %4dx%4d %4d,%4d %4dx%4d | %s %s %s %4d, %s, %s\n",
+                          " %2d 0x%07x 0x%08x 0x%08x 0x%08x %4d,%4d %4dx%4d %4d,%4d %4dx%4d | %s %s %s | %d %4d %4d %4d | %4d, %s, %s\n",
                           i,
                           e_mod_comp_util_client_xid_get(cw),
                           (unsigned int)cw->shobj,
@@ -144,6 +148,10 @@ e_mod_comp_debug_info_dump(Eina_Bool to_file,
                           cw->visible ? "O" : "X",
                           evas_object_visible_get(cw->shobj) ? "O" : "X",
                           evas_object_visible_get(o) ? "O" : "X",
+                          cw->sync_info.version,
+                          cw->sync_info.val,
+                          cw->dmg_updates,
+                          cw->sync_info.done_count,
                           pid, wname, wclas);
                }
              else

@@ -51,7 +51,6 @@ static void         _e_mod_comp_win_render_queue(E_Comp_Win *cw);
 static void         _e_mod_comp_x_grab_set(E_Comp *c, Eina_Bool grab);
 static Evas_Object *_e_mod_comp_win_mirror_add(E_Comp_Win *cw);
 static void         _e_mod_comp_src_hidden_set_func(void *data, E_Manager *man, E_Manager_Comp_Source *src, Eina_Bool hidden);
-void                ecore_x_e_comp_dri_buff_flip_supported_set(Ecore_X_Window root, Eina_Bool enabled);
 
 EINTERN Eina_Bool
 e_mod_comp_comp_event_src_visibility_send(E_Comp_Win *cw)
@@ -801,6 +800,7 @@ _e_mod_comp_cb_update(E_Comp *c)
           {
              if (!cw) continue;
              ecore_x_sync_counter_inc(cw->counter, 1);
+             cw->sync_info.val++;
           }
      }
    e_mod_comp_win_shape_input_update(c);
@@ -1008,6 +1008,7 @@ _e_mod_comp_object_del(void *data,
              Ecore_X_Window _w = e_mod_comp_util_client_xid_get(cw);
              ecore_x_e_comp_sync_cancel_send(_w);
              ecore_x_sync_counter_inc(cw->counter, 1);
+             cw->sync_info.val++;
           }
         if (cw->bd) eina_hash_del(borders, e_util_winid_str_get(cw->bd->client.win), cw);
         cw->bd = NULL;
@@ -1213,12 +1214,14 @@ _e_mod_comp_win_sync_setup(E_Comp_Win *cw,
                  client_cw->counter == cw->counter)
                {
                   ecore_x_sync_counter_inc(cw->counter, 1);
+                  cw->sync_info.val++;
                   return;
                }
           }
 
         ecore_x_e_comp_sync_begin_send(win);
         ecore_x_sync_counter_inc(cw->counter, 1);
+        cw->sync_info.val++;
      }
 }
 
@@ -2241,7 +2244,6 @@ _e_mod_comp_destroy(void *data __UNUSED__,
    Ecore_X_Event_Window_Destroy *ev = event;
    E_Comp_Win *cw = _e_mod_comp_win_find(ev->win);
    if (!cw) return ECORE_CALLBACK_PASS_ON;
-   if (_e_mod_comp_win_is_border(cw)) return ECORE_CALLBACK_PASS_ON;
    L(LT_EVENT_X,
      "[COMP] ev:%15.15s w:0x%08x bd:%d c:0x%08x cw:%p\n",
      "X_DESTROY", ev->win, _e_mod_comp_win_is_border(cw),
@@ -2511,11 +2513,11 @@ _e_mod_comp_prop_illume_window_state(Ecore_X_Event_Window_Property *ev)
    state = cw->bd->client.illume.win_state.state;
    switch (state)
      {
-      case ECORE_X_ILLUME_WINDOW_STATE_INSET:
+      case E_COMP_ILLUME_WINDOW_STATE_INSET:
         e_mod_comp_effect_signal_add
           (cw, cw->shobj, "e,state,shadow,on", "e");
         break;
-      case ECORE_X_ILLUME_WINDOW_STATE_NORMAL:
+      case E_COMP_ILLUME_WINDOW_STATE_NORMAL:
       default:
         e_mod_comp_effect_signal_add
           (cw, cw->shobj, "e,state,shadow,off", "e");
@@ -2541,12 +2543,14 @@ _e_mod_comp_prop_sync_counter(Ecore_X_Event_Window_Property *ev)
                {
                   ecore_x_e_comp_sync_cancel_send(_w);
                   ecore_x_sync_counter_inc(cw->counter, 1);
+                  cw->sync_info.val++;
                }
              cw->counter = counter;
              if (cw->counter)
                {
                   ecore_x_sync_counter_inc(cw->counter, 1);
                   ecore_x_e_comp_sync_begin_send(_w);
+                  cw->sync_info.val = 1;
                }
           }
      }
@@ -2579,7 +2583,7 @@ _e_mod_comp_property(void *data __UNUSED__,
    else if (a == ATOM_WINDOW_EFFECT_ENABLE                ) _e_mod_comp_prop_window_effect_state(ev);
    else if (a == ATOM_WINDOW_EFFECT_TYPE                  ) _e_mod_comp_prop_effect_style(ev);
    else if (a == ECORE_X_ATOM_NET_WM_WINDOW_OPACITY       ) _e_mod_comp_prop_opacity(ev);
-   else if (a == ECORE_X_ATOM_E_ILLUME_WINDOW_STATE       ) _e_mod_comp_prop_illume_window_state(ev);
+   else if (a == ATOM_ILLUME_WINDOW_STATE                 ) _e_mod_comp_prop_illume_window_state(ev);
    else if (a == ECORE_X_ATOM_E_ILLUME_ROTATE_WINDOW_ANGLE) e_mod_comp_effect_win_rotation_handler_prop(ev);
    else if (a == ECORE_X_ATOM_WM_CLASS                    ) e_mod_comp_win_type_handler_prop(ev);
    else if (a == ATOM_NET_CM_WINDOW_BACKGROUND            ) e_mod_comp_bg_win_handler_prop(ev);
@@ -2599,6 +2603,7 @@ _e_mod_comp_msg_sync_draw_done(Ecore_X_Event_Client_Message *ev)
    h = ev->data.l[3];
    if (cw)
      {
+        cw->sync_info.version = v;
         if (!cw->bd) return EINA_FALSE;
         if ((Ecore_X_Window)(ev->data.l[0]) != cw->bd->client.win) return EINA_FALSE;
      }
@@ -2623,6 +2628,8 @@ _e_mod_comp_msg_sync_draw_done(Ecore_X_Event_Client_Message *ev)
           {
              ecore_x_sync_counter_inc(cw->counter, 1);
              ecore_x_e_comp_sync_begin_send(e_mod_comp_util_client_xid_get(cw));
+             cw->sync_info.val = 1;
+             cw->sync_info.done_count = 1;
           }
         L(LT_EVENT_X,
           "[COMP] ev:%15.15s w:0x%08x type:%s !cw->counter v%d %03dx%03d\n",
@@ -2643,6 +2650,7 @@ _e_mod_comp_msg_sync_draw_done(Ecore_X_Event_Client_Message *ev)
      }
 
    cw->drawme = 1;
+   cw->sync_info.done_count++;
 
    L(LT_EVENT_X,
      "[COMP] ev:%15.15s w:0x%08x type:%s v%d %03dx%03d\n",
@@ -2864,8 +2872,6 @@ _e_mod_comp_bd_del(void *data __UNUSED__,
 
    if (!cw) return ECORE_CALLBACK_PASS_ON;
    if (cw->bd == ev->border) _e_mod_comp_object_del(cw, ev->border);
-   if (cw->animating) cw->delete_me = 1;
-   else _e_mod_comp_win_del(cw);
    return ECORE_CALLBACK_PASS_ON;
 }
 
@@ -3360,7 +3366,7 @@ _e_mod_comp_add(E_Manager *man)
 
    if (c->man->num == 0) e_alert_composite_win = c->win;
 
-   if (_comp_mod->conf->engine == E_EVAS_ENGINE_GL_X11)
+   if (_comp_mod->conf->engine == ENGINE_GL)
      {
         int opt[20];
         int opt_i = 0;
@@ -3399,7 +3405,7 @@ _e_mod_comp_add(E_Manager *man)
      }
    if (!c->ee)
      {
-        if (_comp_mod->conf->engine == E_EVAS_ENGINE_GL_X11)
+        if (_comp_mod->conf->engine == ENGINE_GL)
           {
              e_util_dialog_internal
                (_("Compositor Warning"),
@@ -3419,9 +3425,6 @@ _e_mod_comp_add(E_Manager *man)
 
    c->ee_win = ecore_evas_window_get(c->ee);
    ecore_x_screen_is_composited_set(c->man->num, c->ee_win);
-
-   ecore_x_e_comp_dri_buff_flip_supported_set
-     (c->man->root, _comp_mod->conf->dri_buff_flip);
 
    ecore_x_composite_redirect_subwindows
      (c->man->root, ECORE_X_COMPOSITE_UPDATE_MANUAL);
@@ -3543,6 +3546,7 @@ _e_mod_comp_del(E_Comp *c)
           {
              ecore_x_sync_counter_free(cw->counter);
              cw->counter = 0;
+             cw->sync_info.val = 0;
           }
         cw->force = 1;
         _e_mod_comp_win_hide(cw);
@@ -3559,7 +3563,6 @@ _e_mod_comp_del(E_Comp *c)
    if (c->update_job) ecore_job_del(c->update_job);
    if (c->wins_list) eina_list_free(c->wins_list);
 
-   ecore_x_e_comp_dri_buff_flip_supported_set(c->man->root, 0);
    ecore_x_window_free(c->cm_selection);
    ecore_x_screen_is_composited_set(c->man->num, 0);
    ecore_x_e_comp_sync_supported_set(c->man->root, 0);

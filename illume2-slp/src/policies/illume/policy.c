@@ -31,6 +31,12 @@ typedef struct _E_Illume_Print_Info
    char file_name[256];
 } E_Illume_Print_Info;
 
+/* for aia */
+typedef enum _E_Illume_Window_State
+{
+   E_ILLUME_WINDOW_STATE_NORMAL = 0,
+   E_ILLUME_WINDOW_STATE_INSET
+} E_Illume_Window_State;
 
 #define COMP_MODULE_CONTROL
 
@@ -49,7 +55,7 @@ static void _policy_zone_layout_quickpanel_popup(E_Border *bd);
 static void _policy_zone_layout_keyboard(E_Border *bd, E_Illume_Config_Zone *cz);
 static void _policy_zone_layout_fullscreen(E_Border *bd);
 static void _policy_zone_layout_dialog(E_Border *bd, E_Illume_Config_Zone *cz);
-static void _policy_zone_layout_sliding_win(E_Border *bd, E_Illume_Config_Zone *cz);
+static void _policy_zone_layout_clipboard(E_Border *bd, E_Illume_Config_Zone *cz);
 
 static int _policy_window_rotation_angle_get(Ecore_X_Window win);
 static Ecore_X_Window _policy_active_window_get(Ecore_X_Window root);
@@ -84,12 +90,13 @@ static void _policy_property_window_state_change (Ecore_X_Event_Window_Property 
 static void _policy_property_indicator_geometry_change (Ecore_X_Event_Window_Property *event);
 static void _policy_property_keyboard_geometry_change (Ecore_X_Event_Window_Property *event);
 static void _policy_property_virtual_keyboard_state_change (Ecore_X_Event_Window_Property *event);
-static void _policy_property_sliding_win_geometry_change (Ecore_X_Event_Window_Property *event);
-static void _policy_property_sliding_win_state_change (Ecore_X_Event_Window_Property *event);
+static void _policy_property_clipboard_geometry_change (Ecore_X_Event_Window_Property *event);
+static void _policy_property_clipboard_state_change (Ecore_X_Event_Window_Property *event);
 static void _policy_property_indicator_geometry_change (Ecore_X_Event_Window_Property *event);
 static void _policy_property_enlightenment_scale_change (Ecore_X_Event_Window_Property *event);
 static void _policy_property_rotate_win_angle_change (Ecore_X_Event_Window_Property *event);
 static void _policy_property_indicator_state_change (Ecore_X_Event_Window_Property *event);
+static void _policy_property_indicator_opacity_change(Ecore_X_Event_Window_Property *event);
 static void _policy_property_active_win_change (Ecore_X_Event_Window_Property *event);
 static void _policy_property_win_type_change (Ecore_X_Event_Window_Property *event);
 static void _policy_property_rotate_root_angle_change (Ecore_X_Event_Window_Property *event);
@@ -99,6 +106,7 @@ static void _policy_property_window_opaque_change (Ecore_X_Event_Window_Property
 static void _policy_property_illume_window_state_change(Ecore_X_Event_Window_Property *event);
 
 static void _policy_border_illume_window_state_change(E_Border *bd, unsigned int state);
+static E_Illume_Window_State _policy_window_illume_window_state_get(Ecore_X_Window win);
 static void _policy_border_illume_handlers_add(E_Border *bd);
 static void _policy_border_illume_handlers_remove(E_Border *bd);
 static Eina_Bool _policy_border_cb_mouse_down(void *data, int type __UNUSED__, void *event);
@@ -177,6 +185,11 @@ static Ecore_X_Atom E_ILLUME_ATOM_STACK_DISPLAY_DONE;
  #ifdef COMP_MODULE_CONTROL
 static Ecore_X_Atom E_ILLUME_ATOM_COMP_MODULE_ENABLED;
 #endif
+
+/* for aia */
+static Ecore_X_Atom E_ILLUME_ATOM_WINDOW_STATE;
+static Ecore_X_Atom E_ILLUME_ATOM_WINDOW_STATE_NORMAL;
+static Ecore_X_Atom E_ILLUME_ATOM_WINDOW_STATE_INSET;
 
 #if 1 // for visibility
 static Eina_Hash* _e_illume_xwin_info_hash = NULL;
@@ -313,7 +326,7 @@ _policy_border_show_below(E_Border *bd)
              if (e_illume_border_is_keyboard(b)) continue;
              if (e_illume_border_is_quickpanel(b)) continue;
              if (e_illume_border_is_quickpanel_popup(b)) continue;
-             if (e_illume_border_is_sliding_win(b)) continue;
+             if (e_illume_border_is_clipboard(b)) continue;
 
              if ((bd->fullscreen) || (bd->need_fullscreen))
                {
@@ -553,14 +566,14 @@ _policy_zone_layout_dialog(E_Border *bd, E_Illume_Config_Zone *cz)
 }
 
 static void
-_policy_zone_layout_sliding_win(E_Border *bd, E_Illume_Config_Zone *cz)
+_policy_zone_layout_clipboard(E_Border *bd, E_Illume_Config_Zone *cz)
 {
    /* no point in adjusting size or position if it's not visible */
    if (!bd->visible) return;
 
    /* set layer if needed */
-   if (bd->layer != POL_SLIDING_WIN_LAYER)
-      e_border_layer_set(bd, POL_SLIDING_WIN_LAYER);
+   if (bd->layer != POL_CLIPBOARD_LAYER)
+      e_border_layer_set(bd, POL_CLIPBOARD_LAYER);
 }
 
 /* policy functions */
@@ -661,6 +674,11 @@ _policy_border_add(E_Border *bd)
                        L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Update indicator's layer to NOTIFICATON.. level = %d\n", __func__, __LINE__, level);
                        _policy_change_indicator_layer (bd, POL_NOTIFICATION_LAYER, level);
                     }
+                  else
+                    {
+                       L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION]  %s(%d)... Update indicator's layer to NOTIFICATON.. level = %d\n", __func__, __LINE__, bd_info->level);
+                       _policy_change_indicator_layer(bd, POL_INDICATOR_LAYER, bd_info->level);
+                    }
                }
           }
 
@@ -695,9 +713,9 @@ _policy_border_del(E_Border *bd)
           }
      }
 
-   if (e_illume_border_is_sliding_win(bd))
+   if (e_illume_border_is_clipboard(bd))
      {
-        ecore_x_e_illume_sliding_win_state_set (bd->zone->black_win, 0);
+        ecore_x_e_illume_clipboard_state_set(bd->zone->black_win, ECORE_X_ILLUME_CLIPBOARD_STATE_OFF);
      }
 
    /* remove from our focus stack */
@@ -829,6 +847,11 @@ _policy_border_activate(E_Border *bd)
    if ((e_illume_border_is_notification(bd)) ||
        (bd->layer == POL_NOTIFICATION_LAYER))
      {
+        if (e_illume_border_is_indicator(bd)) return;
+        if (e_illume_border_is_quickpanel(bd)) return;
+        if (e_illume_border_is_quickpanel_popup(bd)) return;
+        if (e_illume_border_is_keyboard(bd)) return;
+
         // create border_info
         bd_info = _policy_get_border_info(bd);
         if (bd_info == NULL) return;
@@ -902,7 +925,7 @@ _policy_border_post_new_border(E_Border *bd)
              _policy_border_update_notification_stack (bd, level, EINA_TRUE);
           }
 
-        state = ecore_x_e_illume_window_state_get(bd->client.win);
+        state = _policy_window_illume_window_state_get(bd->client.win);
         _policy_border_illume_window_state_change(bd, state);
      }
 }
@@ -1068,10 +1091,10 @@ _policy_border_show(E_Border *bd)
    if (e_illume_border_is_quickpanel(bd)) return;
    if (e_illume_border_is_quickpanel_popup(bd)) return;
    if (e_illume_border_is_keyboard(bd)) return;
-   if (e_illume_border_is_sliding_win(bd))
+   if (e_illume_border_is_clipboard(bd))
      {
-        ecore_x_e_illume_sliding_win_state_set (bd->zone->black_win, 1);
-        ecore_x_e_illume_sliding_win_geometry_set (bd->zone->black_win, bd->x, bd->y, bd->w, bd->h);
+        ecore_x_e_illume_clipboard_state_set(bd->zone->black_win, ECORE_X_ILLUME_CLIPBOARD_STATE_ON);
+        ecore_x_e_illume_clipboard_geometry_set(bd->zone->black_win, bd->x, bd->y, bd->w, bd->h);
         return;
      }
 }
@@ -1135,8 +1158,8 @@ _policy_zone_layout(E_Zone *zone)
         else if (e_illume_border_is_dialog(bd))
            _policy_zone_layout_dialog(bd, cz);
 
-        else if (e_illume_border_is_sliding_win(bd))
-           _policy_zone_layout_sliding_win(bd, cz);
+        else if (e_illume_border_is_clipboard(bd))
+           _policy_zone_layout_clipboard(bd, cz);
 
         /* must be an app */
         else
@@ -1620,7 +1643,7 @@ static void _policy_property_virtual_keyboard_state_change (Ecore_X_Event_Window
      }
 }
 
-static void _policy_property_sliding_win_geometry_change (Ecore_X_Event_Window_Property *event)
+static void _policy_property_clipboard_geometry_change (Ecore_X_Event_Window_Property *event)
 {
    Eina_List *l;
    E_Zone *zone;
@@ -1630,7 +1653,7 @@ static void _policy_property_sliding_win_geometry_change (Ecore_X_Event_Window_P
    /* make sure this property changed on a zone */
    if (!(zone = e_util_zone_window_find(event->win))) return;
 
-   ecore_x_e_illume_sliding_win_geometry_get(zone->black_win, &x, &y, &w, &h);
+   ecore_x_e_illume_clipboard_geometry_get(zone->black_win, &x, &y, &w, &h);
 
    /* look for conformant borders */
    EINA_LIST_FOREACH(e_border_client_list(), l, bd)
@@ -1642,21 +1665,21 @@ static void _policy_property_sliding_win_geometry_change (Ecore_X_Event_Window_P
         if (e_illume_border_is_quickpanel(bd)) continue;
         if (e_illume_border_is_quickpanel_popup(bd)) continue;
 
-        ecore_x_e_illume_sliding_win_geometry_set(bd->client.win, x, y, w, h);
+        ecore_x_e_illume_clipboard_geometry_set(bd->client.win, x, y, w, h);
      }
 }
 
-static void _policy_property_sliding_win_state_change (Ecore_X_Event_Window_Property *event)
+static void _policy_property_clipboard_state_change (Ecore_X_Event_Window_Property *event)
 {
    Eina_List *l;
    E_Zone *zone;
    E_Border *bd;
-   int is_visible;
+   Ecore_X_Illume_Clipboard_State state;
 
    /* make sure this property changed on a zone */
    if (!(zone = e_util_zone_window_find(event->win))) return;
 
-   is_visible = ecore_x_e_illume_sliding_win_state_get (zone->black_win);
+   state = ecore_x_e_illume_clipboard_state_get(zone->black_win);
 
    /* look for conformant borders */
    EINA_LIST_FOREACH(e_border_client_list(), l, bd)
@@ -1668,7 +1691,7 @@ static void _policy_property_sliding_win_state_change (Ecore_X_Event_Window_Prop
         if (e_illume_border_is_quickpanel(bd)) continue;
         if (e_illume_border_is_quickpanel_popup(bd)) continue;
 
-        ecore_x_e_illume_sliding_win_state_set (bd->client.win, is_visible);
+        ecore_x_e_illume_clipboard_state_set(bd->client.win, state);
      }
 }
 
@@ -1764,12 +1787,32 @@ static void _policy_property_indicator_state_change (Ecore_X_Event_Window_Proper
      }
 }
 
+static void _policy_property_indicator_opacity_change(Ecore_X_Event_Window_Property *event)
+{
+   E_Border *bd, *indi_bd;
+   Ecore_X_Window active_win;
+   Ecore_X_Illume_Indicator_Opacity_Mode mode;
+
+   if (!(bd = e_border_find_by_client_window(event->win))) return;
+
+   indi_bd = e_illume_border_indicator_get(bd->zone);
+   if (!indi_bd) return;
+
+   active_win = _policy_active_window_get(bd->zone->container->manager->root);
+   if (active_win == bd->client.win)
+     {
+        mode = ecore_x_e_illume_indicator_opacity_get(bd->client.win);
+        ecore_x_e_illume_indicator_opacity_send(indi_bd->client.win, mode);
+     }
+}
+
 static void _policy_property_active_win_change (Ecore_X_Event_Window_Property *event)
 {
    Ecore_X_Window active_win;
    int indi_show;
    E_Border* active_border;
    E_Border* indi_bd;
+   Ecore_X_Illume_Indicator_Opacity_Mode mode;
 
    active_win = _policy_active_window_get(event->win);
    if (active_win)
@@ -1864,6 +1907,9 @@ static void _policy_property_active_win_change (Ecore_X_Event_Window_Property *e
                   ILLUME2_TRACE ("[ILLUME2] Get ECORE_X_ATOM_NET_ACTIVE_WINDOW (%d)  HIDE Indicator... bd = 0x%07x\n", __LINE__, active_win);
                   e_border_hide(indi_bd, 2);
                }
+
+             mode = ecore_x_e_illume_indicator_opacity_get(active_border->client.win);
+             ecore_x_e_illume_indicator_opacity_send(indi_bd->client.win, mode);
           }
 
         ILLUME2_TRACE ("[ILLUME2] ACTIVE WINDOW... (%d) active win = 0x%07x HIDE quickpanel\n", __LINE__, active_win);
@@ -2113,7 +2159,7 @@ _policy_property_illume_window_state_change(Ecore_X_Event_Window_Property *event
    if (!(bd = e_border_find_by_client_window(event->win))) return;
    if ((bd->stolen) || (!bd->visible)) return;
 
-   unsigned int state = ecore_x_e_illume_window_state_get(event->win);
+   unsigned int state = _policy_window_illume_window_state_get(event->win);
    _policy_border_illume_window_state_change(bd, state);
 }
 
@@ -2128,7 +2174,7 @@ _policy_border_illume_window_state_change(E_Border *bd, unsigned int state)
    bd->client.illume.win_state.state = state;
    switch (state)
      {
-      case ECORE_X_ILLUME_WINDOW_STATE_INSET:
+      case E_ILLUME_WINDOW_STATE_INSET:
          _policy_border_illume_handlers_add(bd);
          ecore_x_window_raise(bd->event_win);
          e_hints_window_state_update(bd, ECORE_X_WINDOW_STATE_ABOVE, ECORE_X_WINDOW_STATE_ACTION_ADD);
@@ -2139,7 +2185,7 @@ _policy_border_illume_window_state_change(E_Border *bd, unsigned int state)
          _policy_border_focus_top_stack_set(bd);
          break;
 
-      case ECORE_X_ILLUME_WINDOW_STATE_NORMAL:
+      case E_ILLUME_WINDOW_STATE_NORMAL:
          _policy_border_illume_handlers_remove(bd);
          ecore_x_window_raise(bd->client.shell_win);
          e_hints_window_state_update(bd, ECORE_X_WINDOW_STATE_ABOVE, ECORE_X_WINDOW_STATE_ACTION_REMOVE);
@@ -2164,6 +2210,24 @@ _policy_border_illume_window_state_change(E_Border *bd, unsigned int state)
    bd->changes.size = 1;
    bd->changes.pos = 1;
    bd->changed = 1;
+}
+
+static E_Illume_Window_State
+_policy_window_illume_window_state_get(Ecore_X_Window win)
+{
+   Ecore_X_Atom atom;
+
+   if (!ecore_x_window_prop_atom_get(win,
+                                     E_ILLUME_ATOM_WINDOW_STATE,
+                                     &atom, 1))
+     return E_ILLUME_WINDOW_STATE_NORMAL;
+
+   if (atom == E_ILLUME_ATOM_WINDOW_STATE_NORMAL)
+     return E_ILLUME_WINDOW_STATE_NORMAL;
+   else if (atom == E_ILLUME_ATOM_WINDOW_STATE_INSET)
+     return E_ILLUME_WINDOW_STATE_INSET;
+   else
+     return E_ILLUME_WINDOW_STATE_NORMAL;
 }
 
 static void
@@ -2233,15 +2297,43 @@ _resize_rect_geometry_get(E_Border             *bd,
                           int                   ev_x,
                           int                   ev_y)
 {
-   int x, y, w, h;
+   int x = 0, y = 0, w = 0, h = 0;
+   int mw = 0, mh = 0;
+   int cx = 0, cy = 0;
+
+   e_illume_border_min_get(bd, &mw, &mh);
+
    switch (bd->client.illume.win_state.angle)
      {
-      case   0: x = bd->x; y = bd->y; w = ev_x - bd->x;        h = ev_y - bd->y;        break;
-      case  90: x = bd->x; y = ev_y;  w = ev_x - x;            h = (bd->y + bd->h) - y; break;
-      case 180: x = ev_x;  y = ev_y;  w = (bd->x + bd->w) - x; h = (bd->y + bd->h) - y; break;
-      case 270: x = ev_x;  y = bd->y; w = (bd->x + bd->w) - x; h = ev_y - y;            break;
-      default: break;
+      case 0:
+        cx = bd->x;               cy = bd->y;
+        x = bd->x;                 y = bd->y;
+        w = ev_x - bd->x;          h = ev_y - bd->y;
+        break;
+      case 90:
+        cx = bd->x;               cy = bd->y + bd->h;
+        x = bd->x;                 y = ev_y;
+        w = ev_x - x;              h = (bd->y + bd->h) - y;
+        break;
+      case 180:
+        cx = bd->x + bd->w;       cy = bd->y + bd->h;
+        x = ev_x;                  y = ev_y;
+        w = (bd->x + bd->w) - x;   h = (bd->y + bd->h) - y;
+        break;
+      case 270:
+        cx = bd->x + bd->w;       cy = bd->y;
+        x  = ev_x;                 y = bd->y;
+        w  = (bd->x + bd->w) - x;  h = ev_y - y;
+        break;
+      default:
+        break;
      }
+
+   if (w < mw) w = mw;
+   if (h < mh) h = mh;
+   if ((x + w) > (bd->x + w)) x = cx - w;
+   if ((y + h) > (bd->y + h)) y = cy - h;
+
    r->x = x;
    r->y = y;
    r->w = w;
@@ -2371,13 +2463,13 @@ _policy_property_change(Ecore_X_Event_Window_Property *event)
      {
         _policy_property_virtual_keyboard_state_change (event);
      }
-   else if (event->atom == ECORE_X_ATOM_E_ILLUME_SLIDING_WIN_GEOMETRY)
+   else if (event->atom == ECORE_X_ATOM_E_ILLUME_CLIPBOARD_GEOMETRY)
      {
-        _policy_property_sliding_win_geometry_change (event);
+        _policy_property_clipboard_geometry_change (event);
      }
-   else if (event->atom == ECORE_X_ATOM_E_ILLUME_SLIDING_WIN_STATE)
+   else if (event->atom == ECORE_X_ATOM_E_ILLUME_CLIPBOARD_STATE)
      {
-        _policy_property_sliding_win_state_change (event);
+        _policy_property_clipboard_state_change (event);
      }
    else if (event->atom == ATM_ENLIGHTENMENT_SCALE)
      {
@@ -2390,6 +2482,10 @@ _policy_property_change(Ecore_X_Event_Window_Property *event)
    else if (event->atom == ECORE_X_ATOM_E_ILLUME_INDICATOR_STATE)
      {
         _policy_property_indicator_state_change (event);
+     }
+   else if (event->atom == ECORE_X_ATOM_E_ILLUME_INDICATOR_OPACITY_MODE)
+     {
+        _policy_property_indicator_opacity_change(event);
      }
    else if (event->atom == ECORE_X_ATOM_NET_ACTIVE_WINDOW)
      {
@@ -2420,7 +2516,7 @@ _policy_property_change(Ecore_X_Event_Window_Property *event)
      {
         _policy_property_window_opaque_change (event);
      }
-   else if (event->atom == ECORE_X_ATOM_E_ILLUME_WINDOW_STATE)
+   else if (event->atom == E_ILLUME_ATOM_WINDOW_STATE)
      {
         _policy_property_illume_window_state_change(event);
      }
@@ -2635,16 +2731,16 @@ _policy_active_window_get(Ecore_X_Window root)
 static int
 _policy_border_indicator_state_get(E_Border *bd)
 {
-   int ret;
-   int count;
-   int show = -1;
-   unsigned char* prop_data = NULL;
+   Ecore_X_Illume_Indicator_State state;
+   int show;
 
-   ret = ecore_x_window_prop_property_get (bd->client.win, ECORE_X_ATOM_E_ILLUME_INDICATOR_STATE, ECORE_X_ATOM_CARDINAL, 32, &prop_data, &count);
-   if( ret && prop_data )
-      memcpy (&show, prop_data, sizeof (int));
-
-   if (prop_data) free (prop_data);
+   state = ecore_x_e_illume_indicator_state_get(bd->client.win);
+   if (state == ECORE_X_ILLUME_INDICATOR_STATE_ON)
+     show = 1;
+   else if (state == ECORE_X_ILLUME_INDICATOR_STATE_OFF)
+     show = 0;
+   else
+     show = -1;
 
    return show;
 }
@@ -2850,6 +2946,26 @@ int _policy_atom_init (void)
    if(!E_ILLUME_ATOM_SCREEN_LOCK)
      {
         fprintf (stderr, "[ILLUME2] Critical Error!!! Cannot create _E_COMP_LOCK_SCREEN Atom...\n");
+        return 0;
+     }
+
+   // for aia
+   E_ILLUME_ATOM_WINDOW_STATE = ecore_x_atom_get("_E_ILLUME_WINDOW_STATE");
+   if(!E_ILLUME_ATOM_WINDOW_STATE)
+     {
+        fprintf (stderr, "[ILLUME2] Critical Error!!! Cannot create _E_ILLUME_WINDOW_STATE Atom...\n");
+        return 0;
+     }
+   E_ILLUME_ATOM_WINDOW_STATE_NORMAL = ecore_x_atom_get("_E_ILLUME_WINDOW_STATE_NORMAL");
+   if(!E_ILLUME_ATOM_WINDOW_STATE_NORMAL)
+     {
+        fprintf (stderr, "[ILLUME2] Critical Error!!! Cannot create _E_ILLUME_WINDOW_STATE_NORMAL Atom...\n");
+        return 0;
+     }
+   E_ILLUME_ATOM_WINDOW_STATE_INSET = ecore_x_atom_get("_E_ILLUME_WINDOW_STATE_INSET");
+   if(!E_ILLUME_ATOM_WINDOW_STATE_INSET)
+     {
+        fprintf (stderr, "[ILLUME2] Critical Error!!! Cannot create _E_ILLUME_WINDOW_STATE_INSET Atom...\n");
         return 0;
      }
 

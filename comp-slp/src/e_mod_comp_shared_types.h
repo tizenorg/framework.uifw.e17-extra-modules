@@ -89,6 +89,11 @@ struct _E_Comp_Win
    E_Update                   *up; // update handler
    E_Object_Delfn             *dfn; // delete function handle for objects being tracked
    Ecore_X_Sync_Counter        counter; // sync counter for syncronised drawing
+   struct {
+      int                      version; // version of efl sync
+      int                      val; // sync value
+      int                      done_count; // draw done event count
+   } sync_info;
    Ecore_Timer                *update_timeout; // max time between damage and "done" event
    int                         dmg_updates; // num of damage event updates since a redirect
    Ecore_X_Rectangle          *rects; // shape rects... if shaped :(
@@ -140,6 +145,12 @@ struct _E_Comp_Win
    E_Comp_BG_Win              *bgwin;
    Eina_Bool                   move_lock : 1; // lock / unlock evas_object's move. evas_object represents window.
 };
+
+typedef enum _E_Comp_Illume_Window_State
+{
+   E_COMP_ILLUME_WINDOW_STATE_NORMAL = 0,
+   E_COMP_ILLUME_WINDOW_STATE_INSET
+} E_Comp_Illume_Window_State;
 
 #endif
 #endif

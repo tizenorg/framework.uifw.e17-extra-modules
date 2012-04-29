@@ -38,6 +38,7 @@ e_modapi_init (E_Module* m)
 	keyrouter.e_window_destroy_handler = ecore_event_handler_add(ECORE_X_EVENT_WINDOW_DESTROY, (Ecore_Event_Handler_Cb)_e_keyrouter_cb_window_destroy, NULL);
 	keyrouter.e_window_configure_handler = ecore_event_handler_add(ECORE_X_EVENT_WINDOW_CONFIGURE,(Ecore_Event_Handler_Cb)_e_keyrouter_cb_window_configure, NULL);
 	keyrouter.e_window_stack_handler = ecore_event_handler_add(ECORE_X_EVENT_WINDOW_STACK, (Ecore_Event_Handler_Cb)_e_keyrouter_cb_window_stack, NULL);
+	keyrouter.e_client_message_handler = ecore_event_handler_add(ECORE_X_EVENT_CLIENT_MESSAGE, (Ecore_Event_Handler_Cb)_e_keyrouter_cb_client_message, NULL);
 
 	if( !keyrouter.e_window_stack_handler )			printf("[keyrouter][%s] Failed to add ECORE_X_EVENT_WINDOW_STACK handler\n", __FUNCTION__);
 	if( !keyrouter.e_window_configure_handler )		printf("[keyrouter][%s] Failed to add ECORE_X_EVENT_WINDOW_CONFIGURE handler\n", __FUNCTION__);
@@ -132,8 +133,10 @@ _e_keyrouter_x_input_init(void)
 	XISetMask(keyrouter.eventmask_all.mask, XI_DeviceChanged);
 	XISetMask(keyrouter.eventmask_all.mask, XI_HierarchyChanged);
 	XISetMask(keyrouter.eventmask_all.mask, XI_PropertyEvent);
+#ifdef _F_ENABLE_MOUSE_POPUP
 	XISetMask(keyrouter.eventmask_all.mask, XI_ButtonPress);
 	XISetMask(keyrouter.eventmask_all.mask, XI_ButtonRelease);
+#endif//_F_ENABLE_MOUSE_POPUP
 
 	/* Events we want to listen for a part */
 	XISetMask(keyrouter.eventmask_part.mask, XI_DeviceChanged);
@@ -193,6 +196,7 @@ _e_keyrouter_cb_event_any(void *data, int ev_type, void *event)
 #endif
 		ev->type = KeyRelease;
 	}
+#ifdef _F_ENABLE_MOUSE_POPUP
 	else if( type == ButtonPress && ev->xbutton.button == 3)
 	{
 #ifdef __DEBUG__
@@ -209,6 +213,7 @@ _e_keyrouter_cb_event_any(void *data, int ev_type, void *event)
 
 		return 1;
 	}
+#endif//_F_ENABLE_MOUSE_POPUP
 	else
 		return 1;
 
@@ -402,6 +407,7 @@ _e_keyrouter_cb_event_generic(void *data, int ev_type, void *event)
 			_e_keyrouter_xi2_device_hierarchy_handler((XIHierarchyEvent *)evData);
 			break;
 
+#ifdef _F_ENABLE_MOUSE_POPUP
 		case XI_ButtonRelease:
 			if( evData->detail != 1 && evData->detail != 3 )
 				break;
@@ -414,6 +420,7 @@ _e_keyrouter_cb_event_generic(void *data, int ev_type, void *event)
 					keyrouter.rbutton_pressed_on_popup = 0;
 			}
 			break;
+#endif//_F_ENABLE_MOUSE_POPUP
 	}
 
 	return 1;
@@ -483,6 +490,7 @@ _e_keyrouter_cb_window_property(void *data, int ev_type, void *ev)
 	int res = -1;
 	unsigned int ret_val = 0;
 
+#ifdef _F_ENABLE_MOUSE_POPUP
 	//check and rotate popup menu
 	if( e->atom == ECORE_X_ATOM_E_ILLUME_ROTATE_ROOT_ANGLE && e->win == keyrouter.rootWin )
 	{
@@ -500,6 +508,7 @@ _e_keyrouter_cb_window_property(void *data, int ev_type, void *ev)
 
 		goto out;
 	}
+#endif // _F_ENABLE_MOUSE_POPUP
 
 	//check and enable/disable mouse cursor
 	if( e->atom == keyrouter.atomXMouseCursorEnable && e->win == keyrouter.rootWin )
@@ -728,6 +737,37 @@ _e_keyrouter_cb_window_configure(void *data, int ev_type, void *ev)
 
 	keyrouter.isWindowStackChanged = 1;
 	AdjustTopPositionDeliveryList(e->win, !!e->abovewin);
+
+	return 1;
+}
+
+static int
+_e_keyrouter_cb_client_message (void* data, int type, void* event)
+{
+	int event_type = 0;
+	int keycode;
+	Ecore_X_Event_Client_Message* ev;
+
+	ev = event;
+	if(ev->message_type != keyrouter.atomHWKeyEmulation) return 1;
+	if(ev->format != 8) return 1;
+
+	if( ev->data.b[0] == 'P' )
+		event_type = KeyPress;
+	else if( ev->data.b[0] == 'R' )
+		event_type = KeyRelease;
+
+	switch(event_type)
+	{
+		case KeyPress:
+		case KeyRelease:
+			keycode = XKeysymToKeycode(keyrouter.disp, XStringToKeysym(&ev->data.b[2]));
+			_e_keyrouter_do_hardkey_emulation(NULL, event_type, 0, keycode);
+			break;
+
+		default:
+			fprintf(stderr, "[keyrouter][cb_client_message] Unknown event type ! (type=%d)\n", event_type);
+	}
 
 	return 1;
 }
@@ -1225,6 +1265,18 @@ int _e_keyrouter_init()
 	keyrouter.atomXExtKeyboardExist = ecore_x_atom_get(PROP_X_EXT_KEYBOARD_EXIST);
 	keyrouter.atomPointerType = ecore_x_atom_get(PROP_X_EVDEV_AXIS_LABELS);
 	keyrouter.atomRROutput = ecore_x_atom_get(PROP_XRROUTPUT);
+	keyrouter.atomHWKeyEmulation = ecore_x_atom_get(PROP_HWKEY_EMULATION);
+
+	keyrouter.input_window = ecore_x_window_input_new(keyrouter.rootWin, -1, -1, 1, 1);
+
+	if(!keyrouter.input_window)
+	{
+		fprintf(stderr, "[keyrouter] Failed to create input_window !\n");
+	}
+	else
+	{
+		ecore_x_window_prop_property_set(keyrouter.rootWin, keyrouter.atomHWKeyEmulation, ECORE_X_ATOM_WINDOW, 32, &keyrouter.input_window, 1);
+	}
 
 	keyrouter.zone = _e_keyrouter_get_zone();
 	if( !keyrouter.zone )
@@ -1234,9 +1286,11 @@ int _e_keyrouter_init()
 		goto out;
 	}
 
+#ifdef _F_ENABLE_MOUSE_POPUP
 	ecore_x_window_button_grab(keyrouter.rootWin, 3, ECORE_X_EVENT_MASK_MOUSE_DOWN |
 				 ECORE_X_EVENT_MASK_MOUSE_UP |
 				 ECORE_X_EVENT_MASK_MOUSE_MOVE, 0, 1);
+#endif//_F_ENABLE_MOUSE_POPUP
 
 #ifndef _F_USE_XI_GRABDEVICE_
 	grab_result = GrabKeyDevices(keyrouter.rootWin);
@@ -1263,8 +1317,9 @@ int _e_keyrouter_init()
 
 	memset(&keyrouter.modkey, 0L, sizeof(keyrouter.modkey));
 	InitModKeys();
+#ifdef _F_ENABLE_MOUSE_POPUP
 	InitHardKeyCodes();
-
+#endif//_F_ENABLE_MOUSE_POPUP
 	BuildKeyGrabList(keyrouter.rootWin);
 
 out:
@@ -1289,8 +1344,10 @@ static void _e_keyrouter_structure_init()
 	keyrouter.DeviceKeyRelease = -1;
 	keyrouter.xi2_opcode = -1;
 	keyrouter.isWindowStackChanged = 1;
+#ifdef _F_ENABLE_MOUSE_POPUP
 	keyrouter.popup_angle = 0;
 	keyrouter.toggle = 0;
+#endif//_F_ENABLE_MOUSE_POPUP
 	keyrouter.device_list = NULL;
 	keyrouter.num_pointer_devices = 0;
 	keyrouter.num_keyboard_devices = 0;
@@ -2825,29 +2882,48 @@ shared_delivery:
 }
 #endif//_F_USE_XI_GRABDEVICE_
 
+#ifdef _F_ENABLE_MOUSE_POPUP
 static void _e_keyrouter_popup_btn_down_cb(void *data)
 {
 	char *label = (char*)data;
 	keyrouter.rbutton_pressed_on_popup = 1;
-	_e_keyrouter_do_hardkey_emulation(label, KeyPress, 0);
+	_e_keyrouter_do_hardkey_emulation(label, KeyPress, 0, 0);
 }
 
 static void _e_keyrouter_popup_btn_up_cb(void *data)
 {
 	char *label = (char*)data;
 	keyrouter.rbutton_pressed_on_popup = 0;
-	_e_keyrouter_do_hardkey_emulation(label, KeyRelease, 1);
+	_e_keyrouter_do_hardkey_emulation(label, KeyRelease, 1, 0);
 }
+#endif//_F_ENABLE_MOUSE_POPUP
 
-static void _e_keyrouter_do_hardkey_emulation(const char *label, unsigned int key_event, unsigned int on_release)
+static void _e_keyrouter_do_hardkey_emulation(const char *label, unsigned int key_event, unsigned int on_release, int keycode)
 {
-	if( !label )
-		return;
-
+#ifdef _F_ENABLE_MOUSE_POPUP
 	int i;
 	char buf[128];
+#endif//_F_ENABLE_MOUSE_POPUP
 	XEvent xev;
 
+	if( !label )
+		goto normal_hardkey_handler;
+	else
+		goto reserved_hardkey_handler;
+
+normal_hardkey_handler:
+	xev.xkey.display = keyrouter.disp;
+	xev.xkey.root = keyrouter.rootWin;
+	xev.xkey.keycode = keycode;
+	xev.xkey.time = CurrentTime;
+	xev.xkey.type = key_event;
+	fprintf(stderr, "[keyrouter][do_hardkey_emulation] HWKeyEmulation (keycode=%d, type=%s)\n",
+					xev.xkey.keycode, (xev.xkey.type==KeyPress) ? "KeyPress" : "KeyRelease");
+	DeliverDeviceKeyEvents(&xev, 0);
+	return;
+
+reserved_hardkey_handler:
+#ifdef _F_ENABLE_MOUSE_POPUP
 	for( i = 0 ; i < 3 ; i++ )
 	{
 		if( !strcmp(label, btns_label[i]) )
@@ -2869,11 +2945,13 @@ static void _e_keyrouter_do_hardkey_emulation(const char *label, unsigned int ke
 		fprintf(stderr, "[keyrouter][rotation] %s\n", buf);
 		system (buf);
 	}
+#endif//_F_ENABLE_MOUSE_POPUP
 
 out:
 	return;
 }
 
+#ifdef _F_ENABLE_MOUSE_POPUP
 static void InitHardKeyCodes()
 {
 	keyrouter.btn_keys[0] = XKeysymToKeycode(keyrouter.disp, XStringToKeysym(KEY_VOLUMEUP));
@@ -3021,6 +3099,7 @@ static void popup_show()
 
 	return;
 }
+#endif//_F_ENABLE_MOUSE_POPUP
 
 static void Device_Status(unsigned int val)
 {

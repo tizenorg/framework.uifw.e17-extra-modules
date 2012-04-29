@@ -21,11 +21,18 @@ e_mod_comp_animation_transfer_new(void)
 EINTERN void
 e_mod_comp_animation_transfer_free(E_Comp_Transfer *tr)
 {
+   E_Comp_Win *cw = NULL;
    E_CHECK(tr);
    transfers = eina_list_remove(transfers, tr);
    if (tr->animator)
      ecore_animator_del(tr->animator);
    tr->animator = NULL;
+   if (tr->obj)
+     {
+        cw = evas_object_data_get(tr->obj, "src");
+        if (cw) cw->transfer = NULL;
+     }
+   tr->obj = NULL;
    E_FREE(tr);
 }
 
@@ -194,6 +201,7 @@ e_mod_comp_animation_transfer_list_clear(void)
         if (!tr) continue;
         e_mod_comp_animation_transfer_free(tr);
      }
+   transfers = NULL;
    return EINA_TRUE;
 }
 
