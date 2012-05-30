@@ -5,6 +5,7 @@ Release:    1
 Group:      System/GUI/Other                                                  
 License:    BSD                                                               
 Source0:    %{name}-%{version}.tar.gz
+Source1001: packaging/e17-extra-modules.manifest 
 BuildRequires:  pkgconfig(enlightenment)
 BuildRequires:  pkgconfig(utilX)
 BuildRequires:  pkgconfig(elementary)
@@ -30,6 +31,7 @@ The E17 Extra Modules  The E17 extra modules consists of modules made by SAMSUNG
 
 
 %build
+cp %{SOURCE1001} .
 
 %define DEF_SUBDIRS comp-slp illume2-slp keyrouter wmready
 
@@ -58,6 +60,7 @@ done
 find  %{buildroot}/usr/lib/enlightenment/modules -name *.la | xargs rm 
 
 %files
+%manifest e17-extra-modules.manifest
 %defattr(-,root,root,-)
 %{_libdir}/enlightenment/modules/comp-slp/*
 %{_libdir}/enlightenment/modules/illume2-slp/*
