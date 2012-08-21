@@ -16,6 +16,7 @@ EINTERN Eina_Bool
 e_mod_comp_effect_tm_bg_show(E_Comp_Win *cw)
 {
    E_Comp_Win *_cw;
+   E_Comp_Object *co;
    int i = 0, _x = 0;
 
    E_CHECK_RETURN(cw, 0);
@@ -43,19 +44,21 @@ e_mod_comp_effect_tm_bg_show(E_Comp_Win *cw)
 
         // move all windows to each stack position
         _x = (i + 1) * (-WINDOW_SPACE) + (_cw->c->man->w);
-        evas_object_move(_cw->shobj, _x, 0);
+        co = eina_list_data_get(cw->objs);
+        if (!co) continue;
+        evas_object_move(co->shadow, _x, 0);
 
         if (i == 1)
           {
              // top window
              e_mod_comp_effect_signal_add
-               (_cw, _cw->shobj, "e,state,switcher_top,on", "e");
+               (_cw, NULL, "e,state,switcher_top,on", "e");
           }
         else
           {
              // left of top window
              e_mod_comp_effect_signal_add
-               (_cw, _cw->shobj, "e,state,switcher,on", "e");
+               (_cw, NULL, "e,state,switcher,on", "e");
           }
      }
 
@@ -150,26 +153,12 @@ e_mod_comp_effect_tm_handler_show_done(E_Comp_Win *cw)
    EINA_INLIST_REVERSE_FOREACH(cw->c->wins, _cw)
      {
         if (!_cw) continue;
-        if ((_cw->visible) &&
-            evas_object_visible_get(_cw->shobj) &&
-            evas_object_visible_get(_cw->obj) &&
-            (!TYPE_INDICATOR_CHECK(cw)))
-          {
-             if (SIZE_EQUAL_TO_ROOT(_cw))
-               {
-                  // return all windows to original position
-                  evas_object_move(_cw->shobj, _cw->x, _cw->y);
-               }
-
-             if (_cw->defer_move_resize)
-               {
-                  evas_object_move(_cw->shobj, _cw->x, _cw->y);
-                  evas_object_resize(_cw->shobj,
-                                     _cw->pw + (_cw->border * 2),
-                                     _cw->ph + (_cw->border * 2));
-                  _cw->defer_move_resize = EINA_FALSE;
-               }
-          }
+        if (!_cw->visible) continue;
+        e_mod_comp_win_comp_objs_move(_cw, _cw->x, _cw->y);
+        e_mod_comp_win_comp_objs_resize(_cw,
+                                        _cw->pw + (_cw->border * 2),
+                                        _cw->ph + (_cw->border * 2));
+        _cw->defer_move_resize = EINA_FALSE;
      }
    return EINA_TRUE;
 }
@@ -189,21 +178,15 @@ e_mod_comp_effect_tm_handler_hide_done(E_Comp_Win *cw)
    EINA_INLIST_FOREACH(cw->c->wins, _cw)
      {
         if (!_cw) continue;
-        if ((_cw->visible) &&
-            evas_object_visible_get(_cw->shobj) &&
-            !(TYPE_INDICATOR_CHECK(cw)) &&
-            (_cw->defer_move_resize))
-          {
-             evas_object_move(_cw->shobj, _cw->x, _cw->y);
-             evas_object_resize
-               (_cw->shobj,
-               _cw->pw + (_cw->border *2),
-               _cw->ph + (_cw->border *2));
-             _cw->defer_move_resize = EINA_FALSE;
-
-             L(LT_EFFECT, "[COMP] %18.18s w:0x%08x %s\n", "EFF",
-               e_mod_comp_util_client_xid_get(_cw), "HIDE_DONE_BG_ITEM");
-          }
+        if (!_cw->visible) continue;
+        if (!_cw->defer_move_resize) continue;
+        e_mod_comp_win_comp_objs_move(_cw, _cw->x, _cw->y);
+        e_mod_comp_win_comp_objs_resize(_cw,
+                                        _cw->pw + (_cw->border * 2),
+                                        _cw->ph + (_cw->border * 2));
+        _cw->defer_move_resize = EINA_FALSE;
+        L(LT_EFFECT, "[COMP] %18.18s w:0x%08x %s\n", "EFF",
+          e_mod_comp_util_client_xid_get(_cw), "HIDE_DONE_BG_ITEM");
      }
 
    _defer_raise_clear();
@@ -218,7 +201,6 @@ e_mod_comp_effect_tm_handler_raise_above_pre(E_Comp_Win *cw,
    E_CHECK_RETURN(cw, 0);
    int i = 0;
    E_Comp_Win *_cw;
-   Eina_Bool vs, vo;
 
    E_CHECK_RETURN(cw, 0);
    E_CHECK_RETURN(cw->c, 0);
@@ -230,8 +212,6 @@ e_mod_comp_effect_tm_handler_raise_above_pre(E_Comp_Win *cw,
 
    EINA_INLIST_REVERSE_FOREACH(cw->c->wins, _cw)
      {
-        vs = evas_object_visible_get(_cw->shobj);
-        vo = evas_object_visible_get(_cw->obj);
         if ((_cw->visible) &&
             (!TYPE_INDICATOR_CHECK(cw)) &&
             (!TYPE_TASKMANAGER_CHECK(cw)) &&
@@ -273,7 +253,6 @@ _defer_raise_clear(void)
              L(LT_EFFECT, "[COMP] %18.18s w:0x%08x %s\n",
                "EFF", e_mod_comp_util_client_xid_get(cw),
                "TM_DEFER_RAISE_CLEAR");
-
              e_mod_comp_done_defer(cw);
           }
      }
@@ -283,9 +262,11 @@ _defer_raise_clear(void)
 static Eina_Bool
 _valid_win_check(E_Comp_Win *cw)
 {
+   E_Comp_Object *co = eina_list_data_get(cw->objs);
+   E_CHECK_RETURN(co, 0);
    if (cw->visible &&
-       evas_object_visible_get(cw->shobj) &&
-       evas_object_visible_get(cw->obj) &&
+       evas_object_visible_get(co->shadow) &&
+       evas_object_visible_get(co->img) &&
        !(TYPE_INDICATOR_CHECK(cw)) &&
        !(TYPE_QUICKPANEL_CHECK(cw)) &&
        !(TYPE_TASKMANAGER_CHECK(cw)) &&
@@ -305,11 +286,8 @@ _win_size_check(E_Comp_Win *cw)
    if (!TYPE_NORMAL_CHECK(cw))
      return EINA_FALSE;
 
-   if (STATE_INSET_CHECK(cw))
-     return EINA_FALSE;
-
    cw->animate_hide = EINA_TRUE;
-   evas_object_hide(cw->shobj);
+   e_mod_comp_win_comp_objs_hide(cw);
    return EINA_FALSE;
 }
 
@@ -318,6 +296,7 @@ _win_bg_item_init(E_Comp *c)
 {
    E_Comp_Win *_cw;
    E_Comp_Transfer *tr;
+   E_Comp_Object *co;
    int i = 0;
 
    EINA_INLIST_REVERSE_FOREACH(c->wins, _cw)
@@ -338,7 +317,9 @@ _win_bg_item_init(E_Comp *c)
         E_CHECK_GOTO(tr, error);
 
         _cw->transfer = tr;
-        tr->obj = _cw->shobj;
+        co = eina_list_data_get(_cw->objs);
+        if (!co) continue;
+        tr->obj = co->shadow;
 
         if ((c->selected_pos == 0) ||
             (c->selected_pos == 1))

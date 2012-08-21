@@ -22,6 +22,10 @@
 #define LT_TRANSIENT_FOR         0x0080
 #define LT_QUICKPANEL            0x0100
 #define LT_KEYBOARD              0x0200
+#define LT_ICONIFY               0x0400
+#define LT_DUAL_DISPLAY          0x0800
+#define LT_AIA                   0x1000
+#define LT_INDICATOR             0x2000
 #define LT_ALL                   0xFFFF
 
 #if ILLUME_LOGGER_BUILD_ENABLE

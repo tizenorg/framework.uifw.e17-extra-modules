@@ -24,24 +24,24 @@ module_la_SOURCES      = e_mod_comp_animation.c \
                          e_mod_comp_atoms.h \
                          e_mod_comp_bg_win.c \
                          e_mod_comp_bg_win.h \
+                         e_mod_comp_cfdata.c \
+                         e_mod_comp_cfdata.h \
                          e_mod_comp.c \
                          e_mod_comp.h \
+                         e_mod_comp_canvas.c \
+                         e_mod_comp_canvas.h \
                          e_mod_comp_debug.c \
                          e_mod_comp_debug.h \
                          e_mod_comp_effect.c \
                          e_mod_comp_effect.h \
-                         e_mod_comp_effect_image_launch.c \
-                         e_mod_comp_effect_image_launch.h \
-                         e_mod_comp_effect_screen_capture.c \
-                         e_mod_comp_effect_screen_capture.h \
                          e_mod_comp_effect_tm.c \
                          e_mod_comp_effect_tm.h \
                          e_mod_comp_effect_win_rotation.c \
                          e_mod_comp_effect_win_rotation.h \
-                         e_mod_comp_pixmap_rotation.c \
-                         e_mod_comp_pixmap_rotation.h \
-                         e_mod_comp_pixmap_rotation_handler.c \
-                         e_mod_comp_pixmap_rotation_handler.h \
+                         e_mod_comp_hw_ov_win.c \
+                         e_mod_comp_hw_ov_win.h \
+                         e_mod_comp_object.c \
+                         e_mod_comp_object.h \
                          e_mod_comp_policy.c \
                          e_mod_comp_policy.h \
                          e_mod_comp_screen.c \

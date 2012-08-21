@@ -140,7 +140,6 @@ int e_mod_quickpanel_shutdown(void)
 E_Illume_Quickpanel *e_mod_quickpanel_new(E_Zone *zone)
 {
    E_Illume_Quickpanel *qp;
-   char str_scale[128];
 
    /* try to allocate a new quickpanel object */
    qp = E_OBJECT_ALLOC(E_Illume_Quickpanel, E_ILLUME_QP_TYPE,
@@ -160,17 +159,7 @@ E_Illume_Quickpanel *e_mod_quickpanel_new(E_Zone *zone)
    qp->scale = QUICK_PANEL_SCALE_GET(qp->zone->h);
    if(qp->scale == 0) qp->scale = 1;
 
-   /* FIXME */
-   snprintf(str_scale, 127, "%lf", qp->scale);
-   e_util_env_set ("ELM_SCALE", str_scale);
-
    qp->key_hdl = NULL;
-
-   if (_e_mod_quickpanel_popup_new(qp) == EINA_FALSE)
-     {
-        e_object_del (E_OBJECT(qp));
-        return NULL;
-     }
 
    return qp;
 }
@@ -296,7 +285,7 @@ static Eina_Bool _e_mod_quickpanel_cb_border_add(void *data __UNUSED__, int type
                        if (!panel) continue;
                        bd_last = panel->bd;
                     }
-                  L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d).. QUICKPANEL POPUP (win:%x) is placed under qp:%x\n", __func__, __LINE__, ev->border->client.win, bd_last ? bd_last->client.win:NULL);
+                  L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d).. QUICKPANEL POPUP (win:%x) is placed under qp:%x\n", __func__, __LINE__, ev->border->client.win, bd_last ? bd_last->client.win:(unsigned int)NULL);
                   e_border_stack_below (ev->border, bd_last);
                }
              else if (qp->ind)

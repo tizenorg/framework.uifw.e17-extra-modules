@@ -23,6 +23,9 @@
 #define TYPE_BG_CHECK(a) \
    ((a)->win_type == E_COMP_WIN_TYPE_BACKGROUND)
 
+#define TYPE_KEYBOARD_CHECK(a) \
+   ((a)->win_type == E_COMP_WIN_TYPE_ISF_KEYBOARD)
+
 typedef enum _E_Comp_Win_Type
 {
    E_COMP_WIN_TYPE_UNKNOWN = 0,

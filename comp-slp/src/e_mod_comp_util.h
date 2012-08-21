@@ -13,9 +13,15 @@
    ((((a)->w) == ((a)->c->man->w)) && \
     (((a)->h) == ((a)->c->man->h)))
 
+#define REGION_EQUAL_TO_ZONE(a, z) \
+   ((((a)->x) == ((z)->x)) && \
+    (((a)->y) == ((z)->y)) && \
+    (((a)->w) == ((z)->w)) && \
+    (((a)->h) == ((z)->h)))
+
 #define STATE_INSET_CHECK(a) \
    ((a->bd) && \
-    (a->bd->client.illume.win_state.state == E_COMP_ILLUME_WINDOW_STATE_INSET))
+    (a->bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING))
 
 EINTERN void           e_mod_comp_util_set(E_Comp *c, E_Manager *man);
 EINTERN E_Comp        *e_mod_comp_util_get(void);

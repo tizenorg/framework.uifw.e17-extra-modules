@@ -12,11 +12,13 @@ static Eina_Bool _e_mod_policy_cb_border_del(void *data __UNUSED__, int type __U
 static Eina_Bool _e_mod_policy_cb_border_focus_in(void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_policy_cb_border_focus_out(void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_policy_cb_border_show(void *data __UNUSED__, int type __UNUSED__, void *event);
+static Eina_Bool _e_mod_policy_cb_border_move(void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_policy_cb_zone_move_resize(void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_policy_cb_client_message(void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_policy_cb_window_property(void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_policy_cb_policy_change(void *data __UNUSED__, int type, void *event __UNUSED__);
 static Eina_Bool _e_mod_policy_cb_window_configure_request (void *data __UNUSED__, int type __UNUSED__, void *event);
+static Eina_Bool _e_mod_policy_cb_window_move_resize_request(void *data __UNUSED__, int type __UNUSED__, void *event);
 
 static void _e_mod_policy_cb_hook_post_fetch(void *data __UNUSED__, void *data2);
 static void _e_mod_policy_cb_hook_post_assign(void *data __UNUSED__, void *data2);
@@ -38,14 +40,17 @@ static Eina_Bool _e_mod_policy_cb_window_show (void *data __UNUSED__, int type _
 static Eina_Bool _e_mod_policy_cb_window_hide (void *data __UNUSED__, int type __UNUSED__, void *event);
 static Eina_Bool _e_mod_policy_cb_window_configure (void *data __UNUSED__, int type __UNUSED__, void *event);
 
+static Eina_Bool _e_mod_policy_zonelist_update(void);
+static Eina_Bool _e_mod_policy_cb_zone_add(void *data __UNUSED__, int type __UNUSED__, void *event);
+static Eina_Bool _e_mod_policy_cb_zone_del(void *data __UNUSED__, int type __UNUSED__, void *event);
+
 /* local variables */
 static E_Illume_Policy *_policy = NULL;
 static Eina_List *_policy_hdls = NULL, *_policy_hooks = NULL;
 Ecore_X_Atom E_ILLUME_BORDER_WIN_RESTACK;
-static Ecore_X_Atom ECORE_X_ATOM_E_ILLUME_RESIZE_START = 0;
-static Ecore_X_Atom ECORE_X_ATOM_E_ILLUME_RESIZE_END   = 0;
 static Ecore_X_Atom E_ILLUME_USER_CREATED_WINDOW = 0;
 static Ecore_X_Atom E_ILLUME_PARENT_BORDER_WINDOW = 0;
+static Ecore_X_Atom E_ILLUME_ZONE_GEOMETRY = 0;
 
 /* external variables */
 int E_ILLUME_POLICY_EVENT_CHANGE = 0;
@@ -289,6 +294,11 @@ _e_mod_policy_handlers_add(void)
                       ecore_event_handler_add(E_EVENT_BORDER_SHOW,
                                               _e_mod_policy_cb_border_show,
                                               NULL));
+   _policy_hdls =
+     eina_list_append(_policy_hdls,
+                      ecore_event_handler_add(E_EVENT_BORDER_MOVE,
+                                              _e_mod_policy_cb_border_move,
+                                              NULL));
 
    _policy_hdls =
      eina_list_append(_policy_hdls,
@@ -360,7 +370,19 @@ _e_mod_policy_handlers_add(void)
                       ecore_event_handler_add(ECORE_X_EVENT_WINDOW_CONFIGURE_REQUEST,
                                               _e_mod_policy_cb_window_configure_request,
                                               NULL));
+   _policy_hdls =
+     eina_list_append(_policy_hdls,
+                      ecore_event_handler_add(ECORE_X_EVENT_WINDOW_MOVE_RESIZE_REQUEST,
+                                              _e_mod_policy_cb_window_move_resize_request, NULL));
 
+   _policy_hdls =
+     eina_list_append(_policy_hdls,
+                      ecore_event_handler_add(E_EVENT_ZONE_ADD,
+                                              _e_mod_policy_cb_zone_add, NULL));
+   _policy_hdls =
+     eina_list_append(_policy_hdls,
+                      ecore_event_handler_add(E_EVENT_ZONE_DEL,
+                                              _e_mod_policy_cb_zone_del, NULL));
 }
 
 static void
@@ -476,6 +498,18 @@ _e_mod_policy_cb_border_show(void *data __UNUSED__, int type __UNUSED__, void *e
 }
 
 static Eina_Bool
+_e_mod_policy_cb_border_move(void *data __UNUSED__, int type __UNUSED__, void *event)
+{
+   E_Event_Border_Move *ev;
+
+   ev = event;
+   if ((_policy) && (_policy->funcs.border_move))
+     _policy->funcs.border_move(ev->border);
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static Eina_Bool
 _e_mod_policy_cb_zone_move_resize(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    E_Event_Zone_Move_Resize *ev;
@@ -569,20 +603,6 @@ _e_mod_policy_cb_client_message(void *data __UNUSED__, int type __UNUSED__, void
      {
         if ((_policy) && (_policy->funcs.quickpanel_state_change))
           _policy->funcs.quickpanel_state_change(ev);
-     }
-   else if (ev->message_type == ECORE_X_ATOM_E_ILLUME_RESIZE_START)
-     {
-        E_Border *bd;
-        if (!(bd = e_border_find_by_client_window(ev->win))) return ECORE_CALLBACK_PASS_ON;
-        if ((_policy) && (_policy->funcs.resize_start))
-          _policy->funcs.resize_start(bd);
-     }
-   else if (ev->message_type == ECORE_X_ATOM_E_ILLUME_RESIZE_END)
-     {
-        E_Border *bd;
-        if (!(bd = e_border_find_by_client_window(ev->win))) return ECORE_CALLBACK_PASS_ON;
-        if ((_policy) && (_policy->funcs.resize_end))
-          _policy->funcs.resize_end(bd);
      }
 
    return ECORE_CALLBACK_PASS_ON;
@@ -684,6 +704,19 @@ _e_mod_policy_cb_window_configure_request (void *data __UNUSED__, int type __UNU
    return ECORE_CALLBACK_PASS_ON;
 }
 
+static Eina_Bool
+_e_mod_policy_cb_window_move_resize_request(void *data __UNUSED__, int type __UNUSED__, void *event)
+{
+   Ecore_X_Event_Window_Move_Resize_Request *ev = event;
+   E_Border *bd;
+
+   if (!(bd = e_border_find_by_client_window(ev->win))) return ECORE_CALLBACK_PASS_ON;
+   if ((_policy) && (_policy->funcs.window_move_resize_request))
+     _policy->funcs.window_move_resize_request(ev);
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
 static void
 _e_mod_policy_cb_hook_layout(void *data __UNUSED__, void *data2 __UNUSED__)
 {
@@ -739,22 +772,6 @@ _e_mod_policy_init_atom (void)
         return 0;
      }
 
-   ECORE_X_ATOM_E_ILLUME_RESIZE_START = ecore_x_atom_get("_E_ILLUME_RESIZE_START");
-   if (!ECORE_X_ATOM_E_ILLUME_RESIZE_START)
-     {
-        fprintf(stderr,
-                "[ILLUME2] cannot create _E_ILLUME_RESIZE_START atom.\n");
-        return 0;
-     }
-
-   ECORE_X_ATOM_E_ILLUME_RESIZE_END = ecore_x_atom_get("_E_ILLUME_RESIZE_END");
-   if (!ECORE_X_ATOM_E_ILLUME_RESIZE_END)
-     {
-        fprintf(stderr,
-                "[ILLUME2] cannot create _E_ILLUME_RESIZE_END atom.\n");
-        return 0;
-     }
-
    E_ILLUME_USER_CREATED_WINDOW = ecore_x_atom_get("_E_USER_CREATED_WINDOW");
    if (!E_ILLUME_USER_CREATED_WINDOW)
      {
@@ -768,6 +785,14 @@ _e_mod_policy_init_atom (void)
      {
         fprintf(stderr,
                 "[ILLUME2] cannot create _E_PARENT_BORDER_WINDOW atom.\n");
+        return 0;
+     }
+
+   E_ILLUME_ZONE_GEOMETRY = ecore_x_atom_get("_E_ILLUME_ZONE_GEOMETRY");
+   if (!E_ILLUME_ZONE_GEOMETRY)
+     {
+        fprintf(stderr,
+                "[ILLUME2] cannot create _E_ILLUME_ZONE_GEOMETRY atom.\n");
         return 0;
      }
 
@@ -853,3 +878,89 @@ _e_mod_policy_cb_window_configure (void *data __UNUSED__, int type __UNUSED__, v
    return ECORE_CALLBACK_PASS_ON;
 }
 
+static Eina_Bool
+_e_mod_policy_zonelist_update(void)
+{
+   Eina_List *ml, *cl, *zl;
+   E_Manager *man;
+   E_Container *con;
+   E_Zone *zone;
+   Ecore_X_Window *zones;
+   int zcount = 0;
+
+   /* loop zones and get count */
+   EINA_LIST_FOREACH(e_manager_list(), ml, man)
+     {
+        if (!man) continue;
+        EINA_LIST_FOREACH(man->containers, cl, con)
+          {
+             if (!con) continue;
+             EINA_LIST_FOREACH(con->zones, zl, zone)
+                zcount++;
+          }
+     }
+
+   /* allocate enough zones */
+   zones = calloc(zcount, sizeof(Ecore_X_Window));
+   if (!zones) return EINA_FALSE;
+
+   zcount = 0;
+
+   /* loop the zones and set zone list */
+   EINA_LIST_FOREACH(e_manager_list(), ml, man)
+     {
+        if (!man) continue;
+        EINA_LIST_FOREACH(man->containers, cl, con)
+          {
+             if (!con) continue;
+             EINA_LIST_FOREACH(con->zones, zl, zone)
+               {
+                  if (!zone) continue;
+
+                  zones[zcount] = zone->black_win;
+                  zcount++;
+               }
+          }
+
+        ecore_x_e_illume_zone_list_set(man->root, zones, zcount);
+     }
+
+   free(zones);
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_e_mod_policy_cb_zone_add(void *data __UNUSED__, int type __UNUSED__, void *event)
+{
+   E_Event_Zone_Add *ev;
+   E_Zone *zone;
+   unsigned int geom[4];
+
+   ev = event;
+   zone = ev->zone;
+
+   geom[0] = zone->x;
+   geom[1] = zone->y;
+   geom[2] = zone->w;
+   geom[3] = zone->h;
+   ecore_x_window_prop_card32_set(zone->black_win, E_ILLUME_ZONE_GEOMETRY,
+                                  geom, 4);
+
+   _e_mod_policy_zonelist_update();
+
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+static Eina_Bool
+_e_mod_policy_cb_zone_del(void *data __UNUSED__, int type __UNUSED__, void *event)
+{
+   E_Event_Zone_Del *ev;
+   E_Zone *zone;
+
+   ev = event;
+   zone = ev->zone;
+
+   _e_mod_policy_zonelist_update();
+
+   return ECORE_CALLBACK_PASS_ON;
+}

@@ -18,6 +18,7 @@ e_mod_comp_win_shape_input_update(E_Comp *c)
    E_Comp_Win *_cw = NULL;
 
    pixman_region32_t vis_part;
+   pixman_region32_t win_part;
    pixman_region32_t cur_part;
    pixman_region32_t res_part;
 
@@ -43,6 +44,7 @@ e_mod_comp_win_shape_input_update(E_Comp *c)
    E_CHECK_RETURN(c->need_shape_merge, EINA_FALSE);
 
    pixman_region32_init(&vis_part);
+   pixman_region32_init(&win_part);
    pixman_region32_init(&cur_part);
    pixman_region32_init(&res_part);
    pixman_region32_init(&input_part);
@@ -62,7 +64,7 @@ e_mod_comp_win_shape_input_update(E_Comp *c)
      {
         if (!_cw) continue;
         if ((!_cw->visible) || (_cw->defer_hide) ||
-            (_cw->invalid)  || (_cw->input_only) ||
+            (_cw->invalid)  ||
             (!E_INTERSECTS(0, 0, c->man->w, c->man->h,
                            _cw->x, _cw->y, _cw->w, _cw->h)))
           {
@@ -94,10 +96,14 @@ e_mod_comp_win_shape_input_update(E_Comp *c)
         pixman_region32_init_rects(&input_part, &input_rect, 1);
         pixman_region32_init_rect(&cur_input_part, 0, 0, 0, 0);
         pixman_region32_init_rect(&res_input_part, 0, 0, 0, 0);
-        pixman_region32_init_rects(&cur_part, &window_rect, 1);
+        pixman_region32_init_rect(&cur_part,       0, 0, 0, 0);
+        pixman_region32_init_rects(&win_part, &window_rect, 1);
         pixman_region32_init_rects(&res_part, &screen_rect, 1);
 
-        // current_input = window (intersect) input
+        // current_visible_window = window (intersect) screen visible part
+        pixman_region32_intersect(&cur_part, &win_part, &vis_part);
+
+        // current_input = current_visible_window (intersect) input
         pixman_region32_intersect(&cur_input_part, &cur_part, &input_part);
 
         // result_input = sum_input
@@ -105,8 +111,8 @@ e_mod_comp_win_shape_input_update(E_Comp *c)
         pixman_region32_copy(&res_input_part, &sum_input_part);
         pixman_region32_union(&sum_input_part, &res_input_part, &cur_input_part);
 
-        // result = visible - current
-        pixman_region32_subtract(&res_part, &vis_part, &cur_part);
+        // result = visible - window
+        pixman_region32_subtract(&res_part, &vis_part, &win_part);
         rects = pixman_region32_rectangles(&res_part, &num_rects);
 
         if (num_rects == 0) break;
@@ -126,11 +132,42 @@ e_mod_comp_win_shape_input_update(E_Comp *c)
              input_shape_rects[i].width = input_rects[i].x2 - input_rects[i].x1;
              input_shape_rects[i].height = input_rects[i].y2 - input_rects[i].y1;
           }
-        ecore_x_window_shape_input_rectangles_set(c->win, input_shape_rects, num_input_rects);
+
+        if ((_comp_mod->conf->nocomp_fs) && (c->nocomp))
+          {
+             ecore_x_window_shape_rectangles_set(c->win,
+                                                 input_shape_rects,
+                                                 num_input_rects);
+             if ((input_shape_rects) && (num_input_rects == 1))
+               {
+                  E_Comp_Canvas *canvas;
+                  canvas = (E_Comp_Canvas *)eina_list_nth(c->canvases, 0);
+                  if ((canvas) &&
+                      (input_shape_rects[0].x == canvas->x) &&
+                      (input_shape_rects[0].y == canvas->y) &&
+                      (input_shape_rects[0].width == canvas->w) &&
+                      (input_shape_rects[0].height == canvas->h))
+                    {
+                       ecore_x_window_shape_rectangle_subtract(c->win,
+                                                               (canvas->w / 2) - 16,
+                                                               (canvas->h / 2) - 16,
+                                                               16, 16);
+                    }
+               }
+          }
+
+        ecore_x_window_shape_input_rectangles_set(c->win,
+                                                  input_shape_rects,
+                                                  num_input_rects);
         if (input_shape_rects) E_FREE(input_shape_rects);
+     }
+   else
+     {
+        ecore_x_window_shape_input_rectangle_set(c->win, -1, -1, 1, 1);
      }
 
    pixman_region32_fini(&vis_part);
+   pixman_region32_fini(&win_part);
    pixman_region32_fini(&cur_part);
    pixman_region32_fini(&res_part);
    pixman_region32_fini(&input_part);
@@ -146,13 +183,23 @@ EINTERN E_Comp_Win_Shape_Input *
 e_mod_comp_win_shape_input_new(E_Comp_Win *cw)
 {
    E_Comp_Win_Shape_Input *input;
-   E_CHECK_RETURN(cw,        NULL);
-   E_CHECK_RETURN(cw->obj,   NULL);
-   E_CHECK_RETURN(cw->shobj, NULL);
+   Eina_List *l;
+   E_Comp_Object *co;
+
+   E_CHECK_RETURN(cw, 0);
+
+   EINA_LIST_FOREACH(cw->objs, l, co)
+     {
+        if (!co->img) return NULL;
+        if (!co->shadow) return NULL;
+     }
 
    input = E_NEW(E_Comp_Win_Shape_Input, 1);
-   evas_object_pass_events_set(cw->shobj, EINA_FALSE);
-   evas_object_pass_events_set(cw->obj, EINA_FALSE);
+   EINA_LIST_FOREACH(cw->objs, l, co)
+     {
+        evas_object_pass_events_set(co->img, EINA_FALSE);
+        evas_object_pass_events_set(co->shadow, EINA_FALSE);
+     }
    return input;
 }
 

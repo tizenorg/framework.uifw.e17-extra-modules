@@ -130,18 +130,14 @@ _e_keyrouter_x_input_init(void)
 	keyrouter.eventmask_part.mask= calloc(keyrouter.eventmask_part.mask_len, sizeof(char));
 
 	/* Events we want to listen for all */
-	XISetMask(keyrouter.eventmask_all.mask, XI_DeviceChanged);
 	XISetMask(keyrouter.eventmask_all.mask, XI_HierarchyChanged);
-	XISetMask(keyrouter.eventmask_all.mask, XI_PropertyEvent);
 #ifdef _F_ENABLE_MOUSE_POPUP
 	XISetMask(keyrouter.eventmask_all.mask, XI_ButtonPress);
 	XISetMask(keyrouter.eventmask_all.mask, XI_ButtonRelease);
 #endif//_F_ENABLE_MOUSE_POPUP
 
 	/* Events we want to listen for a part */
-	XISetMask(keyrouter.eventmask_part.mask, XI_DeviceChanged);
 	XISetMask(keyrouter.eventmask_part.mask, XI_HierarchyChanged);
-	XISetMask(keyrouter.eventmask_part.mask, XI_PropertyEvent);
 
 	/* select XI events for a part */
 	XISelectEvents(keyrouter.disp, keyrouter.rootWin, &keyrouter.eventmask_part, 1);
@@ -177,6 +173,7 @@ _e_keyrouter_x_input_init(void)
 static int
 _e_keyrouter_cb_event_any(void *data, int ev_type, void *event)
 {
+	key_event_info* key_data;
 	XEvent *ev = (XEvent *)event;
 	XDeviceKeyEvent *xdevkey = (XDeviceKeyEvent *)ev;
 
@@ -220,6 +217,9 @@ _e_keyrouter_cb_event_any(void *data, int ev_type, void *event)
 	ev->xany.display = keyrouter.disp;
 	ev->xkey.keycode = xdevkey->keycode;
 	ev->xkey.time = xdevkey->time;
+
+	if(_e_keyrouter_is_key_in_ignored_list(ev))
+		return 1;
 
 	//KeyRelease handling for key composition
 	if( ev->type == KeyRelease )
@@ -293,12 +293,35 @@ _e_keyrouter_cb_event_any(void *data, int ev_type, void *event)
 		{
 			fprintf(stderr, "\n[35m[keyrouter][%s] Composition Key ! (keycode=%d)[0m\n", __FUNCTION__, ev->xkey.keycode);
 
-			//send cancel key press to Modifier Key-grabbed window(s)
+			//Send cancel key press to Modifier Key-grabbed window(s)
+			ev->xkey.keycode = keyrouter.modkey.keys[keyrouter.modkey.idx_mod-1].keycode;
+			DeliverDeviceKeyEvents(ev, keyrouter.modkey.cancel_key.keycode);
+
+			//Send Modifier key release and cancel key release to Modifier Key-grabbed window(s)
+			ev->type = KeyRelease;
+			ev->xkey.keycode = keyrouter.modkey.keys[keyrouter.modkey.idx_mod-1].keycode;
+			DeliverDeviceKeyEvents(ev, 0);
+			ev->type = KeyRelease;
 			ev->xkey.keycode = keyrouter.modkey.keys[keyrouter.modkey.idx_mod-1].keycode;
 			DeliverDeviceKeyEvents(ev, keyrouter.modkey.cancel_key.keycode);
 
 			//Do Action : ex> send ClientMessage to root window
 			DoKeyCompositionAction();
+
+			//Put Modifier/composited keys' release in ignored_key_list to ignore them
+			key_data = malloc(sizeof(key_event_info));
+			key_data->ev_type = KeyRelease;
+			key_data->keycode = keyrouter.modkey.keys[0].keycode;
+			keyrouter.ignored_key_list = eina_list_append(keyrouter.ignored_key_list, key_data);
+			fprintf(stderr, "[keyrouter][%s] ignored key added (keycode=%d, type=%d)\n", __FUNCTION__, key_data->keycode, key_data->ev_type);
+
+			key_data = malloc(sizeof(key_event_info));
+			key_data->ev_type = KeyRelease;
+			key_data->keycode = keyrouter.modkey.keys[1].keycode;
+			keyrouter.ignored_key_list = eina_list_append(keyrouter.ignored_key_list, key_data);
+			fprintf(stderr, "[keyrouter][%s] ignored key added (keycode=%d, type=%d)\n", __FUNCTION__, key_data->keycode, key_data->ev_type);
+
+			ResetModKeyInfo();
 			return 1;
 		}
 
@@ -509,17 +532,6 @@ _e_keyrouter_cb_window_property(void *data, int ev_type, void *ev)
 		goto out;
 	}
 #endif // _F_ENABLE_MOUSE_POPUP
-
-	//check and enable/disable mouse cursor
-	if( e->atom == keyrouter.atomXMouseCursorEnable && e->win == keyrouter.rootWin )
-	{
-		res = ecore_x_window_prop_card32_get(e->win, keyrouter.atomXMouseCursorEnable, &ret_val, 1);
-
-		if( 1 == res )
-			_e_keyrouter_mouse_cursor_enable(ret_val);
-
-		goto out;
-	}
 
 	if( e->atom == keyrouter.atomDeviceStatus && e->win == keyrouter.rootWin )
 	{
@@ -746,6 +758,7 @@ _e_keyrouter_cb_client_message (void* data, int type, void* event)
 {
 	int event_type = 0;
 	int keycode;
+	int cancel = 0;
 	Ecore_X_Event_Client_Message* ev;
 
 	ev = event;
@@ -757,12 +770,15 @@ _e_keyrouter_cb_client_message (void* data, int type, void* event)
 	else if( ev->data.b[0] == 'R' )
 		event_type = KeyRelease;
 
+	if( ev->data.b[1] == 'C' )
+		cancel = 1;
+
 	switch(event_type)
 	{
 		case KeyPress:
 		case KeyRelease:
 			keycode = XKeysymToKeycode(keyrouter.disp, XStringToKeysym(&ev->data.b[2]));
-			_e_keyrouter_do_hardkey_emulation(NULL, event_type, 0, keycode);
+			_e_keyrouter_do_hardkey_emulation(NULL, event_type, 0, keycode, cancel);
 			break;
 
 		default:
@@ -856,7 +872,7 @@ static void _e_keyrouter_do_bound_key_action(XEvent *xev)
 
 	if( xev->type == KeyPress )
 		e_bindings_key_down_event_handle(keyrouter.HardKeys[keycode].bind->ctxt, NULL, ev);
-	else
+	else if( xev->type == KeyRelease )
 		e_bindings_key_up_event_handle(keyrouter.HardKeys[keycode].bind->ctxt, NULL, ev);
 }
 
@@ -880,54 +896,36 @@ static void _e_keyrouter_xi2_device_hierarchy_handler(XIHierarchyEvent *event)
 	}
 }
 
-static int _e_keyrouter_is_relative_device(int deviceid)
+static Eina_Bool _e_keyrouter_is_key_in_ignored_list(XEvent *ev)
 {
-	char *tmp = NULL;
-	Atom act_type;
-	unsigned long nitems, bytes_after;
-	unsigned char *data, *ptr;
-	int j, act_format, ret = 0;
+	Eina_List* l;
+	key_event_info* data;
 
-	if (XIGetProperty(keyrouter.disp, deviceid, keyrouter.atomPointerType, 0, 1000, False,
-	                       XA_ATOM, &act_type, &act_format,
-	                       &nitems, &bytes_after, &data) != Success)
+	if( !keyrouter.ignored_key_list )
 	{
-		fprintf(stderr, "[keyrouter][%s] Failed to get XI2 device property !(deviceid=%d)\n", __FUNCTION__, deviceid);
-		return -1;
+		fprintf(stderr, "[keyrouter][%s] ignored_key_list is empty !\n", __FUNCTION__);
+		return EINA_FALSE;
 	}
 
-	if( !nitems )
-		goto out;
-
-	ptr = data;
-
-	for (j = 0; j < nitems; j++)
+	EINA_LIST_FOREACH(keyrouter.ignored_key_list, l, data)
 	{
-		switch(act_type)
+		if( data && ev->type == data->ev_type && ev->xkey.keycode == data->keycode )
 		{
-			case XA_ATOM:
-			{
-				Atom atomTemp = *(Atom*)ptr;
-				tmp = XGetAtomName(keyrouter.disp, atomTemp);
-				if( atomTemp && strcasestr(tmp, "Rel X") )
-				{
-					ret = 1;
-					goto out;
-				}
-			}
-			break;
+			//found !!!
+			fprintf(stderr, "[keyrouter][%s] found !!! (keycode:%d, type=%d)\n", __FUNCTION__, data->keycode, data->ev_type);
+			goto found;
 		}
-
-		ptr += act_format/8;
 	}
 
-out:
-	if( data )
-		XFree(data);
-	if( tmp )
-		XFree(tmp);
+	fprintf(stderr, "[keyrouter][%s] not found !!! (keycode:%d, type=%d)\n", __FUNCTION__, ev->xkey.keycode, ev->type);
 
-	return ret;
+	return EINA_FALSE;
+
+found:
+	keyrouter.ignored_key_list = eina_list_remove(keyrouter.ignored_key_list, data);
+	fprintf(stderr, "[keyrouter][%s] key was remove from ignored_list !(keycode:%d, type:%d)\n", __FUNCTION__, ev->xkey.keycode, ev->type);
+
+	return EINA_TRUE;
 }
 
 static void _e_keyrouter_device_add(int id, int type)
@@ -935,11 +933,8 @@ static void _e_keyrouter_device_add(int id, int type)
 	int ndevices;
 	XIDeviceInfo *info = NULL;
 
-	if( type == XISlavePointer )
+	if( type == XISlaveKeyboard )
 	{
-		if( !_e_keyrouter_is_relative_device(id ) )
-			return;
-
 		info = XIQueryDevice(keyrouter.disp, id, &ndevices);
 
 		if( !info || ndevices <= 0 )
@@ -947,6 +942,9 @@ static void _e_keyrouter_device_add(int id, int type)
 			fprintf(stderr, "[keyrouter][%s] There is no queried XI device. (device id=%d, type=%d)\n", __FUNCTION__, id, type);
 			goto out;
 		}
+
+		if( strcasestr(info->name, "keyboard") || strcasestr(info->name, "XTEST" ) )
+			goto out;
 
 		E_Keyrouter_Device_Info *data = malloc(sizeof(E_Keyrouter_Device_Info));
 
@@ -956,73 +954,24 @@ static void _e_keyrouter_device_add(int id, int type)
 			goto out;
 		}
 
+		int result = GrabKeyDevice(keyrouter.rootWin, NULL, id);
+
+		if( !result )
+		{
+			fprintf(stderr, "[keyrouter][%s] Failed to grab key device (id = %d, result = %d)\n", __FUNCTION__, id, result);
+			goto out;
+		}
+		else
+		{
+			fprintf(stderr, "[keyrouter][%s] Slave key device (id=%d, name=%s) was added !\n", __FUNCTION__, id, info->name);
+			detachSlave(id);
+		}
+
+		data->type = E_KEYROUTER_HWKEY;
 		data->id = id;
 		data->name = eina_stringshare_add(info->name);
-		data->type = E_KEYROUTER_MOUSE;
 
 		keyrouter.device_list = eina_list_append(keyrouter.device_list, data);
-		keyrouter.num_pointer_devices++;
-
-		if( keyrouter.num_pointer_devices == 1 )
-			_e_keyrouter_set_mouse_exist(1, 1);
-
-		fprintf(stderr, "[keyrouter][%s] Slave pointer device (id=%d, name=%s, num_pointer_devices=%d) was added/enabled !\n",
-			__FUNCTION__, id, info->name, keyrouter.num_pointer_devices);
-	}
-	else if( type == XISlaveKeyboard )
-	{
-		info = XIQueryDevice(keyrouter.disp, id, &ndevices);
-
-		if( !info || ndevices <= 0 )
-		{
-			fprintf(stderr, "[keyrouter][%s] There is no queried XI device. (device id=%d, type=%d)\n", __FUNCTION__, id, type);
-			goto out;
-		}
-
-		E_Keyrouter_Device_Info *data = malloc(sizeof(E_Keyrouter_Device_Info));
-
-		if( !data )
-		{
-			fprintf(stderr, "[keyrouter][%s] Failed to allocate memory for device info !\n", __FUNCTION__);
-			goto out;
-		}
-
-		if( strcasestr(info->name, "keyboard") && !strcasestr(info->name, "XTEST" ) )//keyboard
-		{
-			data->id = id;
-			data->name = eina_stringshare_add(info->name);
-			data->type = E_KEYROUTER_KEYBOARD;
-
-			keyrouter.device_list = eina_list_append(keyrouter.device_list, data);
-			keyrouter.num_keyboard_devices++;
-
-			if( keyrouter.num_keyboard_devices >= 1 )
-				_e_keyrouter_set_keyboard_exist((unsigned int)keyrouter.num_keyboard_devices, 1);
-
-			fprintf(stderr, "[keyrouter][%s] Slave keyboard device (id=%d, name=%s, num_keyboard_devices=%d) was added/enabled !\n",
-				__FUNCTION__, id, info->name, keyrouter.num_keyboard_devices);
-		}
-		else//HW key
-		{
-			int result = GrabKeyDevice(keyrouter.rootWin, NULL, id);
-
-			if( !result )
-			{
-				fprintf(stderr, "[keyrouter][%s] Failed to grab key device (id = %d, result = %d)\n", __FUNCTION__, id, result);
-				goto out;
-			}
-			else
-			{
-				fprintf(stderr, "[keyrouter][%s] Slave key device (id=%d, name=%s) was added !\n", __FUNCTION__, id, info->name);
-				detachSlave(id);
-			}
-
-			data->type = E_KEYROUTER_HWKEY;
-			data->id = id;
-			data->name = eina_stringshare_add(info->name);
-
-			keyrouter.device_list = eina_list_append(keyrouter.device_list, data);
-		}
 	}
 
 out:
@@ -1054,38 +1003,6 @@ static void _e_keyrouter_device_remove(int id, int type)
 					free(data);
 					goto out;
 
-				case E_KEYROUTER_KEYBOARD:
-					keyrouter.num_keyboard_devices--;
-
-					if( keyrouter.num_keyboard_devices <= 0 )
-					{
-						keyrouter.num_keyboard_devices = 0;
-						_e_keyrouter_set_keyboard_exist(0, 0);
-					}
-
-					fprintf(stderr, "[keyrouter][%s] Slave keyboard device (id=%d, name=%s, type=%d, num_keyboard_devices=%d) was removed/disabled !\n",
-						__FUNCTION__, id, data->name, type, keyrouter.num_keyboard_devices);
-
-					keyrouter.device_list = eina_list_remove(keyrouter.device_list, data);
-					free(data);
-					goto out;
-
-				case E_KEYROUTER_MOUSE:
-					keyrouter.num_pointer_devices--;
-
-					if( keyrouter.num_pointer_devices <= 0 )
-					{
-						keyrouter.num_pointer_devices = 0;
-						_e_keyrouter_set_mouse_exist(0, 1);
-					}
-
-					fprintf(stderr, "[keyrouter][%s] Slave pointer device (id=%d, name=%s, type=%d, num_pointer_devices=%d) was removed/disabled !\n",
-						__FUNCTION__, id, data->name, type, keyrouter.num_pointer_devices);
-
-					keyrouter.device_list = eina_list_remove(keyrouter.device_list, data);
-					free(data);
-					goto out;
-
 				default:
 					fprintf(stderr, "[keyrouter][%s] Unknown type of device ! (id=%d, type=%d, name=%s, device type=%d)\n",
 						__FUNCTION__, data->id, type, data->name, data->type);
@@ -1099,101 +1016,6 @@ static void _e_keyrouter_device_remove(int id, int type)
 out:
 	return;
 }
-
-static void _e_keyrouter_mouse_cursor_enable(unsigned int val)
-{
-	if( !val )
-	{
-		keyrouter.num_pointer_devices--;
-		if( keyrouter.num_pointer_devices <= 0 )
-		{
-			keyrouter.num_pointer_devices = 0;
-			_e_keyrouter_set_mouse_exist(0, 0);
-		}
-	}
-	else if( 1 == val )
-	{
-		keyrouter.num_pointer_devices++;
-		if( keyrouter.num_pointer_devices == 1 )
-			_e_keyrouter_set_mouse_exist(1, 0);
-	}
-}
-
-static void _e_keyrouter_set_mouse_exist(unsigned int val, int propset)
-{
-	if( !val )
-	{
-		char* cmds[] = {"keyrouter", "cursor_enable", "0", NULL };
-		keyrouter.rroutput_buf_len = _e_keyrouter_marshalize_string (keyrouter.rroutput_buf, 3, cmds);
-
-		XRRChangeOutputProperty(keyrouter.disp, keyrouter.output, keyrouter.atomRROutput, XA_CARDINAL, 8, PropModeReplace, (unsigned char *)keyrouter.rroutput_buf, keyrouter.rroutput_buf_len);
-		XSync(keyrouter.disp, False);
-
-		if( propset )	ecore_x_window_prop_card32_set(keyrouter.rootWin, keyrouter.atomXMouseExist, &val, 1);
-	}
-	else if( 1 == val )
-	{
-		char* cmds[] = {"keyrouter", "cursor_enable", "1", NULL };
-		keyrouter.rroutput_buf_len = _e_keyrouter_marshalize_string (keyrouter.rroutput_buf, 3, cmds);
-
-		XRRChangeOutputProperty(keyrouter.disp, keyrouter.output, keyrouter.atomRROutput, XA_CARDINAL, 8, PropModeReplace, (unsigned char *)keyrouter.rroutput_buf, keyrouter.rroutput_buf_len);
-		XSync(keyrouter.disp, False);
-
-		if( propset )	ecore_x_window_prop_card32_set(keyrouter.rootWin, keyrouter.atomXMouseExist, &val, 1);
-	}
-	else
-		fprintf(stderr, "[keyrouter][%s] Invalid value for enabling cursor !(val=%d)\n", __FUNCTION__, val);
-}
-
-static void _e_keyrouter_set_keyboard_exist(unsigned int val, int is_connected)
-{
-	ecore_x_window_prop_card32_set(keyrouter.rootWin, keyrouter.atomXExtKeyboardExist, &val, 1);
-
-	if( !is_connected )
-		return;
-
-	system("/usr/bin/xmodmap /opt/etc/X11/Xmodmap");
-}
-
-static int _e_keyrouter_marshalize_string (char* buf, int num, char* srcs[])
-{
-   int i;
-   char * p = buf;
-
-   for (i=0; i<num; i++)
-     {
-        p += sprintf (p, srcs[i]);
-        *p = '\0';
-        p++;
-     }
-
-   *p = '\0';
-   p++;
-
-   return (p - buf);
-}
-
-static void _e_keyrouter_init_output(void)
-{
-   int i;
-
-   XRRScreenResources* res = XRRGetScreenResources (keyrouter.disp, keyrouter.rootWin);
-   keyrouter.output = 0;
-
-   if( res && (res->noutput != 0) )
-     {
-        for ( i = 0 ; i  <res->noutput ; i++ )
-          {
-             keyrouter.output = res->outputs[i];
-          }
-     }
-
-   if( !keyrouter.output )
-     {
-        fprintf(stderr, "[keyrouter][_e_keyrouter_init_output] Failed to init output !\n");
-     }
-}
-
 
 static E_Zone* _e_keyrouter_get_zone()
 {
@@ -1234,7 +1056,6 @@ int _e_keyrouter_init()
 {
 	int ret = 1;
 	int grab_result;
-	//int (*m_old_error)(Display *, XErrorEvent *);
 
 	_e_keyrouter_structure_init();
 	keyrouter.disp = NULL;
@@ -1250,8 +1071,6 @@ int _e_keyrouter_init()
 	keyrouter.rootWin = DefaultRootWindow(keyrouter.disp);
 
 	_e_keyrouter_x_input_init();
-	_e_keyrouter_init_output();
-
 	InitGrabKeyDevices();
 	_e_keyrouter_bindings_init();
 
@@ -1260,11 +1079,6 @@ int _e_keyrouter_init()
 	keyrouter.atomGrabKey = ecore_x_atom_get(STR_ATOM_GRAB_KEY);
 	keyrouter.atomGrabExclWin = ecore_x_atom_get(STR_ATOM_GRAB_EXCL_WIN);
 	keyrouter.atomGrabORExclWin = ecore_x_atom_get(STR_ATOM_GRAB_OR_EXCL_WIN);
-	keyrouter.atomXMouseExist = ecore_x_atom_get(PROP_X_MOUSE_EXIST);
-	keyrouter.atomXMouseCursorEnable = ecore_x_atom_get(PROP_X_MOUSE_CURSOR_ENABLE);
-	keyrouter.atomXExtKeyboardExist = ecore_x_atom_get(PROP_X_EXT_KEYBOARD_EXIST);
-	keyrouter.atomPointerType = ecore_x_atom_get(PROP_X_EVDEV_AXIS_LABELS);
-	keyrouter.atomRROutput = ecore_x_atom_get(PROP_XRROUTPUT);
 	keyrouter.atomHWKeyEmulation = ecore_x_atom_get(PROP_HWKEY_EMULATION);
 
 	keyrouter.input_window = ecore_x_window_input_new(keyrouter.rootWin, -1, -1, 1, 1);
@@ -1349,13 +1163,9 @@ static void _e_keyrouter_structure_init()
 	keyrouter.toggle = 0;
 #endif//_F_ENABLE_MOUSE_POPUP
 	keyrouter.device_list = NULL;
-	keyrouter.num_pointer_devices = 0;
-	keyrouter.num_keyboard_devices = 0;
+	keyrouter.ignored_key_list = NULL;
 	keyrouter.num_hwkey_devices = 0;
 
-	keyrouter.atomXMouseExist = None;
-	keyrouter.atomXMouseCursorEnable = None;
-	keyrouter.atomXExtKeyboardExist = None;
 	keyrouter.atomGrabKey = None;
 	keyrouter.atomDeviceStatus = None;
 	keyrouter.atomGrabStatus = None;
@@ -1543,29 +1353,8 @@ static int GrabKeyDevices(Window win)
 		dev = &info[i];
 		if( XISlaveKeyboard == dev->use )
 		{
-			if( strcasestr(dev->name, "keyboard") )
-			{
-				if( strcasestr(dev->name, "XTEST" ) )
-				{
-					continue;
-				}
-				else
-				{
-					E_Keyrouter_Device_Info *data = malloc(sizeof(E_Keyrouter_Device_Info));
-
-					if( !data )
-						continue;
-
-					data->id = dev->deviceid;
-					data->name = eina_stringshare_add(dev->name);
-					data->type = E_KEYROUTER_KEYBOARD;
-					keyrouter.device_list = eina_list_append(keyrouter.device_list, data);
-					keyrouter.num_keyboard_devices++;
-					if( keyrouter.num_keyboard_devices >= 1 )
-						_e_keyrouter_set_keyboard_exist((unsigned int)keyrouter.num_keyboard_devices, 1);
-					continue;
-				}
-			}
+			if( strcasestr(dev->name, "keyboard") || strcasestr(dev->name, "XTEST" ) )
+				continue;
 
 			result = GrabKeyDevice(win, dev->name, dev->deviceid);
 
@@ -1587,39 +1376,6 @@ static int GrabKeyDevices(Window win)
 			}
 
 			detachSlave(dev->deviceid);
-		}
-		else if(XISlavePointer == dev->use )
-		{
-			if( strcasestr(dev->name, "XTEST" ) )
-				continue;
-
-			if( _e_keyrouter_is_relative_device(dev->deviceid) )
-			{
-				E_Keyrouter_Device_Info *data = malloc(sizeof(E_Keyrouter_Device_Info));
-
-				if( !data )
-					continue;
-
-				data->id = dev->deviceid;
-				data->name = eina_stringshare_add(dev->name);
-				data->type = E_KEYROUTER_MOUSE;
-				keyrouter.device_list = eina_list_append(keyrouter.device_list, data);
-				keyrouter.num_pointer_devices++;
-				if( keyrouter.num_pointer_devices == 1 )
-					_e_keyrouter_set_mouse_exist(1, 1);
-			}
-			else
-			{
-				E_Keyrouter_Device_Info *data = malloc(sizeof(E_Keyrouter_Device_Info));
-
-				if( !data )
-					continue;
-
-				data->id = dev->deviceid;
-				data->name = eina_stringshare_add(dev->name);
-				data->type = E_KEYROUTER_TOUCHSCREEN;
-				keyrouter.device_list = eina_list_append(keyrouter.device_list, data);
-			}
 		}
 	}
 
@@ -1696,10 +1452,7 @@ static int GrabXIKeyDevices()
 		if( XISlaveKeyboard == dev->use )
 		{
 
-			if( strcasestr(dev->name, "keyboard") )
-				continue;
-
-			if( strcasestr(dev->name, "XTEST" ) )
+			if( strcasestr(dev->name, "keyboard") || strcasestr(dev->name, "XTEST" ) )
 				continue;
 
 			result = XIGrabDevice(keyrouter.disp, dev->deviceid, keyrouter.rootWin, CurrentTime, None,
@@ -1737,10 +1490,7 @@ static void UngrabXIKeyDevices()
 		dev = &info[i];
 		if( XISlaveKeyboard == dev->use )
 		{
-			if( strcasestr(dev->name, "keyboard") )
-				continue;
-
-			if( strcasestr(dev->name, "XTEST" ) )
+			if( strcasestr(dev->name, "keyboard") || strcasestr(dev->name, "XTEST" ) )
 				continue;
 
 			result = XIUngrabDevice(keyrouter.disp, dev->deviceid, CurrentTime);
@@ -2887,18 +2637,18 @@ static void _e_keyrouter_popup_btn_down_cb(void *data)
 {
 	char *label = (char*)data;
 	keyrouter.rbutton_pressed_on_popup = 1;
-	_e_keyrouter_do_hardkey_emulation(label, KeyPress, 0, 0);
+	_e_keyrouter_do_hardkey_emulation(label, KeyPress, 0, 0, 0);
 }
 
 static void _e_keyrouter_popup_btn_up_cb(void *data)
 {
 	char *label = (char*)data;
 	keyrouter.rbutton_pressed_on_popup = 0;
-	_e_keyrouter_do_hardkey_emulation(label, KeyRelease, 1, 0);
+	_e_keyrouter_do_hardkey_emulation(label, KeyRelease, 1, 0, 0);
 }
 #endif//_F_ENABLE_MOUSE_POPUP
 
-static void _e_keyrouter_do_hardkey_emulation(const char *label, unsigned int key_event, unsigned int on_release, int keycode)
+static void _e_keyrouter_do_hardkey_emulation(const char *label, unsigned int key_event, unsigned int on_release, int keycode, int cancel)
 {
 #ifdef _F_ENABLE_MOUSE_POPUP
 	int i;
@@ -2917,9 +2667,28 @@ normal_hardkey_handler:
 	xev.xkey.keycode = keycode;
 	xev.xkey.time = CurrentTime;
 	xev.xkey.type = key_event;
-	fprintf(stderr, "[keyrouter][do_hardkey_emulation] HWKeyEmulation (keycode=%d, type=%s)\n",
-					xev.xkey.keycode, (xev.xkey.type==KeyPress) ? "KeyPress" : "KeyRelease");
-	DeliverDeviceKeyEvents(&xev, 0);
+
+	if( cancel )
+	{
+		DeliverDeviceKeyEvents(&xev, keyrouter.modkey.cancel_key.keycode);
+		xev.xkey.keycode = keycode;
+		xev.xkey.time = CurrentTime;
+		xev.xkey.type = KeyRelease;
+		DeliverDeviceKeyEvents(&xev, 0);
+		xev.xkey.keycode = keycode;
+		xev.xkey.time = CurrentTime;
+		xev.xkey.type = KeyRelease;
+		DeliverDeviceKeyEvents(&xev, keyrouter.modkey.cancel_key.keycode);
+		fprintf(stderr, "[keyrouter][do_hardkey_emulation] HWKeyEmulation Done !\n");
+		fprintf(stderr, "...( Cancel KeyPress + KeyRelease(keycode:%d) + Cancel KeyRelease )\n", xev.xkey.keycode);
+	}
+	else
+	{
+		DeliverDeviceKeyEvents(&xev, 0);
+		fprintf(stderr, "[keyrouter][do_hardkey_emulation] HWKeyEmulation Done !\n");
+		fprintf(stderr, "...( %s(keycode=%d )\n", (xev.xkey.type==KeyPress) ? "KeyPress" : "KeyRelease", xev.xkey.keycode);
+	}
+
 	return;
 
 reserved_hardkey_handler:
@@ -3134,18 +2903,6 @@ static void Device_Status(unsigned int val)
 				{
 					case E_KEYROUTER_HWKEY:
 						fprintf(keyrouter.fplog, "¦¦Device type : H/W Key\n");
-						break;
-
-					case E_KEYROUTER_KEYBOARD:
-						fprintf(keyrouter.fplog, "¦¦Device type : Keyboard\n");
-						break;
-
-					case E_KEYROUTER_MOUSE:
-						fprintf(keyrouter.fplog, "¦¦Device type : Mouse\n");
-						break;
-
-					case E_KEYROUTER_TOUCHSCREEN:
-						fprintf(keyrouter.fplog, "¦¦Device type : Touchscreen\n");
 						break;
 
 					default:

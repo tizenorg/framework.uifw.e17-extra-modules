@@ -33,6 +33,22 @@ extern EINTERN int logtype;
 # define L(...) { ; }
 #endif /* COMP_LOG_BUILD_ENABLE */
 
+#define COMP_DEBUG_PIXMAP 0
+
+#if COMP_DEBUG_PIXMAP
+EINTERN Ecore_X_Pixmap e_mod_comp_debug_name_window_pixmap_get(Ecore_X_Window w, const char *f, const int l);
+
+#define ecore_x_composite_name_window_pixmap_get(w)                    \
+   e_mod_comp_debug_name_window_pixmap_get(w, __func__, __LINE__)
+
+#define ecore_x_pixmap_free(p) {                                       \
+   ecore_x_pixmap_free(p);                                             \
+   fprintf(stderr,                                                     \
+           "[COMP] %30.30s|%04d 0x%08x FREE PIXMAP 0x%x\n",            \
+           __func__, __LINE__, e_mod_comp_util_client_xid_get(cw), p); \
+}
+#endif /* COMP_DEBUG_PIXMAP */
+
 EINTERN Eina_Bool e_mod_comp_debug_info_dump(Eina_Bool to_file, const char *name);
 EINTERN Eina_Bool e_mod_comp_debug_edje_error_get(Evas_Object *o, Ecore_X_Window win);
 EINTERN Eina_Bool e_mod_comp_debug_prop_handle(Ecore_X_Event_Window_Property *ev);

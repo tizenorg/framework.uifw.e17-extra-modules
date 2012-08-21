@@ -6,6 +6,7 @@
 typedef enum   _E_Comp_Effect_Style E_Comp_Effect_Style;
 typedef enum   _E_Comp_Effect_Kind  E_Comp_Effect_Kind;
 typedef struct _E_Comp_Effect_Type  E_Comp_Effect_Type;
+typedef struct _E_Comp_Effect_Job   E_Comp_Effect_Job;
 
 enum _E_Comp_Effect_Style
 {
@@ -49,6 +50,8 @@ EINTERN void                e_mod_comp_effect_win_restack(E_Comp_Win *cw, E_Comp
 EINTERN void                e_mod_comp_effect_win_lower(E_Comp_Win *cw, E_Comp_Win *cw2);
 EINTERN void                e_mod_comp_effect_disable_stage(E_Comp *c, E_Comp_Win *cw);
 EINTERN Eina_Bool           e_mod_comp_effect_signal_add(E_Comp_Win *cw, Evas_Object *o, const char *emission, const char *src);
+EINTERN Eina_Bool           e_mod_comp_effect_signal_del(E_Comp_Win *cw, Evas_Object *obj, const char *name);
+EINTERN Eina_Bool           e_mod_comp_effect_signal_flush(void);
 EINTERN Eina_Bool           e_mod_comp_effect_animating_set(E_Comp *c, E_Comp_Win *cw, Eina_Bool set);
 
 #endif

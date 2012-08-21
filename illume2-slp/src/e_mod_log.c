@@ -116,6 +116,10 @@ _e_mod_log_property_log_change(Ecore_X_Event_Window_Property *ev)
              if ((_e_illume_logger_type & LT_TRANSIENT_FOR) == LT_TRANSIENT_FOR) fprintf(stdout, "LT_TRANSIENT_FOR, ");
              if ((_e_illume_logger_type & LT_QUICKPANEL) == LT_QUICKPANEL) fprintf(stdout, "LT_QUICKPANEL, ");
              if ((_e_illume_logger_type & LT_KEYBOARD) == LT_KEYBOARD) fprintf(stdout, "LT_KEYBOARD, ");
+             if ((_e_illume_logger_type & LT_ICONIFY) == LT_ICONIFY) fprintf(stdout, "LT_ICONIFY, ");
+             if ((_e_illume_logger_type & LT_DUAL_DISPLAY) == LT_DUAL_DISPLAY) fprintf(stdout, "LT_DUAL_DISPLAY, ");
+             if ((_e_illume_logger_type & LT_AIA) == LT_AIA) fprintf(stdout, "LT_AIA, ");
+             if ((_e_illume_logger_type & LT_INDICATOR) == LT_INDICATOR) fprintf(stdout, "LT_INDICATOR, ");
           }
 
         fprintf(stdout, "-> ");
@@ -135,6 +139,10 @@ _e_mod_log_property_log_change(Ecore_X_Event_Window_Property *ev)
              if ((_e_illume_logger_type & LT_TRANSIENT_FOR) == LT_TRANSIENT_FOR) fprintf(stdout, "LT_TRANSIENT_FOR, ");
              if ((_e_illume_logger_type & LT_QUICKPANEL) == LT_QUICKPANEL) fprintf(stdout, "LT_QUICKPANEL, ");
              if ((_e_illume_logger_type & LT_KEYBOARD) == LT_KEYBOARD) fprintf(stdout, "LT_KEYBOARD, ");
+             if ((_e_illume_logger_type & LT_ICONIFY) == LT_ICONIFY) fprintf(stdout, "LT_ICONIFY, ");
+             if ((_e_illume_logger_type & LT_DUAL_DISPLAY) == LT_DUAL_DISPLAY) fprintf(stdout, "LT_DUAL_DISPLAY, ");
+             if ((_e_illume_logger_type & LT_AIA) == LT_AIA) fprintf(stdout, "LT_AIA, ");
+             if ((_e_illume_logger_type & LT_INDICATOR) == LT_INDICATOR) fprintf(stdout, "LT_INDICATOR, ");
 
              fprintf(stdout, "\n");
           }

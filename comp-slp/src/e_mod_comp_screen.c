@@ -55,6 +55,8 @@ e_mod_comp_screen_lock_handler_message(Ecore_X_Event_Client_Message *ev)
    E_CHECK_RETURN(ev, 0);
    E_CHECK_RETURN(_comp_mod->conf->use_lock_screen, 0);
 
+   L(LT_EVENT_X, "[COMP] ev:%15.15s\n", "SCREEN_LOCK");
+
    c = e_mod_comp_find(ev->win);
    E_CHECK_RETURN(c, 0);
 
@@ -70,6 +72,9 @@ e_mod_comp_screen_lock_func(void *data,
 {
    E_Comp *c = (E_Comp *)data;
    E_CHECK(c);
+
+   L(LT_EVENT_X, "[COMP] ev:%15.15s\n", "SCREEN_UNLOCK");
+
    _screen_lock(c);
 }
 
@@ -111,13 +116,23 @@ _screen_angle_get(Ecore_X_Window root)
 static void
 _screen_lock(E_Comp *c)
 {
+   Eina_List *l;
+   E_Comp_Canvas *canvas;
+
    E_CHECK(_comp_mod);
    E_CHECK(_comp_mod->conf->use_lock_screen);
+   E_CHECK(!_comp_mod->conf->nocomp_fs);
    E_CHECK(c->lock.locked != 1);
    E_CHECK(!c->lock.timeout);
 
    if (!_comp_mod->conf->lock_fps)
-     ecore_evas_manual_render_set(c->ee, 1);
+     {
+        EINA_LIST_FOREACH(c->canvases, l, canvas)
+          {
+             if (!canvas) continue;
+             ecore_evas_manual_render_set(canvas->ee, 1);
+          }
+     }
 
    c->lock.timeout = ecore_timer_add
                        (_comp_mod->conf->max_lock_screen_time,
@@ -129,9 +144,13 @@ _screen_lock(E_Comp *c)
 static void
 _screen_unlock(E_Comp *c)
 {
+   Eina_List *l;
+   E_Comp_Canvas *canvas;
    E_Comp_Win *cw;
+
    E_CHECK(_comp_mod);
    E_CHECK(_comp_mod->conf->use_lock_screen);
+   E_CHECK(!_comp_mod->conf->nocomp_fs);
    E_CHECK(c->lock.locked);
    if (c->lock.timeout)
      {
@@ -163,10 +182,14 @@ _screen_unlock(E_Comp *c)
    // clear c->updates
    if (c->updates) e_mod_comp_cb_update(c);
 
-   ecore_evas_manual_render(c->ee);
+   EINA_LIST_FOREACH(c->canvases, l, canvas)
+     {
+        if (!canvas) continue;
+        ecore_evas_manual_render(canvas->ee);
 
-   if (!_comp_mod->conf->lock_fps)
-     ecore_evas_manual_render_set(c->ee, 0);
+        if (!_comp_mod->conf->lock_fps)
+          ecore_evas_manual_render_set(canvas->ee, 0);
+     }
 
    c->lock.locked = 0;
 }

@@ -290,8 +290,11 @@ cleanup:
 static Eina_Bool
 _e_mod_comp_bg_win_obj_set(E_Comp_Win *cw)
 {
+   Eina_List *l;
+   E_Comp_Object *co;
    E_Comp_Win *cw2;
-   Eina_Bool res = EINA_FALSE;
+   Evas *evas;
+   Eina_Bool res = EINA_FALSE, set = EINA_FALSE;
    E_CHECK_RETURN(cw->bgwin, 0);
 
    cw2 = e_mod_comp_win_find(cw->bgwin->win.child);
@@ -304,10 +307,21 @@ _e_mod_comp_bg_win_obj_set(E_Comp_Win *cw)
    cw->bgwin->obj = e_mod_comp_win_mirror_add(cw2);
    E_CHECK_GOTO(cw->bgwin->obj, finish);
 
-   res = edje_object_part_swallow
-           (cw->shobj, "e.swallow.bgcontent",
-           cw->bgwin->obj);
-   E_CHECK_GOTO(res, finish);
+   evas = evas_object_evas_get(cw->bgwin->obj);
+   E_CHECK_GOTO(evas, finish);
+   EINA_LIST_FOREACH(cw->objs, l, co)
+     {
+        if (!co) continue;
+        if (evas == evas_object_evas_get(co->shadow))
+          {
+             res = edje_object_part_swallow
+                (co->shadow, "e.swallow.bgcontent",
+                cw->bgwin->obj);
+             E_CHECK_GOTO(res, finish);
+             set = EINA_TRUE;
+          }
+     }
+   E_CHECK_GOTO(set, finish);
 
    if (cw2->bgwin &&
        !cw2->bgwin->hidden)

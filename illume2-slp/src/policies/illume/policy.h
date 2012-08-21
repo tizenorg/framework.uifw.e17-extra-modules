@@ -27,6 +27,13 @@
 /* layer level 1 (1~50) */
 # define POL_STATE_BELOW_LAYER 50
 
+/* for desktop mode */
+typedef enum _E_Illume_Zone_Id
+{
+   E_ILLUME_ZONE_ID_PHONE = 0,
+   E_ILLUME_ZONE_ID_MONITOR = 1,
+} E_Illume_Zone_Id;
+
 typedef struct _E_Illume_Border_Info E_Illume_Border_Info;
 typedef struct _E_Illume_Screen_Lock_Info E_Illume_Screen_Lock_Info;
 typedef struct _E_Illume_XWin_Info E_Illume_XWin_Info;
@@ -87,6 +94,7 @@ void _policy_border_activate(E_Border *bd);
 void _policy_border_post_fetch(E_Border *bd);
 void _policy_border_post_assign(E_Border *bd);
 void _policy_border_show(E_Border *bd);
+void _policy_border_cb_move(E_Border *bd);
 void _policy_zone_layout(E_Zone *zone);
 void _policy_zone_move_resize(E_Zone *zone);
 void _policy_zone_mode_change(E_Zone *zone, Ecore_X_Atom mode);
@@ -123,4 +131,6 @@ void _policy_window_configure (Ecore_X_Event_Window_Configure *event);
 
 void _policy_window_sync_draw_done (Ecore_X_Event_Client_Message* event);
 void _policy_quickpanel_state_change (Ecore_X_Event_Client_Message* event);
+
+void _policy_window_move_resize_request(Ecore_X_Event_Window_Move_Resize_Request *event);
 #endif

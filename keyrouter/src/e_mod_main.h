@@ -29,11 +29,6 @@
 
 #define STR_ATOM_DEVICE_STATUS		"_DEVICE_STATUS"
 #define STR_ATOM_GRAB_STATUS			"_GRAB_STATUS"
-#define PROP_X_MOUSE_CURSOR_ENABLE	"X Mouse Cursor Enable"
-#define PROP_X_MOUSE_EXIST				"X Mouse Exist"
-#define PROP_X_EXT_KEYBOARD_EXIST		"X External Keyboard Exist"
-#define PROP_X_EVDEV_AXIS_LABELS		"Axis Labels"
-#define PROP_XRROUTPUT       				"X_RR_PROPERTY_REMOTE_CONTROLLER"
 #define PROP_HWKEY_EMULATION			"_HWKEY_EMULATION"
 
 //key composition for screen capture
@@ -78,6 +73,12 @@ typedef struct _kinfo
 	KeySym keysym;
 	unsigned int keycode;
 } kinfo;
+
+typedef struct _key_event_info
+{
+	int ev_type;
+	int keycode;
+} key_event_info;
 
 typedef struct _ModifierKey
 {
@@ -124,9 +125,7 @@ const char *HWKeys[] = {
 typedef enum
 {
 	E_KEYROUTER_HWKEY= 1,
-	E_KEYROUTER_KEYBOARD,
-	E_KEYROUTER_MOUSE,
-	E_KEYROUTER_TOUCHSCREEN
+	E_KEYROUTER_NONE
 } KeyrouterDeviceType;
 
 typedef struct _E_Keyrouter_Device_Info E_Keyrouter_Device_Info;
@@ -165,20 +164,15 @@ typedef struct _tag_keyrouter
 #endif//_F_ENABLE_MOUSE_POPUP
 
 	//number of connected pointer and keyboard devices
-	int num_pointer_devices;
-	int num_keyboard_devices;
 	int num_hwkey_devices;
 
 	Eina_List *device_list;
+	Eina_List *ignored_key_list;
 
 	//XInput extension 1 related variables
 	int DeviceKeyPress;
 	int DeviceKeyRelease;
 	int nInputEvent[INPUTEVENT_MAX];
-
-	RROutput output;
-	char rroutput_buf[256];
-	int rroutput_buf_len;
 
 	//XInput extension 2 related variables
 	int xi2_opcode;
@@ -194,11 +188,6 @@ typedef struct _tag_keyrouter
 
 	//atoms
 	Atom atomHWKeyEmulation;
-	Atom atomRROutput;
-	Atom atomPointerType;
-	Atom atomXMouseExist;
-	Atom atomXMouseCursorEnable;
-	Atom atomXExtKeyboardExist;
 	Atom atomGrabKey;
 	Atom atomGrabStatus;
 	Atom atomDeviceStatus;
@@ -256,14 +245,9 @@ static int _e_keyrouter_cb_window_configure(void *data, int ev_type, void *ev);
 static int _e_keyrouter_cb_window_stack(void *data, int ev_type, void *ev);
 static int _e_keyrouter_cb_client_message (void* data, int type, void* event);
 static void _e_keyrouter_xi2_device_hierarchy_handler(XIHierarchyEvent *event);
-static int _e_keyrouter_is_relative_device(int deviceid);
+static Eina_Bool _e_keyrouter_is_key_in_ignored_list(XEvent *ev);
 static void _e_keyrouter_device_add(int id, int type);
 static void _e_keyrouter_device_remove(int id, int type);
-static void _e_keyrouter_set_keyboard_exist(unsigned int val, int is_connected);
-static void _e_keyrouter_set_mouse_exist(unsigned int val, int propset);
-static void _e_keyrouter_mouse_cursor_enable(unsigned int val);
-static int _e_keyrouter_marshalize_string (char* buf, int num, char* srcs[]);
-static void _e_keyrouter_init_output(void);
 
 //e17 bindings functions and action callbacks
 static int _e_keyrouter_modifiers(E_Binding_Modifier modifiers);
@@ -293,7 +277,7 @@ static void popup_update();
 static void popup_show();
 static void popup_destroy();
 #endif//_F_ENABLE_MOUSE_POPUP
-static void _e_keyrouter_do_hardkey_emulation(const char *label, unsigned int key_event, unsigned int on_release, int keycode);
+static void _e_keyrouter_do_hardkey_emulation(const char *label, unsigned int key_event, unsigned int on_release, int keycode, int cancel);
 
 //functions related to key composition for screen capture
 static void InitModKeys();

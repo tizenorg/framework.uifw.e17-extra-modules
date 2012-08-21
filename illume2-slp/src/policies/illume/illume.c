@@ -20,6 +20,7 @@ e_illume_policy_init(E_Illume_Policy *p)
    p->funcs.border_post_fetch = _policy_border_post_fetch;
    p->funcs.border_post_assign = _policy_border_post_assign;
    p->funcs.border_show = _policy_border_show;
+   p->funcs.border_move = _policy_border_cb_move;
    p->funcs.zone_layout = _policy_zone_layout;
    p->funcs.zone_move_resize = _policy_zone_move_resize;
    p->funcs.zone_mode_change = _policy_zone_mode_change;
@@ -54,6 +55,8 @@ e_illume_policy_init(E_Illume_Policy *p)
    p->funcs.window_sync_draw_done = _policy_window_sync_draw_done;
    p->funcs.quickpanel_state_change = _policy_quickpanel_state_change;
 
+   p->funcs.window_move_resize_request = _policy_window_move_resize_request;
+
    if (!_policy_init())
      return 0;
 
@@ -71,6 +74,7 @@ e_illume_policy_shutdown(E_Illume_Policy *p)
    p->funcs.border_post_fetch = NULL;
    p->funcs.border_post_assign = NULL;
    p->funcs.border_show = NULL;
+   p->funcs.border_move = NULL;
    p->funcs.zone_layout = NULL;
    p->funcs.zone_move_resize = NULL;
    p->funcs.zone_mode_change = NULL;
@@ -104,6 +108,8 @@ e_illume_policy_shutdown(E_Illume_Policy *p)
 
    p->funcs.window_sync_draw_done = NULL;
    p->funcs.quickpanel_state_change = NULL;
+
+   p->funcs.window_move_resize_request = NULL;
 
    _policy_fin();
    return 1;

@@ -102,6 +102,9 @@ e_mod_comp_effect_win_rotation_handler_prop(Ecore_X_Event_Window_Property *ev)
         return EINA_FALSE;
      }
 
+   cw->angle = req_angle;
+   cw->angle %= 360;
+
    if (req_angle == cur_angle)
      {
         _counter_inc(cw);
@@ -123,9 +126,15 @@ e_mod_comp_effect_win_rotation_handler_prop(Ecore_X_Event_Window_Property *ev)
              _counter_inc(cw);
              return EINA_FALSE;
           }
-        edje_object_signal_callback_add
-          (cw->shobj, "e,action,window,rotation,done", "e",
-          _win_rotation_done, cw);
+        Eina_List *l;
+        E_Comp_Object *co;
+        EINA_LIST_FOREACH(cw->objs, l, co)
+          {
+             if (!co) continue;
+             edje_object_signal_callback_add
+               (co->shadow, "e,action,window,rotation,done",
+               "e", _win_rotation_done, cw);
+          }
      }
 
    r = cw->eff_winrot;
@@ -169,6 +178,9 @@ _win_rotation_begin(E_Comp_Win *cw,
                     Eina_Bool timeout)
 {
    E_Comp_Effect_Win_Rotation *r;
+   Eina_List *l, *ll;
+   E_Comp_Canvas *canvas;
+   E_Comp_Object *co;
    E_CHECK_RETURN(cw, 0);
    E_CHECK_RETURN(cw->eff_winrot, 0);
 
@@ -187,14 +199,14 @@ _win_rotation_begin(E_Comp_Win *cw,
 
    switch (r->ang.req - r->ang.cur)
      {
-      case -270: e_mod_comp_effect_signal_add(cw, cw->shobj, "e,state,window,rotation,90",   "e"); break;
-      case -180: e_mod_comp_effect_signal_add(cw, cw->shobj, "e,state,window,rotation,180",  "e"); break;
-      case  -90: e_mod_comp_effect_signal_add(cw, cw->shobj, "e,state,window,rotation,-90",  "e"); break;
-      case    0: e_mod_comp_effect_signal_add(cw, cw->shobj, "e,state,window,rotation,0",    "e"); break;
-      case   90: e_mod_comp_effect_signal_add(cw, cw->shobj, "e,state,window,rotation,90",   "e"); break;
-      case  180: e_mod_comp_effect_signal_add(cw, cw->shobj, "e,state,window,rotation,-180", "e"); break;
-      case  270: e_mod_comp_effect_signal_add(cw, cw->shobj, "e,state,window,rotation,-90",  "e"); break;
-      default  : e_mod_comp_effect_signal_add(cw, cw->shobj, "e,state,window,rotation,0",    "e"); break;
+      case -270: e_mod_comp_effect_signal_add(cw, NULL, "e,state,window,rotation,90",   "e"); break;
+      case -180: e_mod_comp_effect_signal_add(cw, NULL, "e,state,window,rotation,180",  "e"); break;
+      case  -90: e_mod_comp_effect_signal_add(cw, NULL, "e,state,window,rotation,-90",  "e"); break;
+      case    0: e_mod_comp_effect_signal_add(cw, NULL, "e,state,window,rotation,0",    "e"); break;
+      case   90: e_mod_comp_effect_signal_add(cw, NULL, "e,state,window,rotation,90",   "e"); break;
+      case  180: e_mod_comp_effect_signal_add(cw, NULL, "e,state,window,rotation,-180", "e"); break;
+      case  270: e_mod_comp_effect_signal_add(cw, NULL, "e,state,window,rotation,-90",  "e"); break;
+      default  : e_mod_comp_effect_signal_add(cw, NULL, "e,state,window,rotation,0",    "e"); break;
      }
 
    r->run = EINA_TRUE;
@@ -218,8 +230,20 @@ _win_rotation_begin(E_Comp_Win *cw,
 
    if (!cw->argb)
      {
-        evas_object_stack_below(cw->c->bg_img, cw->shobj);
-        cw->c->use_bg_img = 1;
+        EINA_LIST_FOREACH(cw->c->canvases, l, canvas)
+          {
+             if (!canvas) continue;
+             EINA_LIST_FOREACH(cw->objs, ll, co)
+               {
+                  if (!co) continue;
+                  if (co->canvas == canvas)
+                    {
+                       evas_object_stack_below(canvas->bg_img,
+                                               co->shadow);
+                       canvas->use_bg_img = 1;
+                    }
+               }
+          }
      }
 
    r->timeout = ecore_timer_add(4.0f, _end_timeout, cw);
@@ -234,6 +258,9 @@ _win_rotation_done(void        *data,
 {
    E_Comp_Effect_Win_Rotation *r;
    E_Comp_Win *cw = (E_Comp_Win*)data;
+   Eina_List *l, *ll;
+   E_Comp_Canvas *canvas;
+   E_Comp_Object *co;
    E_CHECK(cw);
    E_CHECK(cw->eff_winrot);
 
@@ -246,12 +273,24 @@ _win_rotation_done(void        *data,
 
    if (!cw->show_done) cw->show_done = EINA_TRUE;
 
-   evas_object_stack_below
-     (cw->c->bg_img,
-     evas_object_bottom_get(cw->c->evas));
+   EINA_LIST_FOREACH(cw->c->canvases, l, canvas)
+     {
+        if (!canvas) continue;
+        EINA_LIST_FOREACH(cw->objs, ll, co)
+          {
+             if (!co) continue;
+             if (co->canvas == canvas)
+               {
+                  evas_object_stack_below(canvas->bg_img,
+                                          evas_object_bottom_get(canvas->evas));
+                  canvas->use_bg_img = 0;
+               }
+          }
+     }
 
-   cw->c->use_bg_img = EINA_FALSE;
    r->run = EINA_FALSE;
+
+   e_mod_comp_effect_signal_del(cw, obj, "rotation,done");
 
    e_mod_comp_done_defer(cw);
 }
@@ -334,12 +373,46 @@ static Eina_Bool
 _counter_inc(E_Comp_Win *cw)
 {
    if (cw->counter)
-     ecore_x_sync_counter_inc(cw->counter, 1);
+     {
+        ecore_x_sync_counter_inc(cw->counter, 1);
+
+        L(LT_EVENT_X,
+          "[COMP] %31.31s w:0x%08x done:%d val:%d ROTATION\n",
+          "INC", e_mod_comp_util_client_xid_get(cw),
+          cw->sync_info.done_count, cw->sync_info.val);
+     }
    else
      {
         Ecore_X_Window w = e_mod_comp_util_client_xid_get(cw);
         cw->counter = ecore_x_e_comp_sync_counter_get(w);
         if (cw->counter) ecore_x_sync_counter_inc(cw->counter, 1);
      }
+   return EINA_TRUE;
+}
+EINTERN Eina_Bool
+e_mod_comp_effect_win_angle_get(E_Comp_Win *cw)
+{
+   E_Comp_Effect_Style st;
+   int req_angle = -1;
+   int cur_angle = -1;
+   Eina_Bool res;
+   Ecore_X_Window win;
+   E_CHECK_RETURN(cw, 0);
+
+   win = e_mod_comp_util_client_xid_get(cw);
+   st = e_mod_comp_effect_style_get
+      (cw->eff_type,
+       E_COMP_EFFECT_KIND_ROTATION);
+
+   if (st == E_COMP_EFFECT_STYLE_NONE)
+     return EINA_FALSE;
+
+   res = _angle_get(win, &req_angle, &cur_angle);
+   if (!res)
+     return EINA_FALSE;
+
+   cw->angle = req_angle;
+   cw->angle %= 360;
+
    return EINA_TRUE;
 }

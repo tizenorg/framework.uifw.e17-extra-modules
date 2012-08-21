@@ -1,7 +1,7 @@
 usr/lib/enlightenment/modules/*/*/*.so
 usr/lib/enlightenment/modules/*/*.desktop
 usr/lib/enlightenment/modules/*/e-module-*.edj
-usr/lib/enlightenment/modules/illume2-slp/policies
+usr/lib/enlightenment/modules/illume2-slp/policies/*.so
 usr/lib/enlightenment/modules/illume2-slp/quickpanel.edj
 usr/bin/*
 usr/share/enlightenment/data/themes/shadow.edj

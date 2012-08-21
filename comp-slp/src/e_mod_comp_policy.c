@@ -39,7 +39,7 @@ e_mod_comp_policy_init(void)
    eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_INDICATOR),      "indicator"   );
    eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_APPTRAY),        "app_tray"    );
    eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_BACKGROUND),     "no-effect"   );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_ISF_KEYBOARD),   "shadow"      );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_ISF_KEYBOARD),   "keyboard"   );
    eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_ISF_SUB),        "shadow"      );
 
    return 1;
@@ -175,17 +175,28 @@ e_mod_comp_policy_win_rotation_effect_check(E_Comp_Win *cw)
    E_Comp_Effect_Style st;
    Eina_Bool animatable;
    const char *file, *group;
+   E_Comp_Object *co;
 
    E_CHECK_RETURN(cw, 0);
    E_CHECK_RETURN(cw->c, 0);
    E_CHECK_RETURN(cw->c->animatable, 0);
    E_CHECK_RETURN(cw->visible, 0);
    E_CHECK_RETURN(cw->bd, 0);
+   E_CHECK_RETURN(cw->objs, 0);
+
+   if ((_comp_mod->conf->nocomp_fs) &&
+       (cw->c->nocomp))
+     {
+        return EINA_FALSE;
+     }
 
    animatable = e_mod_comp_effect_state_get(cw->eff_type);
    E_CHECK_RETURN(animatable, 0);
 
-   edje_object_file_get(cw->shobj, &file, &group);
+   co = eina_list_data_get(cw->objs);
+   E_CHECK_RETURN(co, 0);
+
+   edje_object_file_get(co->shadow, &file, &group);
    if ((strcmp(group, "shadow_fade") != 0) &&
        (strcmp(group, "shadow_twist") !=0))
      {
@@ -199,7 +210,7 @@ e_mod_comp_policy_win_rotation_effect_check(E_Comp_Win *cw)
      return EINA_FALSE;
 
    if ((e_mod_comp_util_win_visible_get(cw)) &&
-       (evas_object_visible_get(cw->shobj)) &&
+       (evas_object_visible_get(co->shadow)) &&
        TYPE_NORMAL_CHECK(cw))
      {
         return EINA_TRUE;

@@ -140,6 +140,8 @@ struct _E_Illume_Policy
         /**< pointer to the function that Illume will call when a border gets
          * shown. @note This function is optional. */
 
+        void (*border_move) (E_Border *bd);
+
         void (*zone_layout) (E_Zone *zone);
         /**< pointer to the function that Illume will call when a Zone needs
          * to update it's layout. @note This function is optional. */
@@ -214,6 +216,8 @@ struct _E_Illume_Policy
 
         void (*window_sync_draw_done) (Ecore_X_Event_Client_Message *event);
         void (*quickpanel_state_change) (Ecore_X_Event_Client_Message *event);
+
+        void (*window_move_resize_request) (Ecore_X_Event_Window_Move_Resize_Request *event);
      } funcs;
 };
 

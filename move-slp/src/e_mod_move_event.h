@@ -42,13 +42,17 @@ struct _E_Move_Event_Motion_Info
 EINTERN E_Move_Event       *e_mod_move_event_new(Ecore_X_Window win, Evas_Object *obj);
 EINTERN void                e_mod_move_event_free(E_Move_Event *ev);
 EINTERN Eina_Bool           e_mod_move_event_cb_set(E_Move_Event *ev, E_Move_Event_Type type, E_Move_Event_Cb cb, void *data);
+EINTERN E_Move_Event_Cb     e_mod_move_event_cb_get(E_Move_Event *ev, E_Move_Event_Type type);
 EINTERN Eina_Bool           e_mod_move_event_angle_cb_set(E_Move_Event *ev, E_Move_Event_Angle_Cb cb);
 EINTERN Eina_Bool           e_mod_move_event_check_cb_set(E_Move_Event *ev, E_Move_Event_Check_Cb cb, void *data);
 EINTERN Eina_List          *e_mod_move_event_ev_queue_get(E_Move_Event *ev);
 EINTERN E_Move_Event_State  e_mod_move_event_state_get(E_Move_Event *ev);
 EINTERN Eina_Bool           e_mod_move_event_angle_set(E_Move_Event *ev, int angle);
 EINTERN int                 e_mod_move_event_angle_get(E_Move_Event *ev);
+EINTERN Eina_Bool           e_mod_move_event_click_set(E_Move_Event *ev, Eina_Bool click);
+EINTERN Eina_Bool           e_mod_move_event_click_get(E_Move_Event *ev);
 EINTERN Eina_Bool           e_mod_move_event_data_clear(E_Move_Event *ev);
+EINTERN Eina_Bool           e_mod_move_event_send_all_set(E_Move_Event *ev, Eina_Bool send_all);
 
 #endif
 #endif

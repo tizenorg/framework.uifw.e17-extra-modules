@@ -12,6 +12,7 @@ EINTERN Eina_Bool                   e_mod_comp_effect_win_roation_run_check(E_Co
 EINTERN Eina_Bool                   e_mod_comp_effect_win_rotation_handler_prop(Ecore_X_Event_Window_Property *ev);
 EINTERN Eina_Bool                   e_mod_comp_effect_win_rotation_handler_update(E_Comp_Win *cw);
 EINTERN Eina_Bool                   e_mod_comp_effect_win_rotation_handler_release(E_Comp_Win *cw);
+EINTERN Eina_Bool                   e_mod_comp_effect_win_angle_get(E_Comp_Win *cw);
 
 #endif
 #endif

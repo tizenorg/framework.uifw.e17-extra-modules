@@ -3,6 +3,7 @@
 #include "e_mod_comp_atoms.h"
 #include "e_mod_comp_debug.h"
 #include "e_mod_comp_effect_tm.h"
+#include <X11/Xlib.h>
 
 struct _E_Comp_Effect_Type
 {
@@ -14,6 +15,142 @@ struct _E_Comp_Effect_Type
    E_Comp_Effect_Style focusin;        // indicate focus in effect type
    E_Comp_Effect_Style focusout;       // indicate focus out effect type
 };
+
+struct _E_Comp_Effect_Job
+{
+   Evas_Object   *o;
+   E_Comp_Canvas *canvas;
+   Ecore_X_Window win;
+   char           emission[1024];
+   char           src[1024];
+   Eina_Bool      emitted;
+};
+
+static Eina_List   *effect_jobs = NULL;
+static Ecore_Timer *effect_job_timeout = NULL;
+
+static Eina_Bool
+_effect_job_clean(void *data)
+{
+   E_Comp_Effect_Job *job;
+   EINA_LIST_FREE(effect_jobs, job)
+     {
+        if (job->canvas)
+          {
+             job->canvas->animation.run = 0;
+             job->canvas->animation.num = 0;
+          }
+
+        if ((job->win) && (job->emission))
+          {
+             /* don't discard signals for the unvisible window,
+              * e.g. quickpanel with e,state,visible,on,noeffect
+              */
+             edje_object_signal_emit(job->o, job->emission, job->src);
+
+             e_mod_comp_hw_ov_win_msg_show
+               (E_COMP_LOG_TYPE_EFFECT,
+               "SIG_DEL 0x%x %s (TIMEOUT)",
+               job->win, job->emission);
+          }
+
+        E_FREE(job);
+     }
+   if (effect_job_timeout)
+     {
+        ecore_timer_del(effect_job_timeout);
+        effect_job_timeout = NULL;
+     }
+   return ECORE_CALLBACK_CANCEL;
+}
+
+
+EINTERN Eina_Bool
+e_mod_comp_effect_signal_del(E_Comp_Win  *cw,
+                             Evas_Object *obj,
+                             const char  *name)
+{
+   E_Comp_Effect_Job *job;
+   Eina_List *l;
+   EINA_LIST_FOREACH(effect_jobs, l, job)
+     {
+        if (!job) continue;
+        if (!job->emitted) continue;
+        if (!job->win) continue;
+        if (!job->canvas) continue;
+
+        if (job->win == e_mod_comp_util_client_xid_get(cw))
+          {
+             job->canvas->animation.num--;
+             if (job->canvas->animation.num <= 0)
+               {
+                  job->canvas->animation.run = 0;
+                  job->canvas->animation.num = 0;
+               }
+
+             e_mod_comp_hw_ov_win_msg_show
+               (E_COMP_LOG_TYPE_EFFECT,
+               "SIG_DEL 0x%x %s",
+               job->win, job->emission);
+
+             effect_jobs = eina_list_remove(effect_jobs, job);
+
+             E_FREE(job);
+             break;
+          }
+     }
+   return EINA_TRUE;
+}
+
+EINTERN Eina_Bool
+e_mod_comp_effect_signal_flush(void)
+{
+   E_Comp_Effect_Job *job;
+   Eina_List *l;
+   Eina_Bool wait_for_done = EINA_FALSE;
+   EINA_LIST_FOREACH(effect_jobs, l, job)
+     {
+        if (!job) continue;
+        if (job->emitted) continue;
+
+        if ((job->win) && (job->canvas))
+          {
+             if ((strcmp(job->emission, "e,state,visible,on") == 0) ||
+                 (strcmp(job->emission, "e,state,visible,off") == 0) ||
+                 (strcmp(job->emission, "e,state,background,visible,on") == 0) ||
+                 (strcmp(job->emission, "e,state,background,visible,off") == 0) ||
+                 (strcmp(job->emission, "e,state,raise_above,off") == 0))
+               {
+                  job->canvas->animation.run = 1;
+                  job->canvas->animation.num++;
+
+                  wait_for_done = EINA_TRUE;
+
+                  e_mod_comp_hw_ov_win_msg_show
+                    (E_COMP_LOG_TYPE_EFFECT,
+                    "SIG_EMIT 0x%x %s",
+                    job->win, job->emission);
+               }
+          }
+
+        job->emitted = EINA_TRUE;
+        edje_object_signal_emit(job->o, job->emission, job->src);
+
+        if (!wait_for_done)
+          {
+             effect_jobs = eina_list_remove(effect_jobs, job);
+             E_FREE(job);
+
+             if (effect_job_timeout)
+               {
+                  ecore_timer_del(effect_job_timeout);
+                  effect_job_timeout = NULL;
+               }
+             effect_job_timeout = ecore_timer_add(3.0f, _effect_job_clean, NULL);
+          }
+     }
+   return 1;
+}
 
 /* local subsystem functions */
 static E_Comp_Effect_Style _effect_style_get(Ecore_X_Atom a);
@@ -61,18 +198,38 @@ EINTERN Eina_Bool
 e_mod_comp_effect_state_setup(E_Comp_Effect_Type *type,
                               Ecore_X_Window win)
 {
-   unsigned int val = 0;
-   int ret;
+   Atom type_ret = 0;
+   int ret, size_ret = 0;
+   unsigned long num_ret = 0, bytes = 0;
+   unsigned char *prop_ret = NULL;
+   Ecore_X_Display *dpy;
+   Eina_Bool is_ok;
 
    E_CHECK_RETURN(type, 0);
    E_CHECK_RETURN(win, 0);
 
-   ret = ecore_x_window_prop_card32_get
-           (win, ATOM_WINDOW_EFFECT_ENABLE, &val, 1);
-   E_CHECK_RETURN((ret > 0), 0);
-   type->animatable = val;
+   dpy = ecore_x_display_get();
+   ret = XGetWindowProperty(dpy, win, ATOM_WINDOW_EFFECT_ENABLE, 0, LONG_MAX,
+                            False, ECORE_X_ATOM_CARDINAL, &type_ret, &size_ret,
+                            &num_ret, &bytes, &prop_ret);
+   if (ret == 0) // success
+     {
+        if (prop_ret && num_ret)
+          {
+             type->animatable =  prop_ret[0];
+             is_ok = EINA_TRUE;
+          }
+        else
+          is_ok = EINA_FALSE;
+     }
+   else // error
+     {
+        type->animatable = 0;
+        is_ok = EINA_FALSE;
+     }
 
-   return EINA_TRUE;
+   if (prop_ret) XFree(prop_ret);
+   return is_ok;
 }
 
 EINTERN Eina_Bool
@@ -130,42 +287,24 @@ e_mod_comp_effect_style_get(E_Comp_Effect_Type *type,
 EINTERN void
 e_mod_comp_effect_win_show(E_Comp_Win *cw)
 {
-   Eina_Bool img_launch, done;
    E_Comp_Effect_Style st;
    Eina_Bool animatable, launch;
-   Evas_Object *o;
+   char emission[64];
    E_CHECK(cw);
    E_CHECK(cw->c);
 
    cw->first_show_worked = EINA_TRUE;
 
-   img_launch = e_mod_comp_effect_image_launch_window_check(cw->c->eff_img, cw);
-   done = e_mod_comp_effect_image_launch_done_check(cw->c->eff_img);
-   if ((img_launch) && !(done))
-     {
-        e_mod_comp_effect_image_launch_window_set(cw->c->eff_img, cw->win);
-        return;
-     }
-
-   o = cw->shobj;
    animatable = e_mod_comp_effect_state_get(cw->eff_type);
    st = e_mod_comp_effect_style_get
           (cw->eff_type,
           E_COMP_EFFECT_KIND_SHOW);
 
-   if (img_launch && done)
-     {
-        e_mod_comp_effect_signal_add
-           (cw, o, "e,state,visible,on,noeffect", "e");
-        e_mod_comp_effect_image_launch_disable(cw->c->eff_img);
-        goto postjob;
-     }
-
    if (!cw->c->animatable ||
        !animatable)
      {
         e_mod_comp_effect_signal_add
-          (cw, o, "e,state,visible,on,noeffect", "e");
+          (cw, NULL, "e,state,visible,on,noeffect", "e");
         goto postjob;
      }
 
@@ -173,27 +312,59 @@ e_mod_comp_effect_win_show(E_Comp_Win *cw)
      {
       case E_COMP_EFFECT_STYLE_DEFAULT:
         launch = e_mod_comp_policy_app_launch_check(cw);
-        if (TYPE_TASKMANAGER_CHECK(cw))
-          e_mod_comp_effect_tm_bg_show(cw);
-        else if (launch) _bg_show(cw);
-        e_mod_comp_effect_signal_add
-          (cw, o, "e,state,visible,on", "e");
+        if (launch) _bg_show(cw);
+
+        if (TYPE_KEYBOARD_CHECK(cw) &&
+            e_mod_comp_effect_win_angle_get(cw))
+          {
+             snprintf(emission, sizeof(emission), "e,state,window,angle,%d", cw->angle);
+             e_mod_comp_effect_signal_add(cw, NULL, emission, "e");
+          }
+        else
+          e_mod_comp_effect_signal_add
+            (cw, NULL, "e,state,visible,on", "e");
         break;
       case E_COMP_EFFECT_STYLE_NONE:
         e_mod_comp_effect_signal_add
-          (cw, o, "e,state,visible,on,noeffect", "e");
+          (cw, NULL, "e,state,visible,on,noeffect", "e");
         break;
       case E_COMP_EFFECT_STYLE_CUSTOM0:
-        e_mod_comp_effect_signal_add
-          (cw, o, "e,state,visible,on,custom0", "e");
+        if (TYPE_INDICATOR_CHECK(cw))
+          {
+             switch (cw->angle)
+               {
+                case 90:
+                  e_mod_comp_effect_signal_add
+                    (cw, NULL, "e,state,visible,on,custom0,90", "e");
+                  break;
+                case 180:
+                  e_mod_comp_effect_signal_add
+                    (cw, NULL, "e,state,visible,on,custom0,180", "e");
+                  break;
+                case 270:
+                  e_mod_comp_effect_signal_add
+                    (cw, NULL, "e,state,visible,on,custom0,270", "e");
+                  break;
+                case 0:
+                default:
+                  e_mod_comp_effect_signal_add
+                    (cw, NULL, "e,state,visible,on,custom0,0", "e");
+                  break;
+               }
+          }
+        else
+          {
+             e_mod_comp_effect_signal_add
+               (cw, NULL, "e,state,visible,on,custom0", "e");
+          }
         break;
       case E_COMP_EFFECT_STYLE_CUSTOM1:
         e_mod_comp_effect_signal_add
-          (cw, o, "e,state,visible,on,custom1", "e");
+          (cw, NULL, "e,state,visible,on,custom1", "e");
         break;
       default:
         e_mod_comp_effect_signal_add
-          (cw, o, "e,state,visible,on", "e");
+          (cw, NULL, "e,state,visible,on", "e");
         break;
      }
 
@@ -206,13 +377,12 @@ e_mod_comp_effect_win_hide(E_Comp_Win *cw)
 {
    E_Comp_Effect_Style st;
    Eina_Bool animatable, close;
-   Evas_Object *o;
+   char emission[64];
    E_CHECK_RETURN(cw, 0);
    E_CHECK_RETURN(cw->c, 0);
    E_CHECK_RETURN((!cw->input_only), 0);
    E_CHECK_RETURN((!cw->invalid), 0);
 
-   o = cw->shobj;
    animatable = e_mod_comp_effect_state_get(cw->eff_type);
    st = e_mod_comp_effect_style_get
           (cw->eff_type,
@@ -222,7 +392,7 @@ e_mod_comp_effect_win_hide(E_Comp_Win *cw)
        (!animatable))
      {
         e_mod_comp_effect_signal_add
-          (cw, o, "e,state,visible,off,noeffect", "e");
+          (cw, NULL, "e,state,visible,off,noeffect", "e");
         goto postjob;
      }
 
@@ -230,28 +400,58 @@ e_mod_comp_effect_win_hide(E_Comp_Win *cw)
      {
       case E_COMP_EFFECT_STYLE_DEFAULT:
         close = e_mod_comp_policy_app_close_check(cw);
-        if (TYPE_TASKMANAGER_CHECK(cw))
-          e_mod_comp_effect_tm_bg_hide(cw);
-        else if (!cw->animating && close)
+        if (!cw->animating && close)
           _bg_hide(cw);
-        e_mod_comp_effect_signal_add
-          (cw, o, "e,state,visible,off", "e");
+        if (TYPE_KEYBOARD_CHECK(cw))
+          {
+             snprintf(emission, sizeof(emission), "e,state,visible,off,angle,%d", cw->angle);
+             e_mod_comp_effect_signal_add(cw, NULL, emission, "e");
+          }
+        else
+          e_mod_comp_effect_signal_add
+            (cw, NULL, "e,state,visible,off", "e");
         break;
       case E_COMP_EFFECT_STYLE_NONE:
         e_mod_comp_effect_signal_add
-          (cw, o, "e,state,visible,off,noeffect", "e");
+          (cw, NULL, "e,state,visible,off,noeffect", "e");
         break;
       case E_COMP_EFFECT_STYLE_CUSTOM0:
-        e_mod_comp_effect_signal_add
-          (cw, o, "e,state,visible,off,custom0", "e");
+        if (TYPE_INDICATOR_CHECK(cw))
+          {
+             switch (cw->angle)
+               {
+                case 90:
+                  e_mod_comp_effect_signal_add
+                    (cw, NULL, "e,state,visible,off,custom0,90", "e");
+                  break;
+                case 180:
+                  e_mod_comp_effect_signal_add
+                    (cw, NULL, "e,state,visible,off,custom0,180", "e");
+                  break;
+                case 270:
+                  e_mod_comp_effect_signal_add
+                    (cw, NULL, "e,state,visible,off,custom0,270", "e");
+                  break;
+                case 0:
+                default:
+                  e_mod_comp_effect_signal_add
+                    (cw, NULL, "e,state,visible,off,custom0,0", "e");
+                  break;
+               }
+          }
+        else
+          {
+             e_mod_comp_effect_signal_add
+               (cw, NULL, "e,state,visible,off,custom0", "e");
+          }
         break;
       case E_COMP_EFFECT_STYLE_CUSTOM1:
         e_mod_comp_effect_signal_add
-          (cw, o, "e,state,visible,off,custom1", "e");
+          (cw, NULL, "e,state,visible,off,custom1", "e");
         break;
       default:
         e_mod_comp_effect_signal_add
-           (cw, o, "e,state,visible,off", "e");
+           (cw, NULL, "e,state,visible,off", "e");
         break;
      }
 
@@ -277,6 +477,7 @@ e_mod_comp_effect_win_restack(E_Comp_Win *cw,
      cw->c->switcher_obscured);
 
    while (_cw->defer_hide || !(REGION_EQUAL_TO_ROOT(_cw)) ||
+          _cw->input_only || _cw->invalid ||
           !(TYPE_NORMAL_CHECK(_cw) || TYPE_HOME_CHECK(_cw) ||
             TYPE_TASKMANAGER_CHECK(_cw)))
      {
@@ -289,13 +490,13 @@ e_mod_comp_effect_win_restack(E_Comp_Win *cw,
 
    if (e_mod_comp_policy_app_launch_check(cw))
      {
-        evas_object_stack_above(cw->shobj, cw2->shobj);
+        e_mod_comp_win_comp_objs_stack_above(cw, cw2);
         _effect_stage_enable(_cw, cw);
         e_mod_comp_effect_signal_add
-          (_cw, _cw->shobj,
+          (_cw, NULL,
           "e,state,background,visible,on", "e");
         e_mod_comp_effect_signal_add
-          (cw, cw->shobj,
+          (cw, NULL,
           "e,state,visible,on", "e");
      }
    else if (e_mod_comp_policy_app_close_check(_cw))
@@ -304,15 +505,15 @@ e_mod_comp_effect_win_restack(E_Comp_Win *cw,
         _cw->defer_raise = EINA_TRUE;
         _effect_stage_enable(cw, _cw);
         e_mod_comp_effect_signal_add
-          (_cw, _cw->shobj, "e,state,raise_above,off", "e");
+          (_cw, NULL, "e,state,raise_above,off", "e");
         e_mod_comp_effect_signal_add
-          (cw, cw->shobj, "e,state,background,visible,off", "e");
+          (cw, NULL, "e,state,background,visible,off", "e");
      }
    else
      {
-        evas_object_stack_above(cw->shobj, cw2->shobj);
+        e_mod_comp_win_comp_objs_stack_above(cw, cw2);
         e_mod_comp_effect_signal_add
-          (cw, cw->shobj, "e,state,visible,on", "e");
+          (cw, NULL, "e,state,visible,on", "e");
      }
 }
 
@@ -331,11 +532,11 @@ e_mod_comp_effect_win_lower(E_Comp_Win *cw,
      {
         _effect_stage_enable(cw2, cw);
         e_mod_comp_effect_signal_add
-          (cw2, cw2->shobj, "e,state,background,visible,off", "e");
+          (cw2, NULL, "e,state,background,visible,off", "e");
      }
 
    e_mod_comp_effect_signal_add
-     (cw, cw->shobj, "e,state,raise_above,off", "e");
+     (cw, NULL, "e,state,raise_above,off", "e");
 }
 
 EINTERN void
@@ -343,6 +544,8 @@ e_mod_comp_effect_disable_stage(E_Comp *c,
                                 E_Comp_Win *cw)
 {
    E_Comp_Win *_cw;
+   E_Comp_Object *co;
+   Eina_List *l;
    E_CHECK(c);
 
    if (cw)
@@ -367,20 +570,23 @@ e_mod_comp_effect_disable_stage(E_Comp *c,
              continue;
           }
 
-        if ((!_cw->animate_hide) &&
-            evas_object_visible_get(_cw->shobj))
+        EINA_LIST_FOREACH(_cw->objs, l, co)
           {
-             continue;
+             if (!co) continue;
+             if (!_cw->animate_hide &&
+                 evas_object_visible_get(co->shadow))
+               {
+                  continue;
+               }
+             if (!_cw->first_show_worked &&
+                 !evas_object_visible_get(co->shadow))
+               {
+                  continue;
+               }
+             if (!cw->hidden_override)
+               evas_object_show(co->shadow);
           }
-
-        if ((!_cw->first_show_worked) &&
-            !evas_object_visible_get(_cw->shobj))
-          {
-             continue;
-          }
-
-        _cw->animate_hide = EINA_FALSE;
-        evas_object_show(_cw->shobj);
+        _cw->animate_hide = 0;
      }
 }
 
@@ -402,26 +608,86 @@ e_mod_comp_effect_signal_add(E_Comp_Win *cw,
                              const char *src)
 
 {
+   Eina_List *l;
    E_Comp *c = NULL;
-   E_CHECK_RETURN(o, 0);
+   E_Comp_Object *co;
+   E_Comp_Effect_Job *job;
+   size_t len;
+
+   E_CHECK_RETURN((cw || o), 0);
    E_CHECK_RETURN(emission, 0);
    E_CHECK_RETURN(src, 0);
 
-   if (cw) c = cw->c;
+   if (cw)
+     {
+        c = cw->c;
+        if (_effect_animating_check(emission))
+          e_mod_comp_effect_animating_set(c, cw, EINA_TRUE);
+        EINA_LIST_FOREACH(cw->objs, l, co)
+          {
+             if (!co) continue;
+             if (!co->shadow) continue;
 
-   if (_effect_animating_check(emission))
-     e_mod_comp_effect_animating_set(c, cw, EINA_TRUE);
+             job = E_NEW(E_Comp_Effect_Job, 1);
+             if (!job) continue;
 
-   edje_object_signal_emit(o, emission, src);
+             job->o = co->shadow;
+             job->win = e_mod_comp_util_client_xid_get(cw);
+             job->canvas = co->canvas;
+
+             len = sizeof(job->emission);
+             strncpy(job->emission, emission, len);
+             job->emission[len-1] = '\0';
+
+             len = sizeof(job->src);
+             strncpy(job->src, src, len);
+             job->src[len-1] = '\0';
+
+             effect_jobs = eina_list_append(effect_jobs, job);
+
+             e_mod_comp_hw_ov_win_msg_show
+               (E_COMP_LOG_TYPE_EFFECT,
+               "SIG_ADD 0x%x %s",
+               e_mod_comp_util_client_xid_get(cw),
+               emission);
+          }
+     }
+   else
+     {
+        job = E_NEW(E_Comp_Effect_Job, 1);
+        if (job)
+          {
+             job->o = o;
+
+             len = sizeof(job->emission);
+             strncpy(job->emission, emission, len);
+             job->emission[len-1] = '\0';
+
+             len = sizeof(job->src);
+             strncpy(job->src, src, len);
+             job->src[len-1] = '\0';
+
+             effect_jobs = eina_list_append(effect_jobs, job);
+          }
+     }
+
    if (!(logtype & LT_EFFECT)) return EINA_TRUE;
 
    _CHECK(cw, "e,state,visible,on",             emission);
    _CHECK(cw, "e,state,visible,on,noeffect",    emission);
    _CHECK(cw, "e,state,visible,on,custom0",     emission);
+   _CHECK(cw, "e,state,visible,on,custom0,0",   emission);
+   _CHECK(cw, "e,state,visible,on,custom0,90",  emission);
+   _CHECK(cw, "e,state,visible,on,custom0,180", emission);
+   _CHECK(cw, "e,state,visible,on,custom0,270", emission);
    _CHECK(cw, "e,state,visible,on,custom1",     emission);
    _CHECK(cw, "e,state,visible,off",            emission);
    _CHECK(cw, "e,state,visible,off,noeffect",   emission);
    _CHECK(cw, "e,state,visible,off,custom0",    emission);
+   _CHECK(cw, "e,state,visible,off,custom0,0",  emission);
+   _CHECK(cw, "e,state,visible,off,custom0,90", emission);
+   _CHECK(cw, "e,state,visible,off,custom0,180",emission);
+   _CHECK(cw, "e,state,visible,off,custom0,270",emission);
    _CHECK(cw, "e,state,visible,off,custom1",    emission);
    _CHECK(cw, "e,state,background,visible,on",  emission);
    _CHECK(cw, "e,state,background,visible,off", emission);
@@ -432,7 +698,9 @@ e_mod_comp_effect_signal_add(E_Comp_Win *cw,
    _CHECK(cw, "e,state,shadow,on",              emission);
    _CHECK(cw, "e,state,shadow,off",             emission);
    _CHECK(cw, "e,state,focus,on",               emission);
+   _CHECK(cw, "e,state,focus,off",              emission);
    _CHECK(cw, "e,state,urgent,on",              emission);
+   _CHECK(cw, "e,state,urgent,off",             emission);
    _CHECK(cw, "e,state,window,rotation,90",     emission);
    _CHECK(cw, "e,state,window,rotation,180",    emission);
    _CHECK(cw, "e,state,window,rotation,0",      emission);
@@ -455,7 +723,7 @@ e_mod_comp_effect_animating_set(E_Comp *c,
 
    if (set)
      {
-        if (!cw->animating)
+        if (cw->animating)
           {
              c->animating--;
              _state_send(cw, EINA_FALSE);
@@ -507,7 +775,7 @@ _bg_show(E_Comp_Win *cw)
 
    _effect_stage_enable(cw, bg_cw);
    e_mod_comp_effect_signal_add
-     (bg_cw, bg_cw->shobj,
+     (bg_cw, NULL,
      "e,state,background,visible,on", "e");
 }
 
@@ -520,7 +788,7 @@ _bg_hide(E_Comp_Win *cw)
 
    _effect_stage_enable(cw, bg_cw);
    e_mod_comp_effect_signal_add
-     (bg_cw, bg_cw->shobj,
+     (bg_cw, NULL,
      "e,state,background,visible,off", "e");
 }
 
@@ -530,33 +798,66 @@ _effect_stage_enable(E_Comp_Win *cw,
 {
    E_Comp_Win *_cw = cw;
    Eina_Inlist *l;
+   E_Comp_Canvas *canvas;
+   Eina_List *ll;
+   E_Comp_Object *co;
+   Eina_Bool visible = 0;
    E_CHECK(cw);
    E_CHECK(cw2);
 
    // do hide window which is not related window animation effect.
    while ((l = EINA_INLIST_GET(_cw)->prev) != NULL)
      {
+        visible = 0;
         _cw = _EINA_INLIST_CONTAINER(_cw, l);
         E_CHECK(_cw);
         if ((_cw->invalid) || (_cw->input_only) ||
             (_cw->win == cw->win) ||
             (_cw->win == cw2->win) ||
-            TYPE_INDICATOR_CHECK(_cw) ||
-            !evas_object_visible_get(_cw->shobj))
+            TYPE_INDICATOR_CHECK(_cw))
           {
              continue;
           }
 
+        EINA_LIST_FOREACH(_cw->objs, ll, co)
+          {
+             if (!co) continue;
+             if (evas_object_visible_get(co->shadow))
+               {
+                  visible = 1;
+                  break;
+               }
+          }
+        if (!visible) continue;
+
         _cw->animate_hide = EINA_TRUE;
-        evas_object_hide(_cw->shobj);
+
+        EINA_LIST_FOREACH(_cw->objs, ll, co)
+          {
+             if (!co) continue;
+             evas_object_hide(co->shadow);
+          }
      }
 
-   evas_object_stack_below
-     (cw->c->bg_img,
-     evas_object_bottom_get(cw->c->evas));
+   EINA_LIST_FOREACH(cw->c->canvases, ll, canvas)
+     {
+        if (!canvas) continue;
+        if (canvas->use_bg_img) continue;
+        evas_object_lower(canvas->bg_img);
+     }
 
-   evas_object_show(cw->shobj);
-   evas_object_show(cw2->shobj);
+   EINA_LIST_FOREACH(cw->objs, ll, co)
+     {
+        if (!co) continue;
+        if (!cw->hidden_override)
+          evas_object_show(co->shadow);
+     }
+   EINA_LIST_FOREACH(cw2->objs, ll, co)
+     {
+        if (!co) continue;
+        if (!cw->hidden_override)
+          evas_object_show(co->shadow);
+     }
 
    cw->animate_hide = EINA_FALSE;
    cw2->animate_hide = EINA_FALSE;

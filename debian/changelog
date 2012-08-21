@@ -1,29 +1,667 @@
+e17-extra-modules (0.3-68) unstable; urgency=low
+
+  * [COMP] Fixed a crash in hw_ov_win when booting time
+    [DEVMGR] Added enable option for screen configuration
+    [OBS] e17-extra-modules-0.3-slp.37.1
+  * Git: framework/uifw/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-68
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Tue, 21 Aug 2012 20:41:04 +0900
+
+e17-extra-modules (0.3-67) unstable; urgency=low
+
+  * [COMP] Fixed a bug which the app-in-app window remained on the home screen.
+    [OBS] e17-extra-modules-0.3-slp.36.1
+  * Git: framework/uifw/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-67
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Sun, 19 Aug 2012 22:15:54 +0900
+
+e17-extra-modules (0.3-66) unstable; urgency=low
+
+  * [ILLUME2] Change code - The window on app-in-app mode can get the focus
+    [OBS] e17-extra-modules-0.3-slp.36.1
+  * Git: framework/uifw/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-66
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Sun, 19 Aug 2012 16:51:21 +0900
+
+e17-extra-modules (0.3-65) unstable; urgency=low
+
+  * [COMP] 1. Fixed a bug with non-update camera preview while no-composite mode.
+              The WM should subtract a center rectangle from the entire shape of
+              the COW to display the camera preview correctly.
+           2. Fixed a bug in _effect_job_clean which was discarding edje signals.
+              It resolves the quickpanel disappearance problem.
+           3. Added a code to delete the named pixmap in _e_mod_comp_nocomp_begin.
+           4. Removed force_unset_timeout in E_Comp_Canvas to enter the no-composite
+              mode immediately.
+           5. Added debugging codes to check hidden_override and nocomp mode
+    [OBS] e17-extra-modules-0.3-slp.36.1
+  * Git: framework/uifw/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-65
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Sun, 19 Aug 2012 03:33:29 +0900
+
+e17-extra-modules (0.3-64) unstable; urgency=low
+
+  * [COMP] 1. Fixed noise pixmap problem while no-composite mode.
+           2. Added checking code to enable nocomp_fs for the authorized device
+           3.Fix NoComp mode:
+           - problem: when no composite mode had enabled, edje callback routine did not call compositor's callback handler.
+             problem case)
+                 1) no comp mode had enabled
+                 2) compositor call edje signal "hide"
+                 3) edje routine does not process "hide"
+                     --> so, does not  send compositor to "hide signal emit"
+    [OBS] e17-extra-modules-0.3-slp.36.1
+  * Git: framework/uifw/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-64
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Fri, 17 Aug 2012 22:06:57 +0900
+
+e17-extra-modules (0.3-63) unstable; urgency=low
+
+  * [COMP] Fixed noise pixmap problem while no-composite mode.
+      In order to avoid the noise pixmap appearance problem, the CWM
+      should prepare a named pixmap before creating a mirror object
+      while no-composite rendering mode.
+    [OBS] e17-extra-modules-0.3-slp.35.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-63
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Tue, 14 Aug 2012 11:33:18 +0900
+
+e17-extra-modules (0.3-62) unstable; urgency=low
+
+  * [COMP] Added checking code to enable nocomp_fs for the authorized device
+    [OBS] e17-extra-modules-0.3-slp.34.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-62
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Sun, 12 Aug 2012 19:41:25 +0900
+
+e17-extra-modules (0.3-61) unstable; urgency=low
+
+  * Modify spec file not to build tasklist and taskhome modules
+    [OBS] e17-extra-modules-0.3-slp.33.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-61
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 10 Aug 2012 20:40:11 +0900
+
+e17-extra-modules (0.3-60) unstable; urgency=low
+
+  * [COMP] Fixed tearing problem while changing composite rendering mode from no-comp
+    [ILLUME2] Change code to control indicator (show/hide/rotate)
+    [OBS] e17-extra-modules-0.3-slp.33.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-60
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 09 Aug 2012 23:44:43 +0900
+
+e17-extra-modules (0.3-59) unstable; urgency=low
+
+  * [MOVE] Add Load Configuration info from module.move-slp.cfg
+           Remove unused code and variable
+    [OBS] e17-extra-modules-0.3-slp.33.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-59
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 09 Aug 2012 22:19:21 +0900
+
+e17-extra-modules (0.3-58) unstable; urgency=low
+
+  * [MOVE] 1. Add Debug Info: EVENT_LOG
+           2. fix indent
+    [TASKHOME] Change Taskhome popup to use new UX design from MinSu. Also, fix grabbing input which was breaking Virtual Controller.
+    [TASKLIST] Fix Tasklist not working properly with Virtual Controller.
+    [OBS] e17-extra-modules-0.3-slp.33.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-58
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 09 Aug 2012 15:37:26 +0900
+
+e17-extra-modules (0.3-57) unstable; urgency=low
+
+  * [ILLUME2] 1. Add code to set bd->placed if user doen't set user defind
+              position on PHONE mode
+              2. Move code to check whether the window type is utility or not 
+    [OBS] e17-extra-modules-0.3-slp.32.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-57
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 07 Aug 2012 18:06:05 +0900
+
+e17-extra-modules (0.3-56) unstable; urgency=low
+
+  * [ILLUME2] Rollback - "add code to set bd->placed on PHONE mode by default"
+              - bd->placed patch makes side effect on ISF Magnifier window position (magnifier's y postion to 0 )
+    [TASKHOME] Be sure to delete the Ecore Event Handlers if e_grabinput failes.
+               - This patch makes sure that we also delete the ecore event handlers for
+                 mouse and key events on the input window if grabbing input fails
+    [OBS] e17-extra-modules-0.3-slp.31.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-56
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Mon, 06 Aug 2012 17:00:31 +0900
+
+e17-extra-modules (0.3-55) unstable; urgency=low
+
+  * [ILLUME2] add code to set bd->placed on PHONE mode by default
+    [OBS] e17-extra-modules-0.3-slp.30.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-55
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Mon, 06 Aug 2012 11:26:12 +0900
+
+e17-extra-modules (0.3-54) unstable; urgency=low
+
+  * [MOVE] 1. remove unused printf code
+           2. remove build warnnings
+           3. remove double check codes
+           4. check code add, if  input only window exist or not.
+           5. check code add, if anim_data exist or not.
+           6. when move module writes debug info to file, remove setting red color to control object
+    [TASKLIST]
+           1. Fix taskhome popup window size.
+              - As requested by Minsu, this patch fixes the Taskhome popup window size
+                to support 4 columns and 4 rows of icons, with the scrollbar
+                displaying only when necessary.
+           2. Rebase for Fixing Tasklist Popup Position and Popup Size.
+              - This patch fixes Tasklist Popup position and Popup Size. Popup size
+                was not taking into account e_scale so it did not size properly in
+                Desktop Mode.
+           3. Fix gadcon client class. Add missing UNUSED where needed.
+              - This patch fixes the gadcon client class so that this module/gadget
+                cannot be placed on toolbars. Also, this patch adds some missing
+                __UNUSED__ to functions where their paramaters are not being used.
+           4. Add ability for Tasklist popup to disappear.
+              - If a user clicks anywhere outside the Taskitem Popup list, then the
+                list will now close. This patch also cleans up some redundant code and
+                removes commented out unused code.
+           5. Rebase for Fix E_CHECK_RETURN values. Remove unused goto statement.
+              - Previously, the E_CHECK_RETURNs used here would return 0, however the
+                function's return value is an Object, so we should return NULL. Also
+                remove an unused goto statement.
+    [ACCESSIBILITY] 1. enable accessibility
+    [OBS] e17-extra-modules-0.3-slp.29.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-54
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 02 Aug 2012 17:28:55 +0900
+
+e17-extra-modules (0.3-53) unstable; urgency=low
+
+  * [COMP] Fixed indicator show bug.
+      It is possible that the WM can receive a border show event immediatly
+      after getting a border hide event such as indicator hide/show.
+      In that case, if we use e_mod_comp_win_objs_show() function then we
+      don't append showing EDJE signal because a shadow object of given window
+      is still visible state. The hide_done callback can make object to hide.
+      Thus the WM has to append showing EDJE signal into the job queue
+      to show a shadow object of given window.
+    [OBS] e17-extra-modules-0.3-slp.28.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-53
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Tue, 31 Jul 2012 21:43:36 +0900
+
+e17-extra-modules (0.3-52) unstable; urgency=low
+
+  * [MOVE] Add Debug Info for evas object's mouse event
+    [OBS] e17-extra-modules-0.3-slp.28.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-52
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Mon, 30 Jul 2012 21:51:31 +0900
+
+e17-extra-modules (0.3-51) unstable; urgency=low
+
+  * [COMP] Change code to get ATOM_WINDOW_EFFECT_ENABLE value
+           - check whether the return value of XGetWindowProperty is valid or not
+    [OBS] e17-extra-modules-0.3-slp.27.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-51
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Mon, 30 Jul 2012 17:47:32 +0900
+
+e17-extra-modules (0.3-50) unstable; urgency=low
+
+  * [MOVE] Refactoring Move Module
+            - Use Mirror Object.
+    [ILLUME] Remove Quickpanel Base Window Creation from Illume
+    [OBS] e17-extra-modules-0.3-slp.26.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-50
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 27 Jul 2012 15:14:41 +0900
+
+e17-extra-modules (0.3-49) unstable; urgency=low
+
+  * [EXTNDIALOG] add util - external elementary dialog
+      Using external elementary dialog util instead of e_dialog to display error
+      or warning messages. It is a temporary solution for supporting consistent
+      UX theme. The external dialog is a simple EFL application which is based on
+      elementary. Thus window manager can display message using elementary UX theme,
+      along with other system popup.
+    [WMREADY] 1.Code cleanup - using e's coding standard
+              2.Change sequence to call vconf for hibernation
+    [OBS] e17-extra-modules-0.3-slp.25.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-49
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Wed, 25 Jul 2012 22:06:25 +0900
+
+e17-extra-modules (0.3-48) unstable; urgency=low
+
+  * [COMP] Change code to check current default_window_effect value
+           before saving configuration file
+    [WMREADY] Add code to controll saving configuration files
+              - Doesn't save configuration files while the device is booting
+    [OBS] e17-extra-modules-0.3-slp.24.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-48
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Mon, 25 Jul 2012 08:34:11 +0900
+
+e17-extra-modules (0.3-47) unstable; urgency=low
+
+  * [COMP] fix segfault error when showing debugging log message on H/W overlay window with max_debug_msgs 0
+    [MOVE] Fix SIM Lock screen launch quickpanel - overlapping
+    [OBS] e17-extra-modules-0.3-slp.23.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-47
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Mon, 23 Jul 2012 22:52:09 +0900
+
+e17-extra-modules (0.3-46) unstable; urgency=low
+
+  * [ILLUME2] Add code to check angle while handling keyboard window
+              - this change relates the defect num.P120719-6240
+    [OBS] e17-extra-modules-0.3-slp.22.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-46
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Mon, 23 Jul 2012 08:57:22 +0900
+
+e17-extra-modules (0.3-45) unstable; urgency=low
+
+  * [ILLUME2] Add code to check window's size whether it exceed the zone's size or not
+              - this change relates the defect num.P120719-2946
+    [COMP] Add a shadow to the border and the floating mode window
+    [OBS] e17-extra-modules-0.3-slp.21.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-45
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 20 Jul 2012 16:24:11 +0900
+
+e17-extra-modules (0.3-44) unstable; urgency=low
+
+  * [COMP] Fixed H/W overlay ecore_evas creation problem when connecting
+           external display. In order to avoid crash, compositor has a limit
+           to create only one H/W overlay ecore_evas for primary display.
+    [OBS] e17-extra-modules-0.3-slp.20.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-44
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Thu, 19 Jul 2012 14:44:15 +0900
+
+e17-extra-modules (0.3-43) unstable; urgency=low
+
+  * [COMP] improved nocomp feature
+           1. enabled window effect while nocomp mode
+           2. added functions for composite mode set/get
+           3. fixed bugs which are related to H/W overlay window
+           4. added H/W overlay logging feature
+    [MOVE] added composite mode set to all moving functions for nocomp mode
+    [OBS] e17-extra-modules-0.3-slp.19.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-43
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Wed, 18 Jul 2012 19:09:25 +0900
+
+e17-extra-modules (0.3-42) unstable; urgency=low
+
+  * [ILLUME2] Add code to check a window's angle. If angle is not available
+              (ex. degree 1), then error returns.
+    [OBS] e17-extra-modules-0.3-slp.18.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-42
+
+ -- Doyoun Kang <doyoun.kang@samsung.com> Tue, 17 Jul 2012 19:11:39 +0900
+
+e17-extra-modules (0.3-41) unstable; urgency=low
+
+  * [COMP] Add hidden_override checker , when compositor call evas_object_show()
+           hidden_override is used by hidden_set func()
+    [ILLUME2] Change belows
+           1. Bug fix - The floating style(app-in-app) window is resized
+              incorrectly on the desktop mode.
+           2. Enable client request for maximizing window
+    [OBS] e17-extra-modules-0.3-slp.17.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-41
+
+ -- Doyoun Kang <doyoun.kang@samsung.com> Sun, 15 Jul 2012 12:41:03 +0900
+
+e17-extra-modules (0.3-40) unstable; urgency=low
+
+  * Change script to remove static library (*.a) files
+    [OBS] e17-extra-modules-0.3-slp.16.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-40
+
+ -- Gwangyeong Mun <kk.moon@samsung.com> Mon, 09 Jul 2012 21:11:51 +0900
+
+e17-extra-modules (0.3-39) unstable; urgency=low
+
+  * [ILLUME2] 1. Change an initial size of a window on the desktop mode
+              2. Change code to check illume_window_state in _policy_border_pre_fetch
+    [OBS] e17-extra-modules-0.3-slp.15.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-39
+
+ -- Doyoun Kang <doyoun.kang@samsung.com> Thu, 05 Jul 2012 19:38:21 +0900
+
+e17-extra-modules (0.3-38) unstable; urgency=low
+
+  * [ILLUME2] change code to resize app-in-app window when it release button
+    [OBS] e17-extra-modules-0.3-slp.14.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-38
+
+ -- Doyoun Kang <doyoun.kang@samsung.com> Fri, 29 Jun 2012 10:26:43 +0900
+
+e17-extra-modules (0.3-37) unstable; urgency=low
+
+  * [COMP] 1. Do nothing if an object is not located on E_Zone
+           2. Modified X_EVENT log messages
+    [OBS] e17-extra-modules-0.3-slp.13.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-37
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Thu, 28 Jun 2012 16:55:26 +0900
+
+e17-extra-modules (0.3-36) unstable; urgency=low
+
+  * [ILLUME2] Change window style to phone style when the window is moved
+              on the phone side from HDMI side
+    [OBS] e17-extra-modules-0.3-slp.12.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-36
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 26 Jun 2012 11:59:11 +0900
+
+e17-extra-modules (0.3-35) unstable; urgency=low
+
+  * [DeviceMgr] fix bug : set the first resolution in the resolution list
+    [OBS] e17-extra-modules-0.3-slp.11.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-35
+
+ -- SooChan Lim <sc1.lim@samsung.com>  Thu, 21 Jun 2012 10:59:54 +0900
+
+e17-extra-modules (0.3-34) unstable; urgency=low
+
+  * [ALL] Rebuild all modules for e17 update.
+    [DeviceMgr] fix : set the 1280x720 as the default mode
+    [OBS] e17-extra-modules-0.3-slp.9.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-34
+
+ -- Gwanglim Lee <gl77.lee@samsung.com>  Wed, 20 Jun 2012 20:26:01 +0900
+
+e17-extra-modules (0.3-33) unstable; urgency=low
+
+  * [COMP] fix zone usage following function
+           _e_mod_comp_src_image_get_func()
+           _e_mod_comp_src_shadow_get_func()
+
+           previous: use e_util_zone_current_get() : this funcion is based on pointer position.
+           current : use border's zone
+    [OBS] e17-extra-modules-0.3-slp.8.1
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-33
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 14 Jun 2012 17:51:14 +0900
+
+e17-extra-modules (0.3-32) unstable; urgency=low
+
+  * [Devicemgr] Add functions and variables for virtual touchpad multitouch stuff
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-32
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Thu, 14 Jun 2012 11:40:12 +0900
+
+e17-extra-modules (0.3-31) unstable; urgency=low
+
+  * [COMP] add ISF Keayboard Effect ( Show/Hide )
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-31
+
+ -- Seunghun Lee <shiin.lee@samsung.com>  Wed, 13 Jun 2012 20:58:18 +0900
+
+e17-extra-modules (0.3-30) unstable; urgency=low
+
+  * [COMP] fix Restack Effect Check
+    - add: do not play effect on input_only window
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-30
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Sun, 10 Jun 2012 18:23:58 +0900
+
+e17-extra-modules (0.3-29) unstable; urgency=low
+
+  * [MOVE] Fix Move Module to use E_ZONE size
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-29
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 07 Jun 2012 21:50:10 +0900
+
+e17-extra-modules (0.3-28) unstable; urgency=low
+
+  * [ILLUME2] Add feature for floating mode (app-in-app)
+    [COMP] Change code to use Ecore Atoms for floating mode (app-in-app)
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-28
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Tue, 05 Jun 2012 15:49:32 +0900
+
+e17-extra-modules (0.3-27) unstable; urgency=low
+
+  * [devicemgr] Add _e_devicemgr_set_confine_information() in _e_devicemgr_virtual_touchpad_helper_enable()
+    to set/unset confine information to virtual touchpad
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-27
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Thu, 31 May 2012 17:31:41 +0900
+
+e17-extra-modules (0.3-26) unstable; urgency=low
+
+  * [ILLUME2] Add code to set the zone's geometry information
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-26
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Wed, 30 May 2012 09:40:31 +0900
+
+e17-extra-modules (0.3-25) unstable; urgency=low
+
+  * [ILLUME2] Fix bug (belows are fixed)
+    - There occurs wrong visibility event when the desktop mode is enabled
+    - The window which sets user defined position is not shown on desktop mode
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-25
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Thu, 24 May 2012 17:04:12 +0900
+
+e17-extra-modules (0.3-24) unstable; urgency=low
+
+  * [ILLUME2][QP] Remove setting ELM_SCALE environment value code
+    [ILLUME2] Change code to show/hide the indicator when the indicator state
+              of the unobscured window is changed
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-24
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Sat, 19 May 2012 19:30:50 +0900
+
+e17-extra-modules (0.3-23) unstable; urgency=low
+
+  * Change debian/e17-extra-modules.install file
+    - Doesn't install libtool file
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-23
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 18 May 2012 09:45:17 +0900
+
+e17-extra-modules (0.3-22) unstable; urgency=low
+
+  * [ILLUME2] recalculate the geometry of the window in desktop mode
+    [COMP] add multi-canvas and nocomp features
+    [DEVICEMGR] use utilx apis for screen configuration
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-22
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Mon, 14 May 2012 23:19:19 +0900
+
+e17-extra-modules (0.3-21) unstable; urgency=low
+
+  * [ILLUME2] Add feature for desktop mode (alpha version)
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-21
+
+ -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 11 May 2012 13:44:54 +0900
+
+e17-extra-modules (0.3-20) unstable; urgency=low
+
+  * [devicemgr] Set confine information when the virtual touchpad is attached
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-20
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Thu, 10 May 2012 19:26:05 +0900
+
+e17-extra-modules (0.3-19) unstable; urgency=low
+
+  * [keyrouter] Modify Cancel key handling/sequence for screen capture and HW key emulation
+    [keyrouter] Disable mouse popup for dual display
+    [devicemgr] Correct codes properly for EFL coding style
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-19
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Tue, 08 May 2012 11:56:54 +0900
+
+e17-extra-modules (0.3-18) unstable; urgency=low
+
+  * [Devicemgr] Remove input reconfiguration feature for dual-display
+    [Devicemgr] Partial rollback of virtual touchpad feature
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-18
+
+ -- Sung-Jin Park <sj76.park@samsung.com>  Mon, 07 May 2012 20:54:16 +0900
+
+e17-extra-modules (0.3-17) unstable; urgency=low
+
+  * add configuration of devicemgr and change the clientmessage
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-17
+
+ -- SooChan Lim <sc1.lim@samsung.com>  Mon, 07 May 2012 18:02:08 +0900
+
+e17-extra-modules (0.3-16) unstable; urgency=low
+
+  * [MOVE] 1. Fix Indicator Home button Long-press problem
+           2. Fix missing of region check ( when you scroll indicator )
+               - region check function decides showing Apptray or Quickpanel window
+           3. Fix TP_indicator evas object stack problem
+              if Taskswitcher effect is on, when task switcher launches fullscreen application (like camera ) TP_Indicator evas object go down on stack.
+              because of Compositor re-arrange evas object stack after taskswitcer effect.
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-16
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 03 May 2012 15:39:59 +0900
+
+e17-extra-modules (0.3-15) unstable; urgency=low
+
+  * [DeviceMgr] set the clone to be the default mode
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-15
+
+ -- SooChan Lim <sc1.lim@samsung.com>  Wed, 02 May 2012 17:27:12 +0900
+
+e17-extra-modules (0.3-14) unstable; urgency=low
+
+  * [COMP] Add Indicator Custom0 SHOW/HIDE Effect
+    [MOVE] 1. When Full Screen application is on Screen, Change Indicator Show point.
+              previous : mouse down -> mouse move -> mouse up ( when mouse is up , check  and indicator show or not.)
+              current : mouse down -> mouse move ( check indicator show or not ) -> mouse up ( check  and indicator show or not.)
+           2. Use Indicator  Custom0 SHOW/HIDE Effect when full screen application is on screen.
+           3. Fix sensivility of quickpanel move ( by indicator scroll )
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-14
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Fri, 27 Apr 2012 16:27:44 +0900
+
+e17-extra-modules (0.3-13) unstable; urgency=low
+
+  * [MOVE] 1. Fix Strange Window Position Problem
+              problem case : ( While Quickpanel is animating ) If Active window is changed, previous active window's moves strange geometry.
+           2. Add Function: Send Event -  target window and window manager
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-13
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Tue, 24 Apr 2012 20:38:12 +0900
+
+e17-extra-modules (0.3-12) unstable; urgency=low
+
+  * [COMP] 1. fix crash problem when taskmanager effect is running.
+           2. fix incorrect evas_object stack
+              - problem case
+                : task switcher show -> task switcher raise above -> task switcher show done
+              - this patch fix upper problem.
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-12
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 19 Apr 2012 17:30:29 +0900
+
+e17-extra-modules (0.3-11) unstable; urgency=low
+
+  * [MOVE] Add "Check Window Angle". When indicator press, Quickpanel press, apptray press.
+  * Git: slp/pkgs/e/e17-extra-modules
+  * Tag: e17-extra-modules_0.3-11
+
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Wed, 18 Apr 2012 19:33:37 +0900
+
 e17-extra-modules (0.3-10) unstable; urgency=low
 
-  * [COMP] fix incorrect evas_object stack 
-           - problem case
-            : task switcher show -> task switcher raise above -> task switcher show done 
-           - this patch fix upper problem.
+  * [DEVICEMGR] change the default external mode into 1920x1080
   * Git: slp/pkgs/e/e17-extra-modules
   * Tag: e17-extra-modules_0.3-10
 
- -- Gwangyeong Mun <kk.moon@samsung.com>  Thu, 19 Apr 2012 17:15:13 +0900
+ -- SooChan Lim <sc1.lim@samsung.com>  Tue, 17 Apr 2012 19:05:09 +0900
 
 e17-extra-modules (0.3-9) unstable; urgency=low
 
-  * [COMP] fix crash problem when taskmanager effect is running.
+  * [COMP] FIX EFFECT STATE SEND.
+           fix miss-sending of EFFECT_END client message.
   * Git: slp/pkgs/e/e17-extra-modules
   * Tag: e17-extra-modules_0.3-9
 
- -- Gwanglim Lee <gl77.lee@samsung.com>  Mon, 16 Apr 2012 19:07:48 +0900
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Sun, 08 Apr 2012 00:08:44 +0900
 
 e17-extra-modules (0.3-8) unstable; urgency=low
 
   * [ILLUME2] change code to use clipboard APIs not sliding-win APIs
+  * [COMP] Change Delete timing of Comp_Win Structure.
+           Before :
+              Border Window : BD_DEL.
+              Client Window : Window Destory.
+           Current:
+              Border Window : Window Destory.
+              Client Window : Window Destory.
   * Git: slp/pkgs/e/e17-extra-modules
   * Tag: e17-extra-modules_0.3-8
 
- -- Doyoun Kang <doyoun.kang@samsung.com>  Fri, 06 Apr 2012 12:55:12 +0900
+ -- Gwangyeong Mun <kk.moon@samsung.com>  Fri, 06 Apr 2012 20:20:12 +0900
 
 e17-extra-modules (0.3-7) unstable; urgency=low
 

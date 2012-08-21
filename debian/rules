@@ -15,11 +15,12 @@ PREFIX ?= /usr
 
 # This package contains multiple modules as shipped by upstream. Each module is # contained in a subdirectory in the root dir of the package. You must list each
 # subdirectory explicitly so that the build system knows what to build
-DEF_SUBDIRS=comp-slp illume2-slp keyrouter wmready move-slp
+DEF_SUBDIRS=comp-slp illume2-slp keyrouter wmready accessibility move-slp devicemgr
 SUBDIRS=$(DEF_SUBDIRS)
 BUILD_STAMPS = $(addprefix $(STAMP_DIR)/build-,$(SUBDIRS))
 
-CFLAGS = -Wall -g -fPIC -rdynamic -D_F_ENABLE_MOUSE_POPUP
+CFLAGS = -Wall -g -fPIC -rdynamic
+#CFLAGS += -D_F_ENABLE_MOUSE_POPUP
 CXXFLAGS += -fPIC
 LDFLAGS += -Wl,--hash-style=both -Wl,--as-needed -Wl,--rpath=$(PREFIX)/lib
 
