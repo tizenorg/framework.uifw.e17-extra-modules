@@ -1158,6 +1158,8 @@ static void _e_keyrouter_structure_init()
 	keyrouter.DeviceKeyRelease = -1;
 	keyrouter.xi2_opcode = -1;
 	keyrouter.isWindowStackChanged = 1;
+	keyrouter.prev_sent_keycode = 0;
+	keyrouter.resTopVisibleCheck = 0;
 #ifdef _F_ENABLE_MOUSE_POPUP
 	keyrouter.popup_angle = 0;
 	keyrouter.toggle = 0;
@@ -2460,14 +2462,16 @@ static void DeliverKeyEvents(XEvent *xev, XGenericEventCookie *cookie)
 #ifdef __DEBUG__
 				fprintf(stderr, "[32m[keyrouter][%s] isWindowStackChanged = %d[0m\n", __FUNCTION__, isWindowStackChanged);
 #endif
-				if( isWindowStackChanged )
-					resTopVisibleCheck = IsWindowTopVisibleWithoutInputFocus(keyrouter.HardKeys[index].top_ptr->wid, focus_window);
+				if( keyrouter.isWindowStackChanged || (keyrouter.prev_sent_keycode != xev->xkey.keycode) )
+					keyrouter.resTopVisibleCheck = IsWindowTopVisibleWithoutInputFocus(keyrouter.HardKeys[index].top_ptr->wid, focus_window);
 
-				if( !resTopVisibleCheck )
+				keyrouter.prev_sent_keycode = xev->xkey.keycode;
+
+				if( !keyrouter.resTopVisibleCheck )
 					goto shared_delivery;
 
-				if( isWindowStackChanged )
-					isWindowStackChanged = 0;
+				if( keyrouter.isWindowStackChanged )
+					keyrouter.isWindowStackChanged = 0;
 			}
 
 			// Is Grab Mode equal to TOP_POSITION ?
@@ -2509,7 +2513,7 @@ shared_delivery:
 			if( !is_focus_window_in_shared_list )
 			{
 				xiData->event = xev->xkey.window = focus_window;
-				if( isWindowStackChanged )
+				if( keyrouter.isWindowStackChanged )
 					BackedupSharedWins(index, focus_window);
 
 				if( xev->type == KeyPress )
@@ -2520,11 +2524,11 @@ shared_delivery:
 				}
 			}
 			else
-				if( isWindowStackChanged )
+				if( keyrouter.isWindowStackChanged )
 					BackedupSharedWins(index, None);
 
-			if( isWindowStackChanged )
-				isWindowStackChanged = 0;
+			if( keyrouter.isWindowStackChanged )
+				keyrouter.isWindowStackChanged = 0;
 			break;
 
 		default:
@@ -2591,8 +2595,10 @@ static void DeliverDeviceKeyEvents(XEvent *xev, int replace_key)
 #ifdef __DEBUG__
 				fprintf(stderr, "[32m[keyrouter][%s] isWindowStackChanged = %d[0m\n", __FUNCTION__, keyrouter.isWindowStackChanged);
 #endif
-				if( keyrouter.isWindowStackChanged )
+				if( keyrouter.isWindowStackChanged || (keyrouter.prev_sent_keycode != xev->xkey.keycode) )
 					keyrouter.resTopVisibleCheck = IsWindowTopVisibleWithoutInputFocus(keyrouter.HardKeys[index].top_ptr->wid, focus_window);
+
+				keyrouter.prev_sent_keycode = xev->xkey.keycode;
 
 				if( !keyrouter.resTopVisibleCheck )
 					goto shared_delivery;

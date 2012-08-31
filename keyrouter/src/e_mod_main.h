@@ -183,6 +183,7 @@ typedef struct _tag_keyrouter
 	GrabbedKey HardKeys[MAX_HARDKEYS];
 	int isWindowStackChanged;
 	int resTopVisibleCheck;
+	int prev_sent_keycode;
 
 	struct FILE *fplog;
 
