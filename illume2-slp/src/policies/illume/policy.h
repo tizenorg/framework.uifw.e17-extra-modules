@@ -62,6 +62,7 @@ struct _E_Illume_Border_Info
    int pid;
    int level;
    int opaque;
+   Ecore_X_Window_Type win_type;
    E_Border* border;
 };
 

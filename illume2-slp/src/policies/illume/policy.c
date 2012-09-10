@@ -864,16 +864,17 @@ _policy_border_post_new_border(E_Border *bd)
 
    if (bd->new_client)
      {
-        if (e_illume_border_is_notification (bd))
-          {
-             // create border_info
-             bd_info = _policy_get_border_info(bd);
-             if (bd_info == NULL)
-                bd_info = _policy_add_border_info_list (bd);
+        bd_info = _policy_get_border_info(bd);
+        if (bd_info == NULL)
+          bd_info = _policy_add_border_info_list(bd);
 
-             level = _policy_border_get_notification_level (bd->client.win);
+        bd_info->win_type = bd->client.netwm.type;
+
+        if (e_illume_border_is_notification(bd))
+          {
+             level = _policy_border_get_notification_level(bd->client.win);
              L (LT_NOTIFICATION, "[ILLUME2][NOTIFICATION] %s(%d)... win (0x%07x) is notification window... level = %d\n", __func__, __LINE__, bd->client.win, level);
-             _policy_border_update_notification_stack (bd, level, EINA_TRUE);
+             _policy_border_update_notification_stack(bd, level, EINA_TRUE);
           }
      }
 }
@@ -1846,11 +1847,19 @@ static void _policy_property_win_type_change (Ecore_X_Event_Window_Property *eve
 {
    E_Border *bd;
    E_Border *indi_bd;
+   E_Illume_Border_Info* bd_info = NULL;
    int level;
 
    if (!(bd = e_border_find_by_client_window(event->win))) return;
 
+   bd_info = _policy_get_border_info(bd);
+   if (!bd_info) return;
+
    e_hints_window_type_get (bd);
+
+   if (bd_info->win_type == bd->client.netwm.type) return;
+   bd_info->win_type = bd->client.netwm.type;
+
    if (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_NOTIFICATION)
      {
         ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... WINDOW TYPE is CHANGED to NOTIFICATION!!!!! win = 0x%07x\n", __func__, __LINE__, bd->client.win);
@@ -1914,11 +1923,8 @@ static void _policy_property_rotate_root_angle_change (Ecore_X_Event_Window_Prop
 
    if (prop_data) free (prop_data);
 
-   L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. ROOT ANGLE CHANGED... angle = %d\n", __func__, __LINE__, angle);
-   Ecore_X_Window active_win;
-   active_win = _policy_active_window_get(event->win);
-
-   bd = e_border_find_by_client_window(active_win);
+   L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. ROOT ANGLE CHANGED... angle = %d. control_win:0x%07x\n", __func__, __LINE__, angle, g_indi_control_win);
+   bd = e_border_find_by_client_window(g_indi_control_win);
 
    if (bd) zone = bd->zone;
    else zone = e_util_container_zone_number_get (0, 0);
@@ -1948,7 +1954,7 @@ static void _policy_property_rotate_root_angle_change (Ecore_X_Event_Window_Prop
 
                   L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d)... win = 0x%07x..  SEND client Event with angle = %d\n", __func__, __LINE__, bd_temp->client.win, angle);
                   ecore_x_client_message32_send (bd_temp->client.win, ECORE_X_ATOM_E_ILLUME_ROTATE_ROOT_ANGLE,
-                                                 ECORE_X_EVENT_MASK_WINDOW_CONFIGURE, angle, g_active_win, 0, 0, 0);
+                                                 ECORE_X_EVENT_MASK_WINDOW_CONFIGURE, angle, g_indi_control_win, 0, 0, 0);
                }
 
              e_illume_util_hdmi_rotation (event->win, angle);
@@ -4366,6 +4372,12 @@ _policy_xwin_info_delete (Ecore_X_Window win)
 
 void _policy_window_create (Ecore_X_Event_Window_Create *event)
 {
+   Ecore_X_Window parent;
+
+   parent = ecore_x_window_parent_get(event->win);
+   if (parent != ecore_x_window_root_get(event->win))
+     return;
+
    L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:0x%07x...\n", __func__, __LINE__, event->win);
 
    _policy_xwin_info_add (event->win);
