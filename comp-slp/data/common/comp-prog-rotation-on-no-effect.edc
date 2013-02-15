@@ -1,0 +1,36 @@
+program { name: "prog-rot-0";
+   signal: "e,state,rotation,on";
+   source: "e.rot.0";
+   after : "prog-emit-rotation-done";
+   script {
+      set_curr_window_ang(0)
+      window_rotation(0)
+   }
+}
+program { name: "prog-rot-90";
+   signal: "e,state,rotation,on";
+   source: "e.rot.90";
+   after : "prog-emit-rotation-done";
+   script {
+      set_curr_window_ang(90)
+      window_rotation(0)
+   }
+}
+program { name: "prog-rot-180";
+   signal: "e,state,rotation,on";
+   source: "e.rot.180";
+   after : "prog-emit-rotation-done";
+   script {
+      set_curr_window_ang(180)
+      window_rotation(0)
+   }
+}
+program { name: "prog-rot-270";
+   signal: "e,state,rotation,on";
+   source: "e.rot.270";
+   after : "prog-emit-rotation-done";
+   script {
+      set_curr_window_ang(270)
+      window_rotation(0)
+   }
+}

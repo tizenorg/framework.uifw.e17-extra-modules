@@ -1,0 +1,64 @@
+description { state: "default-visible" 0.0;
+   inherit: "default" 0.0;
+   map {
+      on: 1;
+      smooth: 1;
+      backface_cull: 0;
+      perspective_on: 1;
+      perspective: "persp";
+      rotation.x: 0;
+      rotation.y: 0;
+      rotation.z: 0;
+   }
+}
+description { state: "visible-rotation--270" 0.0;
+   inherit: "default-visible" 0.0;
+   map.perspective: "persp";
+   map.rotation.z: -270;
+}
+description { state: "visible-rotation--180" 0.0;
+   inherit: "default-visible" 0.0;
+   map.perspective: "persp";
+   map.rotation.z: -180;
+}
+description { state: "visible-rotation--90" 0.0;
+   inherit: "default-visible" 0.0;
+   map {
+      on: 1;
+      smooth: 1;
+      backface_cull: 0;
+      perspective_on: 1;
+      perspective: "persp";
+      rotation.x: 0;
+      rotation.y: 0;
+      rotation.z: -90;
+   }
+}
+description { state: "visible-rotation-0" 0.0;
+   inherit: "default-visible" 0.0;
+   map.perspective: "persp";
+   map.rotation.z: 0;
+}
+description { state: "visible-rotation-90" 0.0;
+   inherit: "default-visible" 0.0;
+   map {
+      on: 1;
+      smooth: 1;
+      backface_cull: 0;
+      perspective_on: 1;
+      perspective: "persp";
+      rotation.x: 0;
+      rotation.y: 0;
+      rotation.z: 90;
+   }
+}
+description { state: "visible-rotation-180" 0.0;
+   inherit: "default-visible" 0.0;
+   map.perspective: "persp";
+   map.rotation.z: 180;
+}
+description { state: "visible-rotation-270" 0.0;
+   inherit: "default-visible" 0.0;
+   map.perspective: "persp";
+   map.rotation.z: 270;
+}

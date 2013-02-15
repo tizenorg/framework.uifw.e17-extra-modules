@@ -1,0 +1,33 @@
+program { name: "prog-emit-show-done";
+   action: SIGNAL_EMIT "e,action,show,done" "e";
+}
+program { name: "prog-emit-hide-done";
+   action: SIGNAL_EMIT "e,action,hide,done" "e";
+}
+program { name: "prog-emit-move-done";
+   action: SIGNAL_EMIT "e,action,move,done" "e";
+}
+program { name: "prog-emit-restack-done";
+   action: SIGNAL_EMIT "e,action,restack,done" "e";
+}
+program { name: "prog-emit-raise-above-1-done";
+   action: SIGNAL_EMIT "e,action,raise_above1,done" "e";
+}
+program { name: "prog-emit-raise-above-2-done";
+   action: SIGNAL_EMIT "e,action,raise_above2,done" "e";
+}
+program { name: "prog-emit-raise-above-3-done";
+   action: SIGNAL_EMIT "e,action,raise_above3,done" "e";
+}
+program { name: "prog-emit-raise-above-hide-done";
+   action: SIGNAL_EMIT "e,action,raise_above_hide,done" "e";
+}
+program { name: "prog-emit-rotation-done";
+   action: SIGNAL_EMIT "e,action,rotation,done" "e";
+}
+program { name: "prog-emit-bg-show-done";
+   action: SIGNAL_EMIT "e,action,background,show,done" "e";
+}
+program { name: "prog-emit-bg-hide-done";
+   action: SIGNAL_EMIT "e,action,background,hide,done" "e";
+}

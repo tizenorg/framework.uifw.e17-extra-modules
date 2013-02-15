@@ -1,0 +1,96 @@
+/* ----------------------------------------------------------------------------*/
+/* embryo script for logger and rotation                                       */
+/* ----------------------------------------------------------------------------*/
+script {
+
+#if USE_LOGGER
+   public logger_enable = 0;
+   public logno = 0;
+
+   public set_logging(on) {
+      set_int(logger_enable, on);
+   }
+
+   public log_msg(Msg_Type:type, ...) {
+      if (get_int(logger_enable) == 1) {
+         if (type == MSG_STRING) {
+            new msg[200];
+            getsarg(1, msg, 200);
+            strcat(msg, "<br>");
+
+            new logno_str[10];
+            new no = get_int(logno);
+            snprintf(logno_str, 10, "[%i] ", no);
+            strprep(msg, logno_str);
+
+            new str[1024];
+            get_text(PART:"logger", str, 1024);
+
+            strprep(str, msg);
+            set_text(PART:"logger", str);
+
+            set_int(logno, no+1);
+         }
+      }
+   }
+#endif /* end of USE_LOGGER */
+
+   public prev_window_ang = 0;
+   public curr_window_ang = 0;
+
+   public set_curr_window_ang(ang) {
+      set_int(curr_window_ang, ang);
+   }
+
+   public window_rotation(do_effect) {
+      new prev_ang;
+      new curr_ang;
+      new diff_ang;
+      new x, y, w, h;
+      new rect_w, rect_h;
+
+      prev_ang = get_int(prev_window_ang);
+      curr_ang = get_int(curr_window_ang);
+
+      get_geometry(PART:"shower", x, y, w, h);
+
+#if USE_LOGGER
+      new str[200];
+      snprintf(str, 200, "window_rotation() %i,%i %ix%i %i->%i", x, y, w, h, prev_ang, curr_ang);
+      log_msg(MSG_STRING, str);
+#endif /* end of USE_LOGGER */
+
+      diff_ang = prev_ang - curr_ang;
+
+      if (diff_ang == 180 || diff_ang == -180) {
+         rect_w = w;
+         rect_h = h;
+      }
+      else if (diff_ang == 0) {
+         rect_w = w;
+         rect_h = h;
+      }
+      else {
+         rect_w = h;
+         rect_h = w;
+      }
+
+      custom_state(PART:"shower", "default", 0.0);
+      set_state_val(PART:"shower", STATE_MIN, rect_w, rect_h);
+      set_state_val(PART:"shower", STATE_MAX, rect_w, rect_h);
+      set_state_val(PART:"shower", STATE_MAP_ROT_Z, curr_ang*1.0);
+      set_state(PART:"shower", "custom", 0.0);
+
+      custom_state(PART:"e.swallow.content", "default", 0.0);
+      if (do_effect) {
+         set_state_val(PART:"e.swallow.content", STATE_MAP_ROT_Z, prev_ang*1.0);
+      }
+      else {
+         set_state_val(PART:"e.swallow.content", STATE_MAP_ROT_Z, curr_ang*1.0);
+      }
+      set_state(PART:"e.swallow.content", "custom", 0.0);
+
+      set_int(prev_window_ang, curr_ang);
+   }
+
+} /* end of script */
