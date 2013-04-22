@@ -1,0 +1,4 @@
+images {
+   image: "comp-sh1.png" COMP;
+   image: "bt_glow.png" COMP;
+}

@@ -1,0 +1,2 @@
+* Wed Nov 28 2012 Anas Nashif <anas.nashif@intel.com> accepted/trunk/20121113.042536@ff62a74
+- Use libX11 instead of libx11

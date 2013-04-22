@@ -1,0 +1,497 @@
+/*-----------------------------------------------------*/
+/* group "home_screen"                                 */
+/*-----------------------------------------------------*/
+group { name: "home_screen";
+  #include "../common/comp-config.edc"
+  parts {
+     part { name: "clipper";
+        type: RECT;
+        mouse_events: 0;
+        description { state: "default" 0.0;
+           visible: 1;
+           color: 255 255 255 1;
+           rel1.relative: -1.0  -1.0;
+           rel1.offset:  -9999 -9999;
+           rel2.relative:  2.0   2.0;
+           rel2.offset:   9999  9999;
+        }
+        description { state: "visible" 0.0;
+           inherit: "default" 0.0;
+           visible: 1;
+           color: 255 255 255 255;
+        }
+        description { state: "background" 0.0;
+           inherit: "default" 0.0;
+           visible: 0;
+           color: 0 0 0 0;
+        }
+        description { state: "default" 1.0;
+           inherit: "default" 0.0;
+           visible: 1;
+           color: 255 255 255 255;
+        }
+        description { state: "default" 0.5;
+           inherit: "default" 0.0;
+           visible: 0;
+           color: 0 0 0 0;
+        }
+        description { state: "custom0" 0.0;
+           inherit: "default" 0.0;
+        }
+        description { state: "custom1" 0.0;
+           inherit: "default" 0.0;
+        }
+     }
+
+     part { name: "shower";
+        type: RECT;
+        mouse_events: 0;
+        description { state: "default" 0.0;
+           visible: 0;
+           rel1.relative: 0.25 0.25;
+           rel1.offset:   0    0;
+           rel2.relative: 0.75 0.75;
+        }
+        description { state: "visible" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative: 0 0;
+           rel1.offset:   0 0;
+           rel2.relative: 1 1;
+        }
+        description { state: "background" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative: -0.45 -0.45; // this line indicate background window's size
+           rel2.relative:  1.45  1.45; // this line indicate background window's size
+        }
+        description { state: "indicator_raise_above" 0.0;
+           inherit : "default" 0.0;
+           rel1 {
+              relative : 0.0    0.0;
+              offset:   0   0;
+           }
+           rel2 {
+              relative : 1.0    1.0;
+           }
+        }
+        description { state: "indicator_raise_above" 0.1;
+           inherit : "default" 0.0;
+           rel1 {
+              relative : 0.0    -1.0;
+              offset:   0   0;
+           }
+           rel2 {
+              relative : 1.0    0.0;
+           }
+        }
+        description { state: "custom0" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative: 0 1;
+           rel2.relative: 1 2;
+        }
+        description { state: "custom1" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative: 1 0;
+           rel2.relative: 2 1;
+        }
+     }
+     part { name: "persp";
+        type: RECT;
+        description { state: "default" 0.0;
+           min: 1 1;
+           max: 1 1;
+           visible: 0;
+           perspective.zplane: 0;
+           perspective.focal: 1000;
+        }
+        description { state: "visible" 0.0;
+           inherit: "default" 0.0;
+           perspective.zplane: 0;
+        }
+        description { state: "hide" 0.0;
+           inherit: "default" 0.0;
+           perspective.zplane: -1500;
+        }
+        description { state: "hide" 1.0;
+           inherit: "default" 0.0;
+           perspective.zplane: 0;
+        }
+     }
+     part { name: "e.swallow.content";
+        type: SWALLOW;
+        clip_to: "clipper";
+        mouse_events: 0;
+        description { state: "default" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+           map.on: 0;
+        }
+        description { state: "default" 1.0;
+           inherit: "default" 0.0;
+           rel1.relative: 0 0;
+           rel2.relative: 1 1;
+        }
+        description { state: "default" 0.5;
+           inherit: "default" 0.0;
+           rel1.relative: 0 0;
+           rel2.relative: 1 1;
+        }
+        /*-------------------------------------------------------------------*/
+        /*               window roation state for swallow                    */
+        /*               it must be below default state.                     */
+        /*-------------------------------------------------------------------*/
+        #include "../common/comp-part-swallow-rotation-on-effect-for-win.edc"
+        /*-------------------------------------------------------------------*/
+        description { state: "visible" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+           map.on: 0;
+        }
+        description { state: "background" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+           map.on: 0;
+        }
+        description { state: "custom0" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+           map.on: 0;
+        }
+        description { state: "custom1" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+           map.on: 0;
+        }
+     }
+  }
+  programs {
+     program { name: "show1";
+        signal: "e,state,visible,on";
+        source: "e";
+        action: STATE_SET "background" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "show2";
+     }
+     program { name: "show2";
+        action: STATE_SET "background" 0.0;
+        transition: LINEAR 0.0415;
+        target: "shower";
+        target: "clipper";
+        target: "e.swallow.content";
+        after: "show3";
+     }
+     program { name: "show3";
+        action: STATE_SET "visible" 0.0;
+        transition: DECELERATE 0.35;
+        target: "shower";
+        target: "clipper";
+        target: "e.swallow.content";
+        after: "show4";
+     }
+     program { name: "show4";
+        action: SIGNAL_EMIT "e,action,show,done" "e";
+     }
+     program { name: "hide1";
+        signal: "e,state,visible,off";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "hide2";
+     }
+     program { name: "hide2";
+        action: STATE_SET "background" 0.0;
+        transition: LINEAR 0.35;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "hide3";
+     }
+     program { name: "hide3";
+        action: STATE_SET "background" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "hide4";
+     }
+     program { name: "hide4";
+        action: STATE_SET "default" 0.0;
+        target: "clipper";
+        target: "shower";
+        after: "hide5";
+     }
+     program { name: "hide5";
+        action: STATE_SET "visible" 0.0;
+        target: "e.swallow.content";
+        after: "hide6";
+     }
+     program { name: "hide6";
+        action: SIGNAL_EMIT "e,action,hide,done" "e";
+     }
+     program { name: "raise_above_show1";
+        signal: "e,state,raise_above,on";
+        source: "e";
+        action: STATE_SET "background" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "raise_above_show2";
+     }
+     program { name: "raise_above_show2";
+        action: STATE_SET "background" 0.0;
+        transition: LINEAR 0.0415;
+        target: "shower";
+        target: "clipper";
+        target: "e.swallow.content";
+        after: "raise_above_show3";
+     }
+     program { name: "raise_above_show3";
+        action: STATE_SET "visible" 0.0;
+        transition: DECELERATE 0.35;
+        target: "shower";
+        target: "clipper";
+        target: "e.swallow.content";
+        after: "raise_above_show4";
+     }
+     program { name: "raise_above_show4";
+        action: SIGNAL_EMIT "e,action,raise_above_show,done" "e";
+     }
+     program { name: "raise_above_hide1";
+        signal: "e,state,raise_above,off";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "raise_above_hide2";
+     }
+     program { name: "raise_above_hide2";
+        action: STATE_SET "default" 0.0;
+        transition: DECELERATE 0.35;
+        target: "clipper";
+        target: "shower";
+        after: "raise_above_hide3";
+     }
+     program { name: "raise_above_hide3";
+        action: STATE_SET "default" 0.0;
+        transition: LINEAR 0.2;
+        target: "clipper";
+        target: "shower";
+        after: "raise_above_hide4";
+     }
+     program { name: "raise_above_hide4";
+        action: SIGNAL_EMIT "e,action,raise_above_hide,done" "e";
+     }
+     program { name: "raise_above_hide_post_work";
+        signal: "e,state,raise_above_post,on";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+     }
+     /*------------------------------------------------------------*/
+     /*              window roation Program                        */
+     /*------------------------------------------------------------*/
+     #include "../common/comp-prog-rotation-on-effect-for-win.edc"
+     /*------------------------------------------------------------*/
+     program { name: "raise_above3";
+        signal: "e,state,raise_above3,on";
+        source: "e";
+        action: STATE_SET "indicator_raise_above" 0.0;
+        target: "shower";
+        after: "raise_above3_2";
+     }
+     program { name: "raise_above3_2";
+        action : STATE_SET "indicator_raise_above" 0.1;
+        transition: SINUSOIDAL 0.166;
+        target: "shower";
+        after : "raise_above3_3";
+     }
+     program { name: "raise_above3_3";
+        action : STATE_SET "indicator_raise_above" 0.1;
+        transition: LINEAR 0.1328;
+        target: "shower";
+        after : "raise_above3_4";
+     }
+     program { name: "raise_above3_4";
+        action : STATE_SET "indicator_raise_above" 0.0;
+        transition: SINUSOIDAL 0.166;
+        target: "shower";
+        after : "raise_above3_done";
+     }
+     program { name: "raise_above3_done";
+        action: SIGNAL_EMIT "e,action,raise_above3,done" "e";
+     }
+     program { name: "show1_noeffect";
+        signal: "e,state,visible,on,noeffect";
+        source: "e";
+        action: STATE_SET "default" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "show2_noeffect";
+     }
+     program { name: "show2_noeffect";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "show3";
+     }
+     program { name: "hide1_noeffect";
+        signal: "e,state,visible,off,noeffect";
+        source: "e";
+        action: STATE_SET "default" 0.0;
+        target: "clipper";
+        target: "shower";
+        after: "hide3";
+     }
+     program { name: "show_background1";
+        signal: "e,state,background,visible,on";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "show_background2";
+     }
+     program { name: "show_background2";
+        action: STATE_SET "background" 0.0;
+        transition: LINEAR 0.2656;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "show_background3";
+     }
+     program { name: "show_background3";
+        action: STATE_SET "background" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "show_background4";
+     }
+     program { name: "show_background4";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "show_background5";
+     }
+     program { name: "show_background5";
+        action: SIGNAL_EMIT "e,action,background,show,done" "e";
+     }
+     program { name: "hide_background1";
+        signal: "e,state,background,visible,off";
+        source: "e";
+        action: STATE_SET "background" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "hide_background2";
+     }
+     program { name: "hide_background2";
+        action: STATE_SET "background" 0.0;
+        target: "shower";
+        target: "clipper";
+        target: "e.swallow.content";
+        after: "hide_background3";
+     }
+     program { name: "hide_background3";
+        action: STATE_SET "visible" 0.0;
+        transition: DECELERATE 0.35;
+        target: "shower";
+        target: "clipper";
+        target: "e.swallow.content";
+        after: "hide_background4";
+     }
+     program { name: "hide_background4";
+        action: SIGNAL_EMIT "e,action,background,hide,done" "e";
+     }
+     program { name: "show_fake_background1";
+        signal: "e,state,fake,background,visible,on";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "show_fake_background2";
+     }
+     program { name: "show_fake_background2";
+        action: STATE_SET "background" 0.0;
+        transition: LINEAR 0.4565;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "show_background3";
+     }
+     program { name: "show1_custom0";
+        signal: "e,state,visible,on,custom0";
+        source: "e";
+        action: STATE_SET "custom0" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "show2_custom0";
+     }
+     program { name: "show2_custom0";
+        action: STATE_SET "visible" 0.0;
+        transition: DECELERATE 0.6;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "show3";
+     }
+     program { name: "hide1_custom0";
+        signal: "e,state,visible,off,custom0";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "hide2_custom0";
+     }
+     program { name: "hide2_custom0";
+        action: STATE_SET "custom0" 0.0;
+        transition: DECELERATE 0.6;
+        target: "clipper";
+        target: "shower";
+        after: "hide3";
+     }
+     program { name: "show1_custom1";
+        signal: "e,state,visible,on,custom1";
+        source: "e";
+        action: STATE_SET "custom1" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "show2_custom1";
+     }
+     program { name: "show2_custom1";
+        action: STATE_SET "visible" 0.0;
+        transition: DECELERATE 0.5;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "show3";
+     }
+     program { name: "hide1_custom1";
+        signal: "e,state,visible,off,custom1";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "hide2_custom1";
+     }
+     program { name: "hide2_custom1";
+        action: STATE_SET "custom1" 0.0;
+        transition: DECELERATE 0.5;
+        target: "clipper";
+        target: "shower";
+        after: "hide3";
+     }
+  }
+} /* end of group "shadow_fade" */

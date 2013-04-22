@@ -1,0 +1,102 @@
+# authored by Sung-Jin Park <sj76.park@samsung.com>
+#
+# Note )
+#
+# AC_DEFINE(VARIABLE, VALUE, DESCRIPTION)
+#   output the following to config.h
+#   /* DESCRIPTION */
+#   #define VARIABLE VALUE
+#
+# AC_SUBST(VARIABLE, [VALUE])
+#   define $(VARIABLE) as VALUE in Makefile
+
+dnl ========================================================================
+# initialization
+dnl ========================================================================
+AC_INIT([e17-extra-module-devicemgr], [0.1], [sj76.park@samsung.com])
+
+# check for tools needed by automake generated Makefiles
+# -Wall  : Turn all warnings on.
+# -Werror: report warings as errors.
+# foreign: relax some GNU standard requirements
+#AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE([-Wall foreign])
+
+dnl ========================================================================
+# checks for programs
+dnl ========================================================================
+AC_PROG_CC
+AC_DISABLE_STATIC
+AC_PROG_LIBTOOL
+
+dnl ========================================================================
+# checks for libraries
+dnl ========================================================================
+
+dnl ========================================================================
+# checks for header files
+dnl ========================================================================
+#AC_HEADER_STDC
+AC_CHECK_HEADERS([math.h fcntl.h stdlib.h string.h unistd.h])
+
+dnl ========================================================================
+# checks for typedefs, structures, and compiler characteristics
+AC_C_CONST
+
+dnl ========================================================================
+# checks for library functions
+dnl ========================================================================
+#AC_FUNC_MALLOC
+AC_FUNC_MMAP
+AC_CHECK_FUNCS([memset munmap strcasecmp strdup])
+
+dnl ========================================================================
+# checks for pkg-config
+dnl ========================================================================
+PKG_PROG_PKG_CONFIG
+
+#PKG_CHECK_MODULES(GESTUREPROTO, gestureproto)
+#PKG_CHECK_MODULES(GESTURELIB, xgesture)
+
+dnl ========================================================================
+# checks for pkg-config
+dnl ========================================================================
+#PKG_CHECK_MODULES(ENLIGHTENMENT, [enlightenment, gestureproto, xgesture])
+PKG_CHECK_MODULES(ENLIGHTENMENT, [enlightenment, sensor, vconf])
+ENLIGHTENMENT_CFLAGS="${ENLIGHTENMENT_CFLAGS} "
+AC_SUBST(ENLIGHTENMENT_CFLAGS)
+AC_SUBST(ENLIGHTENMENT_LIBS)
+
+
+dnl =======================================================================
+
+release=$(pkg-config --variable=release enlightenment)
+MODULE_ARCH="$host_os-$host_cpu-$release"
+AC_SUBST(MODULE_ARCH)
+AC_DEFINE_UNQUOTED(MODULE_ARCH, "$MODULE_ARCH", "Module architecture")
+
+datadir=$(pkg-config --variable=modules enlightenment)/${PACKAGE}
+AC_ARG_ENABLE(homedir-install,
+	AS_HELP_STRING([--enable-homedir-install], [Install module in homedir]),
+	[ datadir="${HOME}/.e/e/modules/${PACKAGE}" ]
+)
+
+dnl ========================================================================
+# output files
+dnl ========================================================================
+
+# create HEADER for all HEADER.in.
+# HEADERS contain definitions made with AC_DEFINE.
+# the following command will create config.h from config.h.in
+AC_CONFIG_HEADERS([config.h])
+
+# create FILE for all FILE.in.
+# FILES contains definitions made with AC_SUBST.
+AC_CONFIG_FILES([
+		 Makefile
+		 src/Makefile
+		 module.desktop
+		 ])
+
+AC_OUTPUT
+

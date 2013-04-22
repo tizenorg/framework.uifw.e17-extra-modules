@@ -1,0 +1,59 @@
+program { name: "prog-window-rotation--270";
+   signal: "e,state,window,rotation,-270";
+   source: "e";
+   action: STATE_SET "visible-rotation--270" 0.0;
+   target: "e.swallow.content";
+   after: "prog-window-rotation-0-done";
+}
+program { name: "prog-window-rotation--180";
+   signal: "e,state,window,rotation,-180";
+   source: "e";
+   action: STATE_SET "visible-rotation--180" 0.0;
+   target: "e.swallow.content";
+   after: "prog-window-rotation-0-done";
+}
+program { name: "prog-window-rotation--90";
+   signal: "e,state,window,rotation,-90";
+   source: "e";
+   action: STATE_SET "visible-rotation--90" 0.0;
+   target: "e.swallow.content";
+   after: "prog-window-rotation-0-done";
+}
+program { name: "prog-window-rotation-0";
+   signal: "e,state,window,rotation,0";
+   source: "e";
+   action: STATE_SET "visible-rotation-0" 0.0;
+   target: "e.swallow.content";
+   after: "prog-window-rotation-0-done";
+}
+program { name: "prog-window-rotation-90";
+   signal: "e,state,window,rotation,90";
+   source: "e";
+   action: STATE_SET "visible-rotation-90" 0.0;
+   target: "e.swallow.content";
+   after: "prog-window-rotation-0-done";
+}
+program { name: "prog-window-rotation-180";
+   signal: "e,state,window,rotation,180";
+   source: "e";
+   action: STATE_SET "visible-rotation-180" 0.0;
+   target: "e.swallow.content";
+   after: "prog-window-rotation-0-done";
+}
+program { name: "prog-window-rotation-270";
+   signal: "e,state,window,rotation,270";
+   source: "e";
+   action: STATE_SET "visible-rotation-270" 0.0;
+   target: "e.swallow.content";
+   after: "prog-window-rotation-0-done";
+}
+
+program { name: "prog-window-rotation-0-done";
+   action: STATE_SET "visible-rotation-0" 0.0;
+   target: "e.swallow.content";
+   transition: DURATION_WND_ROT_SWALLOW_DEG_TO_ZERO;
+   after: "prog-emit-window-rotation-done";
+}
+program { name: "prog-emit-window-rotation-done";
+   action: SIGNAL_EMIT "e,action,window,rotation,done" "e";
+}

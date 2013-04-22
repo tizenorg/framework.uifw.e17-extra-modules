@@ -1,0 +1,10 @@
+#if USE_LOGGER
+program { name: "prog-logger-enable";
+   action: STATE_SET "visible" 0.0;
+   target: "logger";
+}
+program { name: "prog-logger-disable";
+   action: STATE_SET "default" 0.0;
+   target: "logger";
+}
+#endif /* end of USE_LOGGER */
