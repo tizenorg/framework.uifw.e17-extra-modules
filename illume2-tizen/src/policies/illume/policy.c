@@ -4280,6 +4280,23 @@ _policy_calculate_visibility(void)
              control_indi = 1;
              zone = xwin_info->bd_info->border->zone;
           }
+        else
+          {
+             if (xwin_info->visibility == E_ILLUME_VISIBILITY_FULLY_OBSCURED)
+               {
+                  if (_e_illume_cfg->use_force_iconify)
+                    {
+                       if (bd->parent && bd->parent->iconic)
+                         {
+                            if ((!bd->iconic) && (!do_not_iconify))
+                              {
+                                 L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. Iconify by illume.. win:0x%07x (parent:0x%07x)\n", __func__, __LINE__, xwin_info->bd_info->border->client.win, xwin_info->bd_info->border->parent ? xwin_info->bd_info->border->parent->client.win:(unsigned int)NULL);
+                                 _policy_border_iconify_by_illume(xwin_info);
+                              }
+                         }
+                    }
+               }
+          }
      }
 
    if (control_indi)
