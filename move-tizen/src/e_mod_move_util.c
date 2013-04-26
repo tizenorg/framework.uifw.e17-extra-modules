@@ -108,7 +108,18 @@ EINTERN void
 e_mod_move_util_rotation_lock(E_Move *m)
 {
    unsigned int val = 1;
+   E_Manager   *man = NULL;
+   E_Zone      *zone = NULL;
+
    E_CHECK(m);
+
+   man = m->man;
+   E_CHECK(man);
+
+   zone = e_util_zone_current_get(man);
+   E_CHECK(zone);
+
+   e_zone_rotation_block_set(zone, "move-tizen", EINA_TRUE);
    ecore_x_window_prop_card32_set(m->man->root, ATOM_ROTATION_LOCK, &val, 1);
 }
 
@@ -116,7 +127,18 @@ EINTERN void
 e_mod_move_util_rotation_unlock(E_Move *m)
 {
    unsigned int val = 0;
+   E_Manager   *man = NULL;
+   E_Zone      *zone = NULL;
+
    E_CHECK(m);
+
+   man = m->man;
+   E_CHECK(man);
+
+   zone = e_util_zone_current_get(man);
+   E_CHECK(zone);
+
+   e_zone_rotation_block_set(zone, "move-tizen", EINA_FALSE);
    ecore_x_window_prop_card32_set(m->man->root, ATOM_ROTATION_LOCK, &val, 1);
 }
 
