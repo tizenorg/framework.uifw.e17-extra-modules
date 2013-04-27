@@ -10,8 +10,12 @@
     evas_object_text_text_set(cov->text, txt); \
     INF("%s", txt)
 #else
-  #define INFO(cov, txt) INF("%s", txt)
+  #define INFO(cov, txt) INF("%s -> %x", txt, target_win)
 #endif
+
+#define MOUSE_BUTTON_DOWN 0
+#define MOUSE_MOVE 1
+#define MOUSE_BUTTON_UP 2
 
 typedef struct
 {
@@ -328,7 +332,7 @@ _message_back_send(Cover *cov)
    ecore_x_client_message32_send(target_win, ECORE_X_ATOM_E_ILLUME_ACCESS_CONTROL,
                                  ECORE_X_EVENT_MASK_WINDOW_CONFIGURE,
                                  target_win,
-                                 cov->atom_back,
+                                 ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_BACK,
                                  0, 0, 0);
 }
 
@@ -336,8 +340,10 @@ static void
 _message_scroll_send(Cover *cov, int type)
 {
    int x, y;
+   Ecore_X_Atom atom;
 
-   if (cov->lock_screen) type = type + 3;
+   atom = ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_SCROLL;
+   if (cov->lock_screen) atom = ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_MOUSE;
 
    ecore_x_pointer_xy_get(target_win, &x, &y);
    _coordinate_calibrate(target_win, &x, &y);
@@ -345,7 +351,22 @@ _message_scroll_send(Cover *cov, int type)
    ecore_x_client_message32_send(target_win, ECORE_X_ATOM_E_ILLUME_ACCESS_CONTROL,
                                  ECORE_X_EVENT_MASK_WINDOW_CONFIGURE,
                                  target_win,
-                                 cov->atom_scroll,
+                                 atom,
+                                 type, x, y);
+}
+
+static void
+_message_mouse_send(Cover *cov, int type)
+{
+   int x, y;
+
+   ecore_x_pointer_xy_get(target_win, &x, &y);
+   _coordinate_calibrate(target_win, &x, &y);
+
+   ecore_x_client_message32_send(target_win, ECORE_X_ATOM_E_ILLUME_ACCESS_CONTROL,
+                                 ECORE_X_EVENT_MASK_WINDOW_CONFIGURE,
+                                 target_win,
+                                 ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_MOUSE,
                                  type, x, y);
 }
 
@@ -629,7 +650,7 @@ _mouse_up(Cover *cov, Ecore_Event_Mouse_Button *ev)
      {
         cov->two_finger_down = EINA_FALSE;
 
-        _message_scroll_send(cov, 2);
+        _message_scroll_send(cov, MOUSE_BUTTON_UP);
         cov->lock_screen = EINA_FALSE;
 
         /* to check 2 finger mouse move */
@@ -789,7 +810,7 @@ _mouse_move(Cover *cov __UNUSED__, Ecore_Event_Mouse_Move *ev __UNUSED__)
    //_record_mouse_history(cov, ev);
    if (cov->two_finger_move) eina_inarray_push(cov->two_finger_move, ev);
 
-   _message_scroll_send(cov, 1);
+   _message_scroll_send(cov, MOUSE_MOVE);
 }
 
 static void
@@ -856,7 +877,7 @@ _cb_mouse_down(void    *data __UNUSED__,
                   cov->two_finger_down = EINA_TRUE;
 
                   _lock_screen_check(cov);
-                  _message_scroll_send(cov, 0);
+                  _message_scroll_send(cov, MOUSE_BUTTON_DOWN);
 
                   /* to check 2 finger mouse move */
                   cov->two_finger_move = eina_inarray_new(sizeof(Ecore_Event_Mouse_Move), 0);
@@ -870,7 +891,7 @@ _cb_mouse_down(void    *data __UNUSED__,
                     {
                        cov->two_finger_down = EINA_FALSE;
 
-                       _message_scroll_send(cov, 2);
+                       _message_scroll_send(cov, MOUSE_BUTTON_UP);
                        cov->lock_screen = EINA_FALSE;
 
                        eina_inarray_free(cov->two_finger_move);
