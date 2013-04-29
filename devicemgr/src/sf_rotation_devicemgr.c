@@ -2,7 +2,7 @@
  * Copyright (c) 2013 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * This file is a modified version of BSD licensed file and
- * licensed under the Flora License, Version 1.0 (the License);
+ * licensed under the Flora License, Version 1.1 (the License);
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
