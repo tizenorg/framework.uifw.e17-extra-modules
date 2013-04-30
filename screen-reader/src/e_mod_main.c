@@ -33,8 +33,6 @@ typedef struct
    Eina_Inlist    *history;
 
    Ecore_X_Atom    atom_control_panel_open;
-   Ecore_X_Atom    atom_back;
-   Ecore_X_Atom    atom_scroll;
    Ecore_X_Atom    atom_app_tray_open;
 
    Eina_Bool       longpressed : 1;
@@ -601,7 +599,7 @@ _mouse_up(Cover *cov, Ecore_Event_Mouse_Button *ev)
         dy = ev->y - cov->dy;
 
         if (((dx * dx) + (dy * dy)) > (4 * distance * distance)
-            && ((ev->timestamp - cov->dt) < (timeout * 1000)))
+            && ((ev->timestamp - cov->dt) < (timeout * 3000)))
           {
              /* get root window rotation */
              angle = _win_angle_get(target_win);
@@ -714,7 +712,7 @@ _mouse_up(Cover *cov, Ecore_Event_Mouse_Button *ev)
           }
      }
    else if (((dx * dx) + (dy * dy)) > (4 * distance * distance)
-            && ((ev->timestamp - cov->dt) < (timeout * 1000)))
+            && ((ev->timestamp - cov->dt) < (timeout * 2000)))
      {
         /* get root window rotation */
         angle = _win_angle_get(target_win);
@@ -1076,8 +1074,6 @@ _covers_init(void)
                        for (i = 0; i < HISTORY_MAX; i++) cov->mouse_history[i] = -1;
 
                        cov->atom_control_panel_open = ecore_x_atom_get("_E_MOD_SCREEN_READER_ACTION_CONTROL_PANEL_OPEN_");
-                       cov->atom_back = ecore_x_atom_get("_E_MOD_SCREEN_READER_ACTION_BACK_");
-                       cov->atom_scroll = ecore_x_atom_get("_E_MOD_SCREEN_READER_ACTION_SCROLL_");
                        cov->atom_app_tray_open = ecore_x_atom_get("_E_MOD_SCREEN_READER_ACTION_APP_TRAY_OPEN_");
                     }
                }
