@@ -21,6 +21,7 @@ typedef struct
 {
    E_Zone         *zone;
    Ecore_X_Window  win;
+   Ecore_X_Window  down_win;
    Ecore_Timer    *timer;
    Ecore_Timer    *double_down_timer;
    Ecore_Timer    *tap_timer;
@@ -358,12 +359,12 @@ _message_mouse_send(Cover *cov, int type)
 {
    int x, y;
 
-   ecore_x_pointer_xy_get(target_win, &x, &y);
-   _coordinate_calibrate(target_win, &x, &y);
+   ecore_x_pointer_xy_get(cov->down_win, &x, &y);
+   _coordinate_calibrate(cov->down_win, &x, &y);
 
-   ecore_x_client_message32_send(target_win, ECORE_X_ATOM_E_ILLUME_ACCESS_CONTROL,
+   ecore_x_client_message32_send(cov->down_win, ECORE_X_ATOM_E_ILLUME_ACCESS_CONTROL,
                                  ECORE_X_EVENT_MASK_WINDOW_CONFIGURE,
-                                 target_win,
+                                 cov->down_win,
                                  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_MOUSE,
                                  type, x, y);
 }
@@ -392,7 +393,6 @@ _mouse_longpress(void *data)
    Cover *cov = data;
    int distance = 40;
    int dx, dy;
-   int x, y;
 
    cov->timer = NULL;
    dx = cov->x - cov->dx;
@@ -406,12 +406,10 @@ _mouse_longpress(void *data)
         else
           {
              INFO(cov, "double down and longpress");
-             /* send message to start longpress */
-             ecore_x_pointer_xy_get(target_win, &x, &y);
-
-             ecore_x_mouse_in_send(target_win, x, y);
-             ecore_x_mouse_move_send(target_win, x, y);
-             ecore_x_mouse_down_send(target_win, x, y, 1);
+             /* send message to start longpress,
+                keep previous target window to send mouse-up event */
+             cov->down_win = target_win;
+             _message_mouse_send(cov, MOUSE_BUTTON_DOWN);
           }
      }
    return EINA_FALSE;
@@ -487,6 +485,7 @@ _mouse_down(Cover *cov, Ecore_Event_Mouse_Button *ev)
    cov->dt = ev->timestamp;
    cov->longpressed = EINA_FALSE;
    cov->timer = ecore_timer_add(longtime, _mouse_longpress, cov);
+   cov->down_win = 0;
 
    if (cov->tap_timer)
      {
@@ -588,7 +587,6 @@ _mouse_up(Cover *cov, Ecore_Event_Mouse_Button *ev)
    double double_tap_timeout = 0.25;
    int distance = 40;
    int dx, dy;
-   int x, y;
    int angle = 0;
 
    if (cov->three_finger_down)
@@ -676,10 +674,7 @@ _mouse_up(Cover *cov, Ecore_Event_Mouse_Button *ev)
         if (cov->longpressed)
           {
              INFO(cov, "mouse release after longpress");
-             ecore_x_pointer_xy_get(target_win, &x, &y);
-
-             ecore_x_mouse_up_send(target_win, x, y, 1);
-             ecore_x_mouse_out_send(target_win, x, y);
+             _message_mouse_send(cov, MOUSE_BUTTON_UP);
           }
      }
 
@@ -863,7 +858,9 @@ _cb_mouse_down(void    *data __UNUSED__,
                   _mouse_down(cov, ev);
                }
 
-             if (ev->multi.device == multi_device[1] && !(cov->two_finger_down))
+             if (ev->multi.device == multi_device[1] &&
+                 !(cov->two_finger_down) &&
+                 !(cov->longpressed))
                {
                   /* prevent longpress client message by two finger */
                   if (cov->timer)
@@ -881,7 +878,9 @@ _cb_mouse_down(void    *data __UNUSED__,
                   cov->two_finger_move = eina_inarray_new(sizeof(Ecore_Event_Mouse_Move), 0);
                }
 
-             if (ev->multi.device == multi_device[2] && !(cov->three_finger_down))
+             if (ev->multi.device == multi_device[2] &&
+                 !(cov->three_finger_down) &&
+                 !(cov->longpressed))
                {
                   cov->three_finger_down = EINA_TRUE;
 
@@ -931,7 +930,6 @@ _cb_mouse_move(void    *data __UNUSED__,
    Ecore_Event_Mouse_Move *ev = event;
    Eina_List *l;
    Cover *cov;
-   int x, y;
 
    EINA_LIST_FOREACH(covers, l, cov)
      {
@@ -957,9 +955,7 @@ _cb_mouse_move(void    *data __UNUSED__,
                     {
                        INFO(cov, "move after longpress");
                        /* send message to notify move after longpress */
-                       ecore_x_pointer_xy_get(target_win, &x, &y);
-
-                       ecore_x_mouse_move_send(target_win, x, y);
+                        _message_mouse_send(cov, MOUSE_MOVE);
                     }
                }
 
