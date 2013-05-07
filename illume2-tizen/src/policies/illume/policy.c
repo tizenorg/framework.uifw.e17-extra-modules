@@ -5614,7 +5614,7 @@ static E_Border* _policy_border_find_below(E_Border *bd)
              /* skip special borders */
              if (e_illume_border_is_indicator(b)) continue;
              if (e_illume_border_is_keyboard(b)) continue;
-             if (e_illume_border_is_keyboard_sub(bd)) continue;
+             if (e_illume_border_is_keyboard_sub(b)) continue;
              if (e_illume_border_is_quickpanel(b)) continue;
              if (e_illume_border_is_quickpanel_popup(b)) continue;
              if (e_illume_border_is_clipboard(b)) continue;
@@ -5685,7 +5685,7 @@ static void _policy_border_uniconify_top_border(E_Border *bd)
              /* skip special borders */
              if (e_illume_border_is_indicator(b)) continue;
              if (e_illume_border_is_keyboard(b)) continue;
-             if (e_illume_border_is_keyboard_sub(bd)) continue;
+             if (e_illume_border_is_keyboard_sub(b)) continue;
              if (e_illume_border_is_quickpanel(b)) continue;
              if (e_illume_border_is_quickpanel_popup(b)) continue;
              if (e_illume_border_is_clipboard(b)) continue;
