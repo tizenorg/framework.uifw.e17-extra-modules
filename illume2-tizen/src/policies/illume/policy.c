@@ -957,6 +957,30 @@ _policy_border_post_new_border(E_Border *bd)
      }
 }
 
+static Eina_Bool
+_check_parent_in_transient_for_tree(E_Border *bd, E_Border *parent_bd)
+{
+   E_Border *ancestor;
+
+   if (!bd || !parent_bd) return EINA_FALSE;
+
+   ancestor = parent_bd;
+   while (ancestor->parent)
+     {
+        if (ancestor->parent == bd)
+          {
+             // This is very bad. bd and parent_bd are transient_for each other
+#ifdef USE_DLOG
+             LOGD("[WM] Transient_for Error!!! Win:0x%07x and Parent:0x%07x are transient_for each other.", bd->client.win, parent_bd->client.win);
+#endif
+             ELBF(ELBT_ILLUME, 0, bd->client.win, "BAD. Transient_for Error. Parent:0x%07x is descendant", parent_bd->client.win);
+             return EINA_TRUE;
+          }
+        ancestor = ancestor->parent;
+     }
+
+   return EINA_FALSE;
+}
 
 void
 _policy_border_pre_fetch(E_Border *bd)
@@ -977,6 +1001,7 @@ _policy_border_pre_fetch(E_Border *bd)
         /* TODO: What do to if the transient for isn't mapped yet? */
         E_Border *bd_parent = NULL;
         E_Illume_XWin_Info *xwin_info = NULL;
+        Eina_Bool transient_each_other;
 
         if (_e_illume_cfg->use_force_iconify)
           xwin_info = _policy_xwin_info_find(bd->win);
@@ -998,31 +1023,35 @@ _policy_border_pre_fetch(E_Border *bd)
         L(LT_TRANSIENT_FOR, "[ILLUME2][TRANSIENT_FOR] %s(%d)... win:0x%07x, parent:0x%07x\n", __func__, __LINE__, bd->client.win, bd->client.icccm.transient_for);
         if (bd_parent)
           {
-             L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. win:0x%07x(iconic:%d, by_wm:%d), parent:0x%07x(iconic:%d)\n", __func__, __LINE__, bd->client.win, bd->iconic, xwin_info ? xwin_info->iconify_by_wm : -100, bd_parent->client.win, bd_parent->iconic);
-             if (_e_illume_cfg->use_force_iconify)
+             transient_each_other = _check_parent_in_transient_for_tree(bd, bd_parent);
+             if (!transient_each_other)
                {
-                  if (xwin_info && xwin_info->iconify_by_wm)
+                  L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. win:0x%07x(iconic:%d, by_wm:%d), parent:0x%07x(iconic:%d)\n", __func__, __LINE__, bd->client.win, bd->iconic, xwin_info ? xwin_info->iconify_by_wm : -100, bd_parent->client.win, bd_parent->iconic);
+                  if (_e_illume_cfg->use_force_iconify)
                     {
-                       if (bd->iconic)
+                       if (xwin_info && xwin_info->iconify_by_wm)
                          {
-                            L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. FORCE UNICONIFY... win:0x%07x\n", __func__, __LINE__, bd->client.win);
-                            _policy_border_force_uniconify(bd);
+                            if (bd->iconic)
+                              {
+                                 L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. FORCE UNICONIFY... win:0x%07x\n", __func__, __LINE__, bd->client.win);
+                                 _policy_border_force_uniconify(bd);
+                              }
                          }
                     }
-               }
 
-             if (bd_parent != bd)
-               {
-                  bd->parent = bd_parent;
-                  _policy_border_transient_for_layer_set(bd, bd->parent, bd->parent->layer);
-                  bd_parent->transients = eina_list_append(bd_parent->transients, bd);
+                  if (bd_parent != bd)
+                    {
+                       bd->parent = bd_parent;
+                       _policy_border_transient_for_layer_set(bd, bd->parent, bd->parent->layer);
+                       bd_parent->transients = eina_list_append(bd_parent->transients, bd);
 
-                  if ((e_config->modal_windows) && (bd->client.netwm.state.modal))
-                     bd->parent->modal = bd;
+                       if ((e_config->modal_windows) && (bd->client.netwm.state.modal))
+                         bd->parent->modal = bd;
 
-                  if (e_config->focus_setting == E_FOCUS_NEW_DIALOG ||
-                      (bd->parent->focused && (e_config->focus_setting == E_FOCUS_NEW_DIALOG_IF_OWNER_FOCUSED)))
-                     bd->take_focus = 1;
+                       if (e_config->focus_setting == E_FOCUS_NEW_DIALOG ||
+                           (bd->parent->focused && (e_config->focus_setting == E_FOCUS_NEW_DIALOG_IF_OWNER_FOCUSED)))
+                         bd->take_focus = 1;
+                    }
                }
           }
         bd->client.icccm.fetch.transient_for = 0;
