@@ -362,6 +362,7 @@ _message_mouse_send(Cover *cov, int type)
    ecore_x_pointer_xy_get(cov->down_win, &x, &y);
    _coordinate_calibrate(cov->down_win, &x, &y);
 
+   INF("%d -> %x", type, cov->down_win);
    ecore_x_client_message32_send(cov->down_win, ECORE_X_ATOM_E_ILLUME_ACCESS_CONTROL,
                                  ECORE_X_EVENT_MASK_WINDOW_CONFIGURE,
                                  cov->down_win,
@@ -405,10 +406,10 @@ _mouse_longpress(void *data)
         if (!cov->mouse_double_down) _message_read_send(cov);
         else
           {
-             INFO(cov, "double down and longpress");
              /* send message to start longpress,
                 keep previous target window to send mouse-up event */
              cov->down_win = target_win;
+
              _message_mouse_send(cov, MOUSE_BUTTON_DOWN);
           }
      }
@@ -673,7 +674,7 @@ _mouse_up(Cover *cov, Ecore_Event_Mouse_Button *ev)
 
         if (cov->longpressed)
           {
-             INFO(cov, "mouse release after longpress");
+             /* mouse up after longpress */
              _message_mouse_send(cov, MOUSE_BUTTON_UP);
           }
      }
@@ -953,7 +954,6 @@ _cb_mouse_move(void    *data __UNUSED__,
                {
                   if (cov->longpressed)
                     {
-                       INFO(cov, "move after longpress");
                        /* send message to notify move after longpress */
                         _message_mouse_send(cov, MOUSE_MOVE);
                     }
@@ -1195,6 +1195,25 @@ _cb_property_change(void *data __UNUSED__,
 }
 
 static void
+_move_module_enable_set(int enable)
+{
+   E_Manager *man = e_manager_current_get();
+
+   if (!man) ERR("cannot get current manager");
+
+   if (enable)
+     {
+        INF("send enaable message");
+        e_msg_send("screen-reader", "enable", 0, E_OBJECT(man), NULL, NULL, NULL);
+     }
+   else
+     {
+        INF("send disaable message");
+        e_msg_send("screen-reader", "disable", 0, E_OBJECT(man), NULL, NULL, NULL);
+     }
+}
+
+static void
 _vconf_cb_accessibility_tts_change(keynode_t *node,
                                    void      *data)
 {
@@ -1213,12 +1232,18 @@ _vconf_cb_accessibility_tts_change(keynode_t *node,
         _covers_init();
         _events_shutdown();
         _events_init();
+
+        /* send a message to the move module */
+        _move_module_enable_set(enable);
      }
    else
      {
         INF("[screen reader module] module disable");
         _covers_shutdown();
         _events_shutdown();
+
+        /* send a message to the move module */
+        _move_module_enable_set(enable);
      }
 
    elm_config_access_set(enable);
@@ -1255,11 +1280,17 @@ e_modapi_init(E_Module *m)
         _covers_init();
         _events_shutdown();
         _events_init();
+
+        /* send a message to the move module */
+        _move_module_enable_set(g_enable);
      }
    else
      {
         _covers_shutdown();
         _events_shutdown();
+
+        /* send a message to the move module */
+        _move_module_enable_set(g_enable);
      }
 
    elm_config_access_set(g_enable);
