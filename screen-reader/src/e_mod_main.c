@@ -214,8 +214,8 @@ _app_tray_open(Cover *cov)
         clas = bd->client.icccm.class;
 
         if (clas == NULL || name == NULL) continue;
-        if (strncmp(clas,"APP_TRAY",strlen("APP_TRAY"))!= 0) continue;
-        if (strncmp(name,"APP_TRAY",strlen("APP_TRAY"))!= 0) continue;
+        if (strncmp(clas,"MINIAPP_TRAY",strlen("MINIAPP_TRAY"))!= 0) continue;
+        if (strncmp(name,"MINIAPP_TRAY",strlen("MINIAPP_TRAY"))!= 0) continue;
 
         /* open mini app tray */
         INF("open app tray");
