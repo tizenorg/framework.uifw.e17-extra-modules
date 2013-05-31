@@ -1244,10 +1244,8 @@ e_mod_move_indicator_widget_target_window_find(Ecore_X_Window *win)
      }
 
    if (found
-//       && (find_mb->indicator_state == E_MOVE_INDICATOR_STATE_ON)
-//       && (find_mb->indicator_type == E_MOVE_INDICATOR_TYPE_1)
-//       && !(TYPE_INDICATOR_CHECK(find_mb))
        && !(TYPE_APPTRAY_CHECK(find_mb))
+       && !(TYPE_MINI_APPTRAY_CHECK(find_mb))
        && !(TYPE_QUICKPANEL_CHECK(find_mb)))
      {
         *win = find_mb->bd->client.win;
@@ -1285,7 +1283,13 @@ e_mod_move_indicator_widget_apply(void)
                   // then del previous indicator_widget and add new indicator widget.
                   e_mod_move_indicator_widget_del(indi_widget);
                   e_mod_move_indicator_widget_set(e_mod_move_indicator_widget_add(target_win));
-                  if (!TYPE_NOTIFICATION_CHECK(target_mb))
+                  if (TYPE_NOTIFICATION_CHECK(target_mb)
+                      && (target_mb->argb)
+                      && (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
+                    {
+                      ;
+                    }
+                  else
                     e_mod_move_util_prop_active_indicator_win_set(target_win, m);
                }
           }
@@ -1294,7 +1298,14 @@ e_mod_move_indicator_widget_apply(void)
              //if previous indicator widget is not creagted
              //then add new indicator widget.
              e_mod_move_indicator_widget_set(e_mod_move_indicator_widget_add(target_win));
-             if (!TYPE_NOTIFICATION_CHECK(target_mb))
+
+             if (TYPE_NOTIFICATION_CHECK(target_mb)
+                 && (target_mb->argb)
+                 && (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
+               {
+                  ;
+               }
+             else
                e_mod_move_util_prop_active_indicator_win_set(target_win, m);
           }
      }
