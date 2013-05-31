@@ -32,6 +32,7 @@ static void _e_mod_policy_cb_hook_new_border(void *data __UNUSED__, void *data2)
 #ifdef _F_BORDER_HOOK_PATCH_
 static void _e_mod_policy_cb_hook_del_border(void *data __UNUSED__, void *data2);
 #endif
+static void _e_mod_policy_cb_hook_rotation_list_add(void *data __UNUSED__, void *data2);
 
 static Eina_Bool _e_mod_policy_cb_window_focus_in(void *data __UNUSED__, int type __UNUSED__, void *event);
 
@@ -468,6 +469,10 @@ _e_mod_policy_hooks_add(void)
                       e_border_hook_add(E_BORDER_HOOK_DEL_BORDER,
                                         _e_mod_policy_cb_hook_del_border, NULL));
 #endif
+   _policy_hooks =
+     eina_list_append(_policy_hooks,
+                      e_border_hook_add(E_BORDER_HOOK_ROTATION_LIST_ADD,
+                                        _e_mod_policy_cb_hook_rotation_list_add, NULL));
 }
 
 static void
@@ -1120,4 +1125,14 @@ _e_mod_policy_cb_idle_enterer(void *data __UNUSED__)
      _policy->funcs.idle_enterer();
 
    return ECORE_CALLBACK_RENEW;
+}
+
+static void
+_e_mod_policy_cb_hook_rotation_list_add(void *data __UNUSED__, void *data2)
+{
+   E_Border *bd;
+
+   if (!(bd = data2)) return;
+   if ((_policy) && (_policy->funcs.rotation_list_add))
+     _policy->funcs.rotation_list_add(bd);
 }

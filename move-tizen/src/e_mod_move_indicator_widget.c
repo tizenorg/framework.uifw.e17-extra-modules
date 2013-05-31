@@ -107,6 +107,14 @@ _e_mod_move_indicator_widget_cb_motion_start_internal_quickpanel_check(E_Move_Bo
    E_CHECK_RETURN(e_mod_move_util_compositor_object_visible_get(qp_mb),
                   EINA_FALSE);
 
+   // Quickpanel is under rotation state.
+   // I think there is another exception case.
+   // It's posible that WM doesn't send rotation change request yet.
+   // In this case the value of wait_for_done is zero,
+   // it means quickpanel isn't rotating for now, but going to be rotated.
+   if (qp_mb->bd)
+     if (qp_mb->bd->client.e.state.rot.wait_for_done) return EINA_FALSE;
+
    if (e_mod_move_quickpanel_objs_animation_state_get(qp_mb)) return EINA_FALSE;
 
    if (!(qp_mb->m->qp_scroll_with_clipping))

@@ -161,4 +161,6 @@ void _policy_module_update(E_Event_Module_Update *event);
 void _policy_idle_enterer(void);
 
 void _policy_illume_win_state_change_request(Ecore_X_Event_Client_Message *event);
+
+void _policy_border_hook_rotation_list_add(E_Border *bd);
 #endif

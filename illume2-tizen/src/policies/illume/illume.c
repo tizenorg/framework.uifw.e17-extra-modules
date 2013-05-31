@@ -71,6 +71,8 @@ e_illume_policy_init(E_Illume_Policy *p)
 
    p->funcs.illume_win_state_change_request = _policy_illume_win_state_change_request;
 
+   p->funcs.rotation_list_add = _policy_border_hook_rotation_list_add;
+
    if (!_policy_init())
      return 0;
 
@@ -137,6 +139,8 @@ e_illume_policy_shutdown(E_Illume_Policy *p)
    p->funcs.idle_enterer = NULL;
 
    p->funcs.illume_win_state_change_request = NULL;
+
+   p->funcs.rotation_list_add = NULL;
 
    _policy_fin();
    return 1;

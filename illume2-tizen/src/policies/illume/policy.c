@@ -94,6 +94,8 @@ static void _policy_property_notification_level_change (Ecore_X_Event_Window_Pro
 static void _policy_property_overlay_win_change (Ecore_X_Event_Window_Property *event);
 static void _policy_property_window_opaque_change (Ecore_X_Event_Window_Property *event);
 static void _policy_property_illume_window_state_change(Ecore_X_Event_Window_Property *event);
+static void _policy_property_indicator_cmd_win_change(Ecore_X_Event_Window_Property *event);
+static void _policy_property_active_indicator_win_change(Ecore_X_Event_Window_Property *event);
 
 static void _policy_border_illume_window_state_change(E_Border *bd, unsigned int state);
 
@@ -136,6 +138,8 @@ static void _policy_zone_layout_app_single_monitor(E_Illume_Border_Info *bd_info
 /* for controling indicator */
 static void _policy_border_indicator_control(E_Border *indi_bd);
 static Eina_Bool _policy_border_indicator_state_change(E_Border *indi_bd, E_Border *bd);
+static Ecore_X_Window _policy_indicator_cmd_win_get(Ecore_X_Window win);
+static Ecore_X_Window _policy_active_indicator_win_get(Ecore_X_Window win);
 
 static void _policy_resize_start(E_Illume_Border_Info *bd_info);
 static void _policy_resize_end(E_Illume_Border_Info *bd_info);
@@ -156,6 +160,10 @@ static void _policy_border_uniconify_below_borders_by_illume(E_Illume_XWin_Info 
 static E_Border* _policy_border_find_below(E_Border *bd);
 static void _policy_border_uniconify_below_borders(E_Border *bd);
 static void _policy_border_uniconify_top_border(E_Border *bd);
+
+/* for supporting rotation */
+static void       _policy_border_dependent_rotation(E_Border *bd);
+static Eina_List* _policy_dependent_rotation_list_make(E_Border *bd);
 
 /*******************/
 /* local variables */
@@ -197,6 +205,10 @@ static Ecore_X_Window g_indi_control_win;
 static Ecore_X_Atom E_ILLUME_ATOM_COMP_MODULE_ENABLED;
 #endif
 
+/* for supporting rotation */
+static Ecore_X_Atom E_INDICATOR_CMD_WIN;
+static Ecore_X_Atom E_ACTIVE_INDICATOR_WIN;
+
 #if 1 // for visibility
 static Eina_Hash* _e_illume_xwin_info_hash = NULL;
 static Eina_Inlist* _e_illume_xwin_info_list = NULL;
@@ -209,6 +221,31 @@ static int _g_root_height;
 static E_Msg_Handler *_e_illume_msg_handler = NULL;
 static Eina_Bool _e_use_comp = EINA_FALSE;
 static Eina_Bool _g_visibility_changed = EINA_FALSE;
+
+/* for supporing rotation */
+typedef struct _E_Policy_Rotation_Dependent  E_Policy_Rotation_Dependent;
+
+struct _E_Policy_Rotation_Dependent
+{
+   Eina_List *list;
+   Ecore_X_Window root;
+
+   struct
+     {
+        Ecore_X_Window cmd_win;
+        Ecore_X_Window active_win;
+     } refer;
+
+   int ang;
+};
+
+static E_Policy_Rotation_Dependent dep_rot =
+{
+   NULL,
+   NULL,
+   {NULL, NULL},
+   -1
+};
 
 /* local functions */
 static void
@@ -877,6 +914,11 @@ _policy_border_del(E_Border *bd)
              e_illume_util_mem_trim();
           }
      }
+
+   // for supporting rotation such as quickpanel
+   if (e_illume_border_is_quickpanel(bd) ||
+       e_illume_border_is_miniapp_tray(bd))
+     dep_rot.list = eina_list_remove(dep_rot.list, bd);
 }
 
 void
@@ -972,6 +1014,17 @@ _policy_border_post_fetch(E_Border *bd)
           }
      }
 #endif
+
+   // for supporting rotation such as quickpanel
+   if (e_illume_border_is_quickpanel(bd) ||
+       e_illume_border_is_miniapp_tray(bd))
+     {
+        bd->client.e.state.rot.type = E_BORDER_ROTATION_TYPE_DEPENDENT;
+        if (eina_list_data_find(dep_rot.list, bd) != bd)
+          {
+             dep_rot.list = eina_list_append(dep_rot.list, bd);
+          }
+     }
 
    /* tell E the border has changed */
    bd->client.border.changed = 1;
@@ -2873,6 +2926,14 @@ _policy_property_change(Ecore_X_Event_Window_Property *event)
         _policy_property_composite_module_change (event);
      }
 #endif
+   else if (event->atom == E_INDICATOR_CMD_WIN)
+     {
+        _policy_property_indicator_cmd_win_change(event);
+     }
+   else if (event->atom == E_ACTIVE_INDICATOR_WIN)
+     {
+        _policy_property_active_indicator_win_change(event);
+     }
 }
 
 
@@ -3314,6 +3375,20 @@ int _policy_atom_init (void)
      }
 #endif
 
+   E_INDICATOR_CMD_WIN = ecore_x_atom_get("_E_INDICATOR_CMD_WIN");
+   if (!E_INDICATOR_CMD_WIN)
+     {
+        fprintf (stderr, "[ILLUME2] Critical Error!!! Cannot create _E_INDICATOR_CMD_WIN Atom...\n");
+        return 0;
+     }
+
+   E_ACTIVE_INDICATOR_WIN = ecore_x_atom_get("_E_ACTIVE_INDICATOR_WIN");
+   if (!E_ACTIVE_INDICATOR_WIN)
+     {
+        fprintf (stderr, "[ILLUME2] Critical Error!!! Cannot create _E_ACTIVE_INDICATOR_WIN Atom...\n");
+        return 0;
+     }
+
    return 1;
 }
 
@@ -3328,6 +3403,11 @@ int _policy_init (void)
    EINA_LIST_FOREACH(e_manager_list(), ml, man)
      {
         _policy_manage_xwins (man);
+
+        dep_rot.root = man->root;
+        dep_rot.refer.cmd_win = _policy_indicator_cmd_win_get(dep_rot.root);
+        if (dep_rot.refer.cmd_win)
+          dep_rot.refer.active_win = _policy_active_indicator_win_get(dep_rot.refer.cmd_win);
      }
 
    // initialize atom
@@ -6100,6 +6180,134 @@ fin:
           }
      }
    return;
+}
+
+/* for supporting rotation */
+void
+_policy_border_hook_rotation_list_add(E_Border *bd)
+{
+   Eina_List *list = NULL;
+   int prev_ang = dep_rot.ang;
+
+   if (!bd) return;
+
+   list = _policy_dependent_rotation_list_make(bd);
+   if (list)
+     {
+        dep_rot.ang = bd->client.e.state.rot.curr;
+        ELBF(ELBT_ROT, 0, bd->client.win,
+             "ADD ROT_LIST(dependent) curr:%d != prev:%d", dep_rot.ang, prev_ang);
+        e_border_rotation_list_add(list);
+        eina_list_free(list);
+     }
+}
+
+static void
+_policy_border_dependent_rotation(E_Border *bd)
+{
+   Eina_List *list = NULL;
+   E_Zone *zone = bd->zone;
+   int prev_ang = dep_rot.ang;
+
+   list = _policy_dependent_rotation_list_make(bd);
+   if (list)
+     {
+        dep_rot.ang = bd->client.e.state.rot.curr;
+        ELBF(ELBT_ROT, 0, bd->client.win,
+             "ADD & REQUEST ROT(dependent) curr:%d != prev:%d", dep_rot.ang, prev_ang);
+        e_border_rotation_list_add_change_req(zone, list);
+        eina_list_free(list);
+     }
+}
+
+static Eina_List*
+_policy_dependent_rotation_list_make(E_Border *bd)
+{
+   Eina_List *nl = NULL, *l;
+   E_Border *dep_bd = NULL;
+   int ang;
+
+   if (!bd) return NULL;
+   if (dep_rot.refer.active_win != bd->client.win) return NULL;
+   if (dep_rot.ang == bd->client.e.state.rot.curr) return NULL;
+   if (eina_list_data_find(dep_rot.list, bd) == bd) return NULL;
+
+   ang = bd->client.e.state.rot.curr;
+   EINA_LIST_FOREACH(dep_rot.list, l, dep_bd)
+     {
+        dep_bd->client.e.state.rot.prev = bd->client.e.state.rot.curr;
+        dep_bd->client.e.state.rot.curr = ang;
+        dep_bd->client.e.state.rot.wait_for_done = 1;
+        nl = eina_list_append(nl, dep_bd);
+     }
+
+   return nl;
+}
+
+static void
+_policy_property_indicator_cmd_win_change(Ecore_X_Event_Window_Property *event)
+{
+   Ecore_X_Window cmd_win;
+
+   cmd_win = _policy_indicator_cmd_win_get(event->win);
+   if (dep_rot.refer.cmd_win != cmd_win)
+     dep_rot.refer.cmd_win = cmd_win;
+}
+
+static void
+_policy_property_active_indicator_win_change(Ecore_X_Event_Window_Property *event)
+{
+   Ecore_X_Window active_win;
+   E_Border *bd;
+
+   active_win = _policy_active_indicator_win_get(event->win);
+   if (dep_rot.refer.active_win != active_win)
+     {
+        dep_rot.refer.active_win = active_win;
+
+        bd = e_border_find_by_client_window(active_win);
+        _policy_border_dependent_rotation(bd);
+     }
+}
+
+static Ecore_X_Window
+_policy_indicator_cmd_win_get(Ecore_X_Window win)
+{
+   Ecore_X_Window cmd_win = NULL;
+   unsigned char* prop_data = NULL;
+   int ret = 0, count = 0;
+
+   if (win != dep_rot.root) return NULL;
+
+   ret = ecore_x_window_prop_property_get(win, E_INDICATOR_CMD_WIN,
+                                          ECORE_X_ATOM_WINDOW, 32,
+                                          &prop_data, &count);
+   if (ret)
+     memcpy (&cmd_win, prop_data, sizeof(ECORE_X_ATOM_WINDOW));
+
+   if (prop_data) free(prop_data);
+
+   return cmd_win;
+}
+
+static Ecore_X_Window
+_policy_active_indicator_win_get(Ecore_X_Window win)
+{
+   Ecore_X_Window active_win = NULL;
+   unsigned char* prop_data = NULL;
+   int ret = 0, count = 0;
+
+   if (win != dep_rot.refer.cmd_win) return NULL;
+
+   ret = ecore_x_window_prop_property_get(win, E_ACTIVE_INDICATOR_WIN,
+                                          ECORE_X_ATOM_WINDOW, 32,
+                                          &prop_data, &count);
+   if (ret)
+     memcpy (&active_win, prop_data, sizeof(ECORE_X_ATOM_WINDOW));
+
+   if (prop_data) free(prop_data);
+
+   return active_win;
 }
 
 void

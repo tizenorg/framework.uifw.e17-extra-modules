@@ -225,6 +225,8 @@ struct _E_Illume_Policy
         void (*idle_enterer) (void);
 
         void (*illume_win_state_change_request) (Ecore_X_Event_Client_Message *event);
+
+        void (*rotation_list_add) (E_Border *bd);
      } funcs;
 };
 

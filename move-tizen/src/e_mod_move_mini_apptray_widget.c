@@ -47,6 +47,14 @@ _e_mod_move_mini_apptray_widget_cb_motion_start_internal_mini_apptray_check(E_Mo
                   EINA_FALSE);
    if (e_mod_move_mini_apptray_objs_animation_state_get(mini_apptray_mb)) return EINA_FALSE;
 
+   // Mini app-tray is under rotation state.
+   // I think there is another exception case.
+   // It's posible that WM doesn't send rotation change request yet.
+   // In this case the value of wait_for_done is zero,
+   // it means quickpanel isn't rotating for now, but going to be rotated.
+   if (mini_apptray_mb->bd)
+     if (mini_apptray_mb->bd->client.e.state.rot.wait_for_done) return EINA_FALSE;
+
    // check if notification window is on-screen.
    EINA_INLIST_REVERSE_FOREACH(m->borders, find_mb)
      {
