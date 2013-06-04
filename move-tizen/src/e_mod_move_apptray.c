@@ -664,7 +664,8 @@ e_mod_move_apptray_ctl_obj_event_setup(E_Move_Border         *mb,
                            _e_mod_move_apptray_cb_motion_move, mb);
    e_mod_move_event_cb_set(mco->event, E_MOVE_EVENT_TYPE_MOTION_END,
                            _e_mod_move_apptray_cb_motion_end, mb);
-   e_mod_move_event_send_all_set(mco->event, EINA_TRUE);
+   e_mod_move_event_propagate_type_set(mco->event,
+                                       E_MOVE_EVENT_PROPAGATE_TYPE_IMMEDIATELY);
 }
 
 EINTERN E_Move_Border *
@@ -742,6 +743,7 @@ e_mod_move_apptray_objs_add(E_Move_Border *mb)
         e_mod_move_bd_move_objs_move(mb, mb->x, mb->y);
         e_mod_move_bd_move_objs_resize(mb, mb->w, mb->h);
         e_mod_move_bd_move_objs_show(mb);
+        if (mb->objs) e_mod_move_util_rotation_lock(mb->m);
      }
    return EINA_TRUE;
 }
@@ -752,6 +754,7 @@ e_mod_move_apptray_objs_del(E_Move_Border *mb)
    E_CHECK_RETURN(mb, EINA_FALSE);
    E_CHECK_RETURN(TYPE_APPTRAY_CHECK(mb), EINA_FALSE);
    e_mod_move_bd_move_objs_del(mb, mb->objs);
+   e_mod_move_util_rotation_unlock(mb->m);
    mb->objs = NULL;
    return EINA_TRUE;
 }
@@ -993,7 +996,6 @@ e_mod_move_apptray_dim_show(E_Move_Border *mb)
         e_mod_move_bd_move_dim_objs_show(at_data->dim_objs);
         at_data->opacity = dim_min;
         mb->data = at_data;
-        e_mod_move_util_rotation_lock(mb->m);
 
         // it is used for apptray input only window
         _e_mod_move_apptray_bg_touch_win_show(mb);
@@ -1006,8 +1008,6 @@ e_mod_move_apptray_dim_show(E_Move_Border *mb)
              e_mod_move_util_compositor_composite_mode_set(mb->m, EINA_TRUE);
 
              at_data->dim_objs = e_mod_move_bd_move_dim_objs_add(mb);
-             if (at_data->dim_objs)
-                e_mod_move_util_rotation_lock(mb->m);
           }
         if (at_data->dim_objs)
           {
@@ -1045,8 +1045,6 @@ e_mod_move_apptray_dim_hide(E_Move_Border *mb)
 
    // it is used for apptray input only window
    _e_mod_move_apptray_bg_touch_win_hide(mb);
-
-   e_mod_move_util_rotation_unlock(mb->m);
 
    // Composite mode set false
    e_mod_move_util_compositor_composite_mode_set(mb->m, EINA_FALSE);

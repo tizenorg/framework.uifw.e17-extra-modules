@@ -51,9 +51,9 @@ group { name: "shadow_fade";
         mouse_events: 0;
         description { state: "default" 0.0;
            visible: 0;
-           rel1.relative: 0.25 0.25;
+           rel1.relative: 0.2 0.2;
            rel1.offset:   0    0;
-           rel2.relative: 0.75 0.75;
+           rel2.relative: 0.8 0.8;
         }
         description { state: "visible" 0.0;
            inherit: "default" 0.0;
@@ -185,7 +185,7 @@ group { name: "shadow_fade";
      // app launching effect
      program { name: "show2";
         action: STATE_SET "visible" 0.0;
-        transition: DECELERATE 0.3;
+        transition: DECELERATE 0.2;
         target: "clipper";
         target: "shower";
         target: "e.swallow.content";
@@ -205,7 +205,7 @@ group { name: "shadow_fade";
      }
      program { name: "hide2";
         action: STATE_SET "hide" 0.0;
-        transition: DECELERATE 0.4;
+        transition: DECELERATE 0.3;
         target: "clipper";
         target: "shower";
         after: "hide3";
@@ -219,6 +219,31 @@ group { name: "shadow_fade";
      program { name: "hide4";
         action: SIGNAL_EMIT "e,action,hide,done" "e";
      }
+     program { name: "mirror_hide1";
+        signal: "e,state,mirror,visible,off";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after: "mirror_hide2";
+     }
+     program { name: "mirror_hide2";
+        action: STATE_SET "hide" 0.0;
+        transition: DECELERATE 0.3;
+        target: "clipper";
+        target: "shower";
+        after: "mirror_hide3";
+     }
+     program { name: "mirror_hide3";
+        action: STATE_SET "default" 0.0;
+        target: "clipper";
+        target: "shower";
+        after: "mirror_hide4";
+     }
+     program { name: "mirror_hide4";
+        action: SIGNAL_EMIT "e,action,mirror,hide,done" "e";
+     }
      program { name: "raise_above_show1";
         signal: "e,state,raise_above,on";;
         source: "e";
@@ -231,7 +256,7 @@ group { name: "shadow_fade";
      // app launching effect
      program { name: "raise_above_show2";
         action: STATE_SET "visible" 0.0;
-        transition: DECELERATE 0.3;
+        transition: DECELERATE 0.2;
         target: "clipper";
         target: "shower";
         target: "e.swallow.content";
@@ -251,14 +276,7 @@ group { name: "shadow_fade";
      }
      program { name: "raise_above_hide2";
         action: STATE_SET "default" 0.0;
-        transition: DECELERATE 0.32;
-        target: "clipper";
-        target: "shower";
-        after: "raise_above_hide3";
-     }
-     program { name: "raise_above_hide3";
-        action: STATE_SET "default" 0.0;
-        transition: LINEAR 0.2;
+        transition: DECELERATE 0.3;
         target: "clipper";
         target: "shower";
         after: "raise_above_hide4";
@@ -330,85 +348,6 @@ group { name: "shadow_fade";
         target: "clipper";
         target: "shower";
         after: "hide3";
-     }
-     program { name: "show_background1";
-        signal: "e,state,background,visible,on";
-        source: "e";
-        action: STATE_SET "visible" 0.0;
-        target: "clipper";
-        target: "shower";
-        target: "e.swallow.content";
-        after: "show_background2";
-     }
-     program { name: "show_background2";
-        action: STATE_SET "background" 0.0;
-        transition: LINEAR 0.2656;
-        target: "clipper";
-        target: "shower";
-        target: "e.swallow.content";
-        after: "show_background3";
-     }
-     program { name: "show_background3";
-        action: STATE_SET "background" 0.0;
-        target: "clipper";
-        target: "shower";
-        target: "e.swallow.content";
-        after: "show_background4";
-     }
-     program { name: "show_background4";
-        action: STATE_SET "visible" 0.0;
-        target: "clipper";
-        target: "shower";
-        target: "e.swallow.content";
-        after: "show_background5";
-     }
-     program { name: "show_background5";
-        action: SIGNAL_EMIT "e,action,background,show,done" "e";
-     }
-     program { name: "hide_background1";
-        signal: "e,state,background,visible,off";
-        source: "e";
-        action: STATE_SET "background" 0.0;
-        target: "clipper";
-        target: "shower";
-        target: "e.swallow.content";
-        after: "hide_background2";
-     }
-     program { name: "hide_background2";
-        action: STATE_SET "background" 0.0;
-        transition: LINEAR 0.0415;
-        target: "shower";
-        target: "clipper";
-        target: "e.swallow.content";
-        after: "hide_background3";
-     }
-     program { name: "hide_background3";
-        action: STATE_SET "visible" 0.0;
-        transition: DECELERATE 0.2075;
-        target: "shower";
-        target: "clipper";
-        target: "e.swallow.content";
-        after: "hide_background4";
-     }
-     program { name: "hide_background4";
-        action: SIGNAL_EMIT "e,action,background,hide,done" "e";
-     }
-     program { name: "show_fake_background1";
-        signal: "e,state,fake,background,visible,on";
-        source: "e";
-        action: STATE_SET "visible" 0.0;
-        target: "clipper";
-        target: "shower";
-        target: "e.swallow.content";
-        after: "show_fake_background2";
-     }
-     program { name: "show_fake_background2";
-        action: STATE_SET "background" 0.0;
-        transition: LINEAR 0.4565;
-        target: "clipper";
-        target: "shower";
-        target: "e.swallow.content";
-        after: "show_background3";
      }
      program { name: "show1_custom0";
         signal: "e,state,visible,on,custom0";

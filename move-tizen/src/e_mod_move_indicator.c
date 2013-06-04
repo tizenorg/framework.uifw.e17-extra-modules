@@ -1067,7 +1067,8 @@ e_mod_move_indicator_ctl_obj_event_setup(E_Move_Border         *mb,
                            _e_mod_move_indicator_cb_motion_move, mb);
    e_mod_move_event_cb_set(mco->event, E_MOVE_EVENT_TYPE_MOTION_END,
                            _e_mod_move_indicator_cb_motion_end, mb);
-   e_mod_move_event_send_all_set(mco->event, EINA_TRUE);
+   e_mod_move_event_propagate_type_set(mco->event,
+                                       E_MOVE_EVENT_PROPAGATE_TYPE_IMMEDIATELY);
 
    if (e_mod_move_border_shape_input_new(mb))
      e_mod_move_border_shape_input_rect_set(mb, mb->x, mb->y, mb->w, mb->h);

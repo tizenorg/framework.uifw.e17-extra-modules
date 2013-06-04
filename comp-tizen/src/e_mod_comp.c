@@ -45,6 +45,7 @@ static void         _e_mod_comp_win_lower(E_Comp_Win *cw);
 static E_Comp_Win  *_e_mod_comp_win_find(Ecore_X_Window win);
 static E_Comp_Win  *_e_mod_comp_border_client_find(Ecore_X_Window win);
 static Eina_Bool    _e_mod_comp_cb_update(E_Comp *c);
+static Evas_Object *_e_mod_comp_mirror_handler_add(E_Comp *c);
 static Eina_Bool    _e_mod_comp_win_is_border(E_Comp_Win *cw);
 static void         _e_mod_comp_cb_pending_after(void *data, E_Manager *man, E_Manager_Comp_Source *src);
 static E_Comp      *_e_mod_comp_find(Ecore_X_Window root);
@@ -430,23 +431,11 @@ _e_mod_comp_win_update(E_Comp_Win *cw)
         return;
      }
 
-   // update obj geometry when task switcher is not open
-   // or task switcher is open and new window is added
-   cw->defer_move_resize = EINA_FALSE;
-   if ((!cw->c->switcher) ||
-       ((cw->c->switcher) && (!cw->first_show_worked)) ||
-       ((cw->c->switcher) && TYPE_INDICATOR_CHECK(cw)))
-     {
-        if (!cw->move_lock)
-          e_mod_comp_win_comp_objs_move(cw, cw->x, cw->y);
-        e_mod_comp_win_comp_objs_resize(cw,
-                                  cw->pw + (cw->border * 2),
-                                  cw->ph + (cw->border * 2));
-     }
-   else
-     {
-        cw->defer_move_resize = EINA_TRUE;
-     }
+   if (!cw->move_lock)
+     e_mod_comp_win_comp_objs_move(cw, cw->x, cw->y);
+   e_mod_comp_win_comp_objs_resize(cw,
+                                   cw->pw + (cw->border * 2),
+                                   cw->ph + (cw->border * 2));
 
    if ((cw->c->gl)
        && (_comp_mod->conf->texture_from_pixmap)
@@ -600,11 +589,11 @@ _e_mod_comp_cb_update(E_Comp *c)
              if ((!cw) || (cw != canvas->nocomp.cw) ||
                  (canvas->nocomp.force_composite))
                {
-                  L(LT_EVENT_X,
-                    "COMP|%31s|new_w:0x%08x|nocomp.cw:0x%08x canvas:%d\n",
-                    "NOCOMP_END", cw ? e_mod_comp_util_client_xid_get(cw) : 0,
-                    e_mod_comp_util_client_xid_get(canvas->nocomp.cw),
-                    canvas->num);
+                  ELBF(ELBT_COMP, 0,
+                       cw ? e_mod_comp_util_client_xid_get(cw) : 0,
+                       "NOCOMP_END nocomp.cw:0x%08x canvas:%d",
+                       e_mod_comp_util_client_xid_get(canvas->nocomp.cw),
+                       canvas->num);
 
                   e_mod_comp_canvas_nocomp_end(canvas);
                }
@@ -869,12 +858,17 @@ _e_mod_comp_object_del(void *data,
 
    if (obj == cw->bd)
      {
+        ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+             "%15.15s|", "OBJECT_DEL");
+
         if (cw->counter)
           {
              Ecore_X_Window _w = e_mod_comp_util_client_xid_get(cw);
              ecore_x_e_comp_sync_cancel_send(_w);
              ecore_x_sync_counter_inc(cw->counter, 1);
              cw->sync_info.val++;
+
+             ELBF(ELBT_COMP, 1, _w, "%15.15s", "SYNC_CANCEL");
           }
         if (cw->bd) eina_hash_del(borders, e_util_winid_str_get(cw->bd->client.win), cw);
         cw->bd = NULL;
@@ -906,10 +900,10 @@ e_mod_comp_done_defer(E_Comp_Win *cw)
 
    if (cw->defer_raise)
      {
-        L(LT_EFFECT,
-          "[COMP] w:0x%08x force win to raise. bd:%s\n",
-          e_mod_comp_util_client_xid_get(cw),
-          cw->bd ? "O" : "X");
+        ELBF(ELBT_COMP, 0,
+             e_mod_comp_util_client_xid_get(cw),
+             "EDJ_DONE Force win to raise bd:%d",
+             cw->bd);
 
         E_Comp_Win *_cw;
         EINA_INLIST_FOREACH(cw->c->wins, _cw)
@@ -944,20 +938,20 @@ e_mod_comp_done_defer(E_Comp_Win *cw)
    cw->force = 1;
    if (cw->defer_hide)
      {
-        L(LT_EVENT_X,
-          "COMP|%31s|w:0x%08x|force win to hide. bd:%s\n",
-          "EDJ_DONE", e_mod_comp_util_client_xid_get(cw),
-          cw->bd ? "O" : "X");
+        ELBF(ELBT_COMP, 0,
+             e_mod_comp_util_client_xid_get(cw),
+             "EDJ_DONE Force win to hide bd:%d",
+             cw->bd);
 
         _e_mod_comp_win_hide(cw);
      }
    cw->force = 1;
    if (cw->delete_me)
      {
-        L(LT_EVENT_X,
-          "COMP|%31s|w:0x%08x|force win to delete. bd:%s\n",
-          "EDJ_DONE", e_mod_comp_util_client_xid_get(cw),
-          cw->bd ? "O" : "X");
+        ELBF(ELBT_COMP, 0,
+             e_mod_comp_util_client_xid_get(cw),
+             "EDJ_DONE Force win to del bd:%d",
+             cw->bd);
 
         _e_mod_comp_win_del(cw);
      }
@@ -982,13 +976,12 @@ _e_mod_comp_show_done(void        *data,
        cw->bd ? cw->bd->client.netwm.name : NULL);
 #endif
 
-   L(LT_EFFECT,
-     "[COMP] %18.18s w:0x%08x %s\n", "SIGNAL",
-     e_mod_comp_util_client_xid_get(cw),
-     "SHOW_DONE");
+   ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+        "%15.15s|SHOW_DONE", "SIGNAL");
 
    e_mod_comp_effect_signal_del(cw, obj, "show,done");
 
+   cw->launched = EINA_TRUE;
    cw->show_done = EINA_TRUE;
    e_mod_comp_done_defer(cw);
 }
@@ -1002,10 +995,8 @@ _e_mod_comp_hide_done(void        *data,
    E_Comp_Win *cw = (E_Comp_Win *)data;
    E_CHECK(cw);
 
-   L(LT_EFFECT,
-     "[COMP] %18.18s w:0x%08x %s\n", "SIGNAL",
-     e_mod_comp_util_client_xid_get(cw),
-     "HIDE_DONE");
+   ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+        "%15.15s|HIDE_DONE", "SIGNAL");
 
    e_mod_comp_effect_signal_del(cw, obj, "hide,done");
 
@@ -1022,10 +1013,8 @@ _e_mod_comp_raise_above_show_done(void        *data,
    E_Comp_Win *cw = data;
    E_CHECK(cw);
 
-   L(LT_EFFECT,
-     "[COMP] %18.18s w:0x%08x %s\n", "SIGNAL",
-     e_mod_comp_util_client_xid_get(cw),
-     "RAISE_SHOW_DONE");
+   ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+        "%15.15s|RAISE_SHOW_DONE", "SIGNAL");
 
    e_mod_comp_effect_signal_del(cw, obj, "raise,show,done");
 
@@ -1041,10 +1030,8 @@ _e_mod_comp_raise_above_hide_done(void        *data,
    E_Comp_Win *cw = data;
    E_CHECK(cw);
 
-   L(LT_EFFECT,
-     "[COMP] %18.18s w:0x%08x %s\n", "SIGNAL",
-     e_mod_comp_util_client_xid_get(cw),
-     "RAISE_HIDE_DONE");
+   ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+        "%15.15s|RAISE_HIDE_DONE", "SIGNAL");
 
    e_mod_comp_effect_signal_del(cw, obj, "raise,hide,done");
 
@@ -1060,10 +1047,8 @@ _e_mod_comp_background_show_done(void        *data,
    E_Comp_Win *cw = data;
    E_CHECK(cw);
 
-   L(LT_EFFECT,
-     "[COMP] %18.18s w:0x%08x %s\n", "SIGNAL",
-     e_mod_comp_util_client_xid_get(cw),
-     "BG_SHOW_DONE");
+   ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+        "%15.15s|BG_SHOW_DONE", "SIGNAL");
 
    e_mod_comp_effect_signal_del(cw, obj, "bg,show,done");
 
@@ -1079,14 +1064,31 @@ _e_mod_comp_background_hide_done(void        *data,
    E_Comp_Win *cw = data;
    E_CHECK(cw);
 
-   L(LT_EFFECT,
-     "[COMP] %18.18s w:0x%08x %s\n", "SIGNAL",
-     e_mod_comp_util_client_xid_get(cw),
-     "BG_HIDE_DONE");
+   ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+        "%15.15s|BG_HIDE_DONE", "SIGNAL");
 
    e_mod_comp_effect_signal_del(cw, obj, "bg,hide,done");
 
    e_mod_comp_done_defer(cw);
+}
+
+
+static void
+_e_mod_comp_mirror_hide_done(void        *data,
+                                  Evas_Object *obj,
+                                  const char  *emission __UNUSED__,
+                                  const char  *source   __UNUSED__)
+{
+   E_Comp *c = data;
+   E_CHECK(c);
+
+   ELBF(ELBT_COMP, 0, 0,
+        "%15.15s|MIRROR_HIDE_DONE", "SIGNAL");
+   edje_object_part_unswallow(c->mirror_handler, c->mirror_obj);
+
+   evas_object_hide(c->mirror_handler);
+   evas_object_hide(c->mirror_obj);
+   evas_object_del(c->mirror_obj);
 }
 
 static void
@@ -1130,6 +1132,29 @@ _e_mod_comp_win_sync_setup(E_Comp_Win *cw,
      }
 }
 
+static void
+_e_mod_comp_win_shadow_setup_error_get(E_Comp_Win  *cw,
+                                       Evas_Object *o,
+                                       const char  *msg,
+                                       const char  *file)
+{
+   Ecore_X_Window win = e_mod_comp_util_client_xid_get(cw);
+
+   fprintf(stdout,
+           "[E17-comp] EDC file ERROR win:0x%08x o:%p %s FILE:%s\n",
+           win, o, msg, file);
+
+   ELBF(ELBT_COMP, 0, win,
+        "%15.15s|ERROR o:%p %s",
+        "EDC", o, msg);
+
+   ELBF(ELBT_COMP, 0, win,
+        "%15.15s|ERROR FILE:%s",
+        "EDC", file);
+
+   e_mod_comp_debug_edje_error_get(o, win);
+}
+
 EINTERN void
 e_mod_comp_win_shadow_setup(E_Comp_Win    *cw,
                             E_Comp_Object *co)
@@ -1146,27 +1171,38 @@ e_mod_comp_win_shadow_setup(E_Comp_Win    *cw,
      }
 
    if (_comp_mod->conf->shadow_file)
-     ok = edje_object_file_set
-        (co->shadow, _comp_mod->conf->shadow_file,
-        e_mod_comp_policy_win_shadow_group_get(cw));
+     {
+        ok = edje_object_file_set
+          (co->shadow, _comp_mod->conf->shadow_file,
+          e_mod_comp_policy_win_shadow_group_get(cw));
+
+        ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+             "%15.15s|FILE:%s GROUP:%s", "EDC",
+             _comp_mod->conf->shadow_file,
+             e_mod_comp_policy_win_shadow_group_get(cw));
+     }
 
    if (!ok)
      {
-        fprintf(stdout, "[E17-comp] EDC file ERROR win:0x%08x %s(%d) f:%s\n",
-                cw->win, __func__, __LINE__, _comp_mod->conf->shadow_file);
-        e_mod_comp_debug_edje_error_get
-           (co->shadow, e_mod_comp_util_client_xid_get(cw));
+        _e_mod_comp_win_shadow_setup_error_get
+          (cw, co->shadow, "SHADOW_FILE",
+          _comp_mod->conf->shadow_file);
 
         if (_comp_mod->conf->shadow_style)
           {
              snprintf(buf, sizeof(buf), "e/comp/%s",
                       _comp_mod->conf->shadow_style);
+
              ok = e_theme_edje_object_set(co->shadow,
                                           "base/theme/borders",
                                           buf);
           }
         if (!ok)
           {
+             _e_mod_comp_win_shadow_setup_error_get
+               (cw, co->shadow, "STYLE",
+               _comp_mod->conf->shadow_style);
+
              ok = e_theme_edje_object_set(co->shadow,
                                           "base/theme/borders",
                                           "e/comp/default");
@@ -1175,20 +1211,31 @@ e_mod_comp_win_shadow_setup(E_Comp_Win    *cw,
    // fallback to local shadow.edj - will go when default theme supports this
    if (!ok)
      {
-        fprintf(stdout, "[E17-comp] EDC file ERROR win:0x%08x %s(%d)\n",
-                cw->win, __func__, __LINE__);
-        e_mod_comp_debug_edje_error_get
-           (co->shadow, e_mod_comp_util_client_xid_get(cw));
+        _e_mod_comp_win_shadow_setup_error_get
+          (cw, co->shadow, "STYLE_DEFAULT",
+          "e/comp/default");
+
         snprintf(buf, sizeof(buf), "%s/shadow.edj",
                  e_module_dir_get(_comp_mod->module));
         ok = edje_object_file_set(co->shadow, buf, "shadow");
+
+        if (!ok)
+          {
+             _e_mod_comp_win_shadow_setup_error_get
+               (cw, co->shadow, "LOCAL", buf);
+          }
      }
    if (!edje_object_part_swallow(co->shadow,
                                  "e.swallow.content",
                                  co->img))
      {
-        fprintf(stdout, "[E17-comp] EDC swallow ERROR win:0x%08x %s(%d)\n",
-                cw->win, __func__, __LINE__);
+        fprintf(stdout,
+                "[E17-comp] EDC swallow ERROR win:0x%08x %s(%d) o:%p img:%p\n",
+                cw->win, __func__, __LINE__, co->shadow, co->img);
+
+        ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+             "%15.15s|SWALLOW_ERROR o:%p img:%p",
+             "EDC", co->shadow, co->img);
      }
 
    e_mod_comp_debug_edje_error_get
@@ -1397,6 +1444,8 @@ _e_mod_comp_win_add(E_Comp        *c,
           {
              free(cw);
              e_mod_comp_x_grab_set(c, EINA_FALSE);
+             ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+                  "%15.15s|ERROR", "OBJECT_ADD");
              return NULL;
           }
              
@@ -1481,6 +1530,7 @@ _e_mod_comp_win_add(E_Comp        *c,
      }
 
    e_mod_comp_x_grab_set(c, EINA_FALSE);
+   cw->launched = EINA_FALSE;
    return cw;
 }
 
@@ -1721,18 +1771,7 @@ _e_mod_comp_win_show(E_Comp_Win *cw)
           {
              cw->defer_hide = 0;
              if (!cw->hidden_override)
-               {
-                  if (cw->defer_move_resize)
-                    {
-                       if (!cw->move_lock)
-                         e_mod_comp_win_comp_objs_move(cw, cw->x, cw->y);
-                       e_mod_comp_win_comp_objs_resize(cw,
-                                                 cw->pw + (cw->border * 2),
-                                                 cw->ph + (cw->border * 2));
-                       cw->defer_move_resize = EINA_FALSE;
-                    }
-                  e_mod_comp_win_comp_objs_force_show(cw);
-               }
+               e_mod_comp_win_comp_objs_force_show(cw);
           }
      }
    e_mod_comp_bg_win_handler_show(cw);
@@ -1849,7 +1888,9 @@ _e_mod_comp_win_raise_above(E_Comp_Win *cw,
                                              EINA_INLIST_GET(cw2));
    v2 = e_mod_comp_util_win_visible_get(cw);
 
-   if ((v1) && (!v2))
+   if ((cw2) == (cw->c->lower_win))
+     lower = e_mod_comp_policy_win_lower_check(cw, below);
+   else if ((v1) && (!v2))
      lower = e_mod_comp_policy_win_lower_check(cw, below);
    else if ((!v1) && (v2))
      raise = e_mod_comp_policy_win_restack_check(cw, cw2);
@@ -2082,9 +2123,7 @@ _e_mod_comp_create(void *data __UNUSED__,
      {
         if (canvas->ee_win == ev->win) return ECORE_CALLBACK_PASS_ON;
      }
-   L(LT_EVENT_X,
-     "COMP|ev:%15.15s|w:0x%08x\n",
-     "X_CREATE", ev->win);
+   ELBF(ELBT_COMP, 0, ev->win, "%15.15s|", "X_CREATE");
    cw = _e_mod_comp_win_add(c, ev->win);
    if (cw)
      _e_mod_comp_win_configure(cw,
@@ -2102,10 +2141,9 @@ _e_mod_comp_destroy(void *data __UNUSED__,
    Ecore_X_Event_Window_Destroy *ev = event;
    E_Comp_Win *cw = _e_mod_comp_win_find(ev->win);
    if (!cw) return ECORE_CALLBACK_PASS_ON;
-   L(LT_EVENT_X,
-     "COMP|ev:%15.15s|w:0x%08x|bd:%d c:0x%08x cw:%p\n",
-     "X_DESTROY", ev->win, _e_mod_comp_win_is_border(cw),
-     e_mod_comp_util_client_xid_get(cw), cw);
+   ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+        "%15.15s|w:0x%08x|bd:%d cw:%p", "X_DESTROY",
+        ev->win, _e_mod_comp_win_is_border(cw), cw);
    if (!cw->c->nocomp && cw->animating) cw->delete_me = 1;
    else _e_mod_comp_win_del(cw);
    return ECORE_CALLBACK_PASS_ON;
@@ -2121,10 +2159,9 @@ _e_mod_comp_show(void *data __UNUSED__,
    if (!cw) return ECORE_CALLBACK_PASS_ON;
    if (cw->visible) return ECORE_CALLBACK_PASS_ON;
    if (_e_mod_comp_win_is_border(cw)) return ECORE_CALLBACK_PASS_ON;
-   L(LT_EVENT_X,
-     "COMP|ev:%15.15s|w:0x%08x|bd:%d c:0x%08x cw:%p\n",
-     "X_SHOW", ev->win, _e_mod_comp_win_is_border(cw),
-     e_mod_comp_util_client_xid_get(cw), cw);
+   ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+        "%15.15s|w:0x%08x|bd:%d cw:%p", "X_SHOW",
+        ev->win, _e_mod_comp_win_is_border(cw), cw);
    _e_mod_comp_win_show(cw);
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -2139,10 +2176,9 @@ _e_mod_comp_hide(void *data __UNUSED__,
    if (!cw) return ECORE_CALLBACK_PASS_ON;
    if (!cw->visible) return ECORE_CALLBACK_PASS_ON;
    if (_e_mod_comp_win_is_border(cw)) return ECORE_CALLBACK_PASS_ON;
-   L(LT_EVENT_X,
-     "COMP|ev:%15.15s|w:0x%08x|bd:%d c:0x%08x cw:%p\n",
-     "X_HIDE", ev->win, _e_mod_comp_win_is_border(cw),
-     e_mod_comp_util_client_xid_get(cw), cw);
+   ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+        "%15.15s|w:0x%08x|bd:%d cw:%p", "X_HIDE",
+        ev->win, _e_mod_comp_win_is_border(cw), cw);
    _e_mod_comp_win_real_hide(cw);
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -2155,13 +2191,13 @@ _e_mod_comp_reparent(void *data __UNUSED__,
    Ecore_X_Event_Window_Reparent *ev = event;
    E_Comp_Win *cw = _e_mod_comp_win_find(ev->win);
    if (!cw) return ECORE_CALLBACK_PASS_ON;
-   L(LT_EVENT_X,
-     "COMP|ev:%15.15s|w:0x%08x|bd:%d c:0x%08x cw:%p TO rw:0x%08x\n",
-     "X_REPARENT", ev->win, _e_mod_comp_win_is_border(cw),
-     e_mod_comp_util_client_xid_get(cw), cw, ev->parent);
+   ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+        "%15.15s|w:0x%08x|bd:%d cw:%p TO parent:0x%08x", "X_REPARENT",
+        ev->win, _e_mod_comp_win_is_border(cw), cw, ev->parent);
    if (ev->parent != cw->c->man->root)
      {
-        L(LT_EVENT_X, "COMP|%31s|w:0x%08x\n", "DEL", ev->win);
+        ELBF(ELBT_COMP, 1, e_mod_comp_util_client_xid_get(cw),
+             "DEL 0x%08x", ev->win);
         _e_mod_comp_win_del(cw);
      }
    return ECORE_CALLBACK_PASS_ON;
@@ -2269,6 +2305,7 @@ _e_mod_comp_prop_effect_state(Ecore_X_Event_Window_Property *ev __UNUSED__)
    if (val != 0)
      {
         c->animatable = EINA_TRUE;
+        c->keyboard_effect = EINA_TRUE;
         if (_comp_mod->conf->default_window_effect != 1)
           {
              _comp_mod->conf->default_window_effect = 1;
@@ -2281,6 +2318,7 @@ _e_mod_comp_prop_effect_state(Ecore_X_Event_Window_Property *ev __UNUSED__)
    else
      {
         c->animatable = EINA_FALSE;
+        c->keyboard_effect = EINA_FALSE;
         if (_comp_mod->conf->default_window_effect != 0)
           {
              _comp_mod->conf->default_window_effect = 0;
@@ -2779,9 +2817,8 @@ _e_mod_comp_bd_add(void *data __UNUSED__,
    E_Comp_Canvas *canvas;
    E_Comp* c = _e_mod_comp_find(ev->border->zone->container->manager->root);
 
-   L(LT_EVENT_X,
-     "COMP|ev:%15.15s|w:0x%08x|c:0x%08x\n", "BD_ADD",
-     ev->border->win, ev->border->client.win);
+   ELBF(ELBT_COMP, 0, ev->border->client.win,
+        "%15.15s|bd:0x%08x", "BD_ADD", ev->border->win);
 
    if (!c) return ECORE_CALLBACK_PASS_ON;
    if (_e_mod_comp_win_find(ev->border->win)) return ECORE_CALLBACK_PASS_ON;
@@ -2815,15 +2852,17 @@ _e_mod_comp_bd_del(void *data __UNUSED__,
    E_Event_Border_Remove *ev = event;
    E_Comp_Win *cw = _e_mod_comp_win_find(ev->border->win);
 
-   L(LT_EVENT_X,
-     "COMP|ev:%15.15s|w:0x%08x|c:0x%08x\n", "BD_DEL",
-     ev->border->win, ev->border->client.win);
+   ELBF(ELBT_COMP, 0, ev->border->client.win,
+        "%15.15s|bd:0x%08x cw:%p", "BD_DEL", ev->border->win, cw);
 
    if (!cw) return ECORE_CALLBACK_PASS_ON;
    if (cw->bd == ev->border)
      {
         if (!ev->border->borderless)
           e_mod_comp_effect_signal_add(cw, NULL, "e,state,shadow,off", "e");
+
+        if (e_mod_comp_policy_app_close_check(cw))
+          e_mod_comp_effect_signal_add(cw, NULL, "e,state,visible,off", "e");
 
         _e_mod_comp_object_del(cw, ev->border);
      }
@@ -2838,9 +2877,8 @@ _e_mod_comp_bd_show(void *data __UNUSED__,
    E_Event_Border_Show *ev = event;
    E_Comp_Win *cw = _e_mod_comp_win_find(ev->border->win);
 
-   L(LT_EVENT_X,
-     "COMP|ev:%15.15s|w:0x%08x|c:0x%08x\n", "BD_SHOW",
-     ev->border->win, ev->border->client.win);
+   ELBF(ELBT_COMP, 0, ev->border->client.win,
+        "%15.15s|bd:0x%08x cw:%p", "BD_SHOW", ev->border->win, cw);
 
    if (!cw) return ECORE_CALLBACK_PASS_ON;
    if (cw->visible) return ECORE_CALLBACK_PASS_ON;
@@ -2856,9 +2894,8 @@ _e_mod_comp_bd_hide(void *data __UNUSED__,
    E_Event_Border_Hide *ev = event;
    E_Comp_Win *cw = _e_mod_comp_win_find(ev->border->win);
 
-   L(LT_EVENT_X,
-     "COMP|ev:%15.15s|w:0x%08x|c:0x%08x\n", "BD_HIDE",
-     ev->border->win, ev->border->client.win);
+   ELBF(ELBT_COMP, 0, ev->border->client.win,
+        "%15.15s|bd:0x%08x cw:%p", "BD_HIDE", ev->border->win, cw);
 
    if (!cw) return ECORE_CALLBACK_PASS_ON;
    if (!cw->visible) return ECORE_CALLBACK_PASS_ON;
@@ -2931,9 +2968,8 @@ _e_mod_comp_bd_iconify(void *data __UNUSED__,
    E_Event_Border_Iconify *ev = event;
    E_Comp_Win *cw = _e_mod_comp_win_find(ev->border->win);
 
-   L(LT_EVENT_X,
-     "COMP|ev:%15.15s|w:0x%08x|c:0x%08x\n", "BD_ICONIFY",
-     ev->border->win, ev->border->client.win);
+   ELBF(ELBT_COMP, 0, ev->border->client.win,
+        "%15.15s|bd:0x%08x", "BD_ICONIFY", ev->border->win);
 
    if (!cw) return ECORE_CALLBACK_PASS_ON;
    // fimxe: special iconfiy anim
@@ -2948,9 +2984,8 @@ _e_mod_comp_bd_uniconify(void *data __UNUSED__,
    E_Event_Border_Uniconify *ev = event;
    E_Comp_Win *cw = _e_mod_comp_win_find(ev->border->win);
 
-   L(LT_EVENT_X,
-     "COMP|ev:%15.15s|w:0x%08x|c:0x%08x\n", "BD_UNICONIFY",
-     ev->border->win, ev->border->client.win);
+   ELBF(ELBT_COMP, 0, ev->border->client.win,
+        "%15.15s|bd:0x%08x", "BD_UNICONIFY", ev->border->win);
 
    if (!cw) return ECORE_CALLBACK_PASS_ON;
    // fimxe: special uniconfiy anim
@@ -3312,10 +3347,10 @@ static Eina_Bool
 _e_mod_comp_src_input_region_set_func(void *data             __UNUSED__,
                                       E_Manager *man         __UNUSED__,
                                       E_Manager_Comp_Source *src,
-                                      int x,
-                                      int y,
-                                      int w,
-                                      int h)
+                                      int                    x,
+                                      int                    y,
+                                      int                    w,
+                                      int                    h)
 {
    E_Comp_Win *cw = (E_Comp_Win *)src;
    Eina_Bool res = EINA_FALSE;
@@ -3334,28 +3369,59 @@ _e_mod_comp_src_input_region_set_func(void *data             __UNUSED__,
    return EINA_TRUE;
 }
 
+static int
+_e_mod_comp_input_region_new_func(void *data     __UNUSED__,
+                                  E_Manager *man __UNUSED__)
+{
+   E_Comp *c = e_mod_comp_util_get();
+   E_CHECK_RETURN(c, 0);
+
+   return e_mod_comp_shape_input_new(c);
+}
+
 static Eina_Bool
-_e_mod_comp_input_region_set_func(void *data             __UNUSED__,
-                                  E_Manager *man         __UNUSED__,
-                                  int x,
-                                  int y,
-                                  int w,
-                                  int h)
+_e_mod_comp_input_region_set_func(void *data     __UNUSED__,
+                                  E_Manager *man __UNUSED__,
+                                  int            id,
+                                  int            x,
+                                  int            y,
+                                  int            w,
+                                  int            h)
+{
+   E_Comp *c = e_mod_comp_util_get();
+   Eina_Bool res = EINA_FALSE;
+   E_CHECK_RETURN(c, EINA_FALSE);
+
+   if (id <= 0) return EINA_FALSE;
+
+   res = e_mod_comp_shape_input_set(c, id, x, y, w, h);
+   if (res)
+     {
+        e_mod_comp_win_shape_input_invalid_set(c, 1);
+        _e_mod_comp_render_queue(c);
+     }
+
+   return res;
+}
+
+static Eina_Bool
+_e_mod_comp_input_region_del_func(void *data     __UNUSED__,
+                                  E_Manager *man __UNUSED__,
+                                  int id)
 {
    E_Comp *c = e_mod_comp_util_get();
    Eina_Bool res = EINA_FALSE;
    E_CHECK_RETURN(c, 0);
 
-   if (!c->shape_input)
-     c->shape_input = e_mod_comp_shape_input_new();
-   E_CHECK_RETURN(c->shape_input, 0);
+   if (id <= 0) return EINA_FALSE;
 
-   res = e_mod_comp_win_shape_input_rect_set(c->shape_input, x, y, w, h);
-   E_CHECK_RETURN(res, 0);
-
-   e_mod_comp_win_shape_input_invalid_set(c, 1);
-   _e_mod_comp_render_queue(c);
-   return EINA_TRUE;
+   res = e_mod_comp_shape_input_del(c, id);
+   if (res)
+     {
+        e_mod_comp_win_shape_input_invalid_set(c, 1);
+        _e_mod_comp_render_queue(c);
+     }
+   return res;
 }
 
 static Eina_Bool
@@ -3507,6 +3573,29 @@ _e_mod_comp_src_shadow_hide_func(void                  *data,
    _e_mod_comp_win_hide(cw);
 }
 
+static Evas_Object *
+_e_mod_comp_mirror_handler_add(E_Comp *c)
+{
+   Evas_Object *shobj;
+   int ok = 0;
+   int w, h;
+   E_CHECK_RETURN(c, NULL);
+
+   shobj = edje_object_add(_e_mod_comp_evas_get_func(c, c->man));
+   E_CHECK_RETURN(shobj, NULL);
+
+   ok = edje_object_file_set (shobj, _comp_mod->conf->shadow_file, "shadow_fade");
+   E_CHECK_RETURN(ok, NULL);
+
+   edje_object_signal_callback_add(shobj, "e,action,mirror,hide,done","e", _e_mod_comp_mirror_hide_done, c);
+   evas_object_move(shobj, 0, 0);
+
+   ecore_x_window_size_get(c->win, &w, &h);
+   evas_object_resize(shobj, w, h);
+
+   return shobj;
+}
+
 static E_Comp *
 _e_mod_comp_add(E_Manager *man)
 {
@@ -3638,6 +3727,8 @@ _e_mod_comp_add(E_Manager *man)
              wname = wclass = NULL;
              cw = _e_mod_comp_win_add(c, wins[i]);
              if (!cw) continue;
+             if (i == _comp_mod->conf->lower_layer)
+               c->lower_win = cw;
              ecore_x_window_geometry_get(cw->win, &x, &y, &w, &h);
              border = ecore_x_window_border_width_get(cw->win);
              if (wins[i] == c->win) continue;
@@ -3676,7 +3767,9 @@ _e_mod_comp_add(E_Manager *man)
    c->comp.func.screen_lock          = e_mod_comp_screen_lock_func;
    c->comp.func.screen_unlock        = e_mod_comp_screen_unlock_func;
    c->comp.func.src_input_region_set = _e_mod_comp_src_input_region_set_func;
+   c->comp.func.input_region_new     = _e_mod_comp_input_region_new_func;
    c->comp.func.input_region_set     = _e_mod_comp_input_region_set_func;
+   c->comp.func.input_region_del     = _e_mod_comp_input_region_del_func;
    c->comp.func.src_move_lock        = _e_mod_comp_src_move_lock_func;
    c->comp.func.src_move_unlock      = _e_mod_comp_src_move_unlock_func;
    c->comp.func.composite_mode_set   = _e_mod_comp_composite_mode_set;
@@ -3738,11 +3831,13 @@ _e_mod_comp_del(E_Comp *c)
    if (c->new_up_timer) ecore_timer_del(c->new_up_timer);
    if (c->update_job) ecore_job_del(c->update_job);
    if (c->wins_list) eina_list_free(c->wins_list);
+   if (c->mirror_handler) evas_object_del(c->mirror_handler);
 
    ecore_x_window_free(c->cm_selection);
    ecore_x_e_comp_sync_supported_set(c->man->root, 0);
    ecore_x_screen_is_composited_set(c->man->num, 0);
-   e_mod_comp_win_shape_input_free(c->shape_input);
+
+   if (c->shape_inputs) eina_list_free(c->shape_inputs);
 
    free(c);
 }
@@ -4072,6 +4167,9 @@ e_mod_comp_init(void)
                   ecore_x_window_size_get(c->win, &w, &h);
                   c->eff_img = e_mod_comp_effect_image_launch_new(c->evas, w, h);
                }
+
+             c->mirror_handler = _e_mod_comp_mirror_handler_add(c);
+
              compositors = eina_list_append(compositors, c);
              e_mod_comp_util_set(c, man);
              ecore_animator_frametime_set(1.0f/60.0f);

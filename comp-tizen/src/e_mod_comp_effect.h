@@ -48,6 +48,7 @@ EINTERN void                e_mod_comp_effect_win_show(E_Comp_Win *cw);
 EINTERN Eina_Bool           e_mod_comp_effect_win_hide(E_Comp_Win *cw);
 EINTERN void                e_mod_comp_effect_win_restack(E_Comp_Win *cw, E_Comp_Win *cw2);
 EINTERN void                e_mod_comp_effect_win_lower(E_Comp_Win *cw, E_Comp_Win *cw2);
+EINTERN void                e_mod_comp_effect_mirror_handler_hide(E_Comp_Win *cw, E_Comp_Win *cw2);
 EINTERN void                e_mod_comp_effect_disable_stage(E_Comp *c, E_Comp_Win *cw);
 EINTERN Eina_Bool           e_mod_comp_effect_signal_add(E_Comp_Win *cw, Evas_Object *o, const char *emission, const char *src);
 EINTERN Eina_Bool           e_mod_comp_effect_signal_del(E_Comp_Win *cw, Evas_Object *obj, const char *name);

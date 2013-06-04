@@ -6,13 +6,15 @@
 typedef struct _E_Move_Event             E_Move_Event;
 typedef struct _E_Move_Event_Motion_Info E_Move_Event_Motion_Info;
 
-typedef enum   _E_Move_Event_Type        E_Move_Event_Type;
-typedef enum   _E_Move_Event_State       E_Move_Event_State;
-typedef enum   _E_Move_Event_Data_Type   E_Move_Event_Data_Type;
+typedef enum   _E_Move_Event_Type           E_Move_Event_Type;
+typedef enum   _E_Move_Event_State          E_Move_Event_State;
+typedef enum   _E_Move_Event_Data_Type      E_Move_Event_Data_Type;
+typedef enum   _E_Move_Event_Propagate_Type E_Move_Event_Propagate_Type;
 
-typedef Eina_Bool          (*E_Move_Event_Cb)       (void *, void *);
-typedef Eina_Bool          (*E_Move_Event_Angle_Cb) (Ecore_X_Window, int *, int *);
-typedef E_Move_Event_State (*E_Move_Event_Check_Cb) (E_Move_Event *, void *);
+typedef Eina_Bool          (*E_Move_Event_Cb)          (void *, void *);
+typedef Eina_Bool          (*E_Move_Event_Angle_Cb)    (Ecore_X_Window, int *, int *);
+typedef E_Move_Event_State (*E_Move_Event_Check_Cb)    (E_Move_Event *, void *);
+typedef Ecore_X_Window     (*E_Move_Event_Win_Find_Cb) (void *);
 
 enum _E_Move_Event_Type
 {
@@ -46,6 +48,13 @@ enum _E_Move_Event_Data_Type
    E_MOVE_EVENT_DATA_TYPE_WIDGET_INDICATOR
 };
 
+enum _E_Move_Event_Propagate_Type
+{
+   E_MOVE_EVENT_PROPAGATE_TYPE_NONE = 0,
+   E_MOVE_EVENT_PROPAGATE_TYPE_DEFERRED,
+   E_MOVE_EVENT_PROPAGATE_TYPE_IMMEDIATELY
+};
+
 /* event management functions */
 EINTERN E_Move_Event       *e_mod_move_event_new(Ecore_X_Window win, Evas_Object *obj);
 EINTERN void                e_mod_move_event_free(E_Move_Event *ev);
@@ -60,9 +69,9 @@ EINTERN int                 e_mod_move_event_angle_get(E_Move_Event *ev);
 EINTERN Eina_Bool           e_mod_move_event_click_set(E_Move_Event *ev, Eina_Bool click);
 EINTERN Eina_Bool           e_mod_move_event_click_get(E_Move_Event *ev);
 EINTERN Eina_Bool           e_mod_move_event_data_clear(E_Move_Event *ev);
-EINTERN Eina_Bool           e_mod_move_event_send_all_set(E_Move_Event *ev, Eina_Bool send_all);
+EINTERN Eina_Bool           e_mod_move_event_propagate_type_set(E_Move_Event *ev, E_Move_Event_Propagate_Type type);
 EINTERN Eina_Bool           e_mod_move_event_data_type_set(E_Move_Event *ev, E_Move_Event_Data_Type type);
-EINTERN Eina_Bool           e_mod_move_event_find_redirect_win_set(E_Move_Event *ev, Eina_Bool find_redirect_win);
-
+EINTERN Eina_Bool           e_mod_move_event_win_find_cb_set(E_Move_Event *ev, E_Move_Event_Win_Find_Cb cb);
+EINTERN Ecore_X_Window      e_mod_move_event_win_get(E_Move_Event *ev);
 #endif
 #endif

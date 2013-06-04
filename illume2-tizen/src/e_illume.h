@@ -384,6 +384,8 @@ struct _E_Illume_Quickpanel
    unsigned char changed :1;
 
    unsigned int layer;
+
+   E_Border *below_bd;
 };
 
 

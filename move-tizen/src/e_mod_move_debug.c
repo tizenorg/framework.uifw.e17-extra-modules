@@ -14,14 +14,12 @@ static void _e_mod_move_debug_borders_info_dump(E_Move *m, FILE *fs);
 static void _e_mod_move_debug_borders_visibility_dump(E_Move *m, FILE *fs);
 static void _e_mod_move_debug_event_cb_dump(E_Move *m, FILE *fs);
 static void _e_mod_move_debug_control_objects_info_dump(E_Move *m, E_Move_Canvas *canvas, FILE *fs);
-static void _e_mod_move_debug_indicator_controller_info_dump(E_Move *m, E_Move_Canvas *canvas, FILE *fs);
 static void _e_mod_move_debug_canvas_info_dump(E_Move *m, E_Move_Canvas *canvas, FILE *fs);
 static void _e_mod_move_debug_evas_stack_dump(E_Move *m, E_Move_Canvas *canvas, FILE *fs);
 static void _e_mod_move_debug_dim_objects_info_dump(E_Move *m, E_Move_Canvas *canvas, FILE *fs);
 static void _e_mod_move_debug_event_logs_dump(E_Move *m, FILE *fs);
 static void _e_mod_move_debug_control_objects_visible_set(E_Move *m, E_Move_Canvas *canvas, Eina_Bool visi);
 static void _e_mod_move_debug_widget_objects_visible_set(E_Move *m, E_Move_Canvas *canvas, Eina_Bool visi);
-static void _e_mod_move_debug_indicator_controller_objects_visible_set(E_Move *m, E_Move_Canvas *canvas, Eina_Bool visi);
 static void _e_mod_move_debug_objects_visible_set(Eina_Bool visi);
 
 /* local subsystem functions */
@@ -84,6 +82,9 @@ _e_mod_move_debug_borders_info_dump(E_Move *m,
         i++;
      }
    fprintf(fs, "E------------------------------------------------------------------------------------------------------------------------------------\n");
+   fprintf(fs, "\nB-------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n");
+   fprintf(fs, "   Screen Reader State: %d\n", m->screen_reader_state);
+   fprintf(fs, "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n");
 }
 
 static void
@@ -275,85 +276,6 @@ _e_mod_move_debug_control_objects_info_dump(E_Move        *m,
         i++;
      }
    fprintf(fs, "E----------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n");
-}
-
-static void
-_e_mod_move_debug_indicator_controller_info_dump(E_Move        *m,
-                                                 E_Move_Canvas *canvas,
-                                                 FILE          *fs)
-{
-   Eina_List *l;
-   E_Move_Evas_Object *meo, *_meo = NULL;
-   int x, y, w, h, i = 1;
-   Ecore_X_Window cid = 0;
-   Ecore_X_Window target_win;
-   char *netwm_name = NULL;
-   E_Move_Indicator_Controller *mic = NULL;
-
-   fprintf(fs, "\n\nB----------------------------------------------------------------------------------------------\n");
-   fprintf(fs, "   <MOVE MODULE>  Indicator Controller Object Info ( It is used for FullScreen Window ) \n");
-   fprintf(fs, "-----------------------------------------------------------------------------------------------\n");
-   if (canvas->zone)
-     {
-        fprintf(fs, " canvas->zone:%p num:%d %d,%d %dx%d\n",
-                (void *)canvas->zone, canvas->zone->num,
-                canvas->zone->x, canvas->zone->y,
-                canvas->zone->w, canvas->zone->h);
-     }
-   fprintf(fs, "------------------------------------------------------------------------------------------------\n");
-
-   fprintf(fs, "------------------------------------------------------------------------------------------------\n");
-   fprintf(fs, " NO TARGET_WIN_ID  indicator_control_obj  found_o   ex   ey   ew     eh  | V |  NETWM_NAME\n");
-   fprintf(fs, "------------------------------------------------------------------------------------------------\n");
-   Evas_Object *o = evas_object_top_get(canvas->evas);
-   Eina_Bool found = 0;
-
-   if (e_mod_move_indicator_controller_state_get(m, &target_win))
-     {
-        mic = m->indicator_controller;
-        if (mic)
-          {
-             while (o)
-               {
-                  EINA_LIST_FOREACH(mic->objs, l, meo)
-                    {
-                       if (!meo) continue;
-                       if (meo->canvas != canvas) continue;
-                       if (meo->obj == o)
-                         {
-                            found = 1;
-                            _meo = meo;
-                            break;
-                         }
-                    }
-
-                  evas_object_geometry_get(o, &x, &y, &w, &h);
-                  if (found && _meo)
-                    {
-                       cid = target_win;
-                       ecore_x_netwm_name_get(cid, &netwm_name);
-                       fprintf(fs,
-                               " %2d   0x%07x         %p          %p %4d %4d %4d x %4d   %s   %s\n",
-                               i,
-                               target_win,
-                               (void *)_meo->obj,
-                               (void *)o,
-                               x, y, w, h,
-                               evas_object_visible_get(_meo->obj) ? "v" : "",
-                               netwm_name ? netwm_name : "");
-                    }
-
-                  o = evas_object_below_get(o);
-                  found = 0;
-                  _meo = NULL;
-                  if (netwm_name) free(netwm_name);
-                  netwm_name = NULL;
-                  cid = 0;
-                  i++;
-               }
-          }
-     }
-   fprintf(fs, "E-----------------------------------------------------------------------------------------------\n");
 }
 
 static void
@@ -875,50 +797,6 @@ _e_mod_move_debug_widget_objects_visible_set(E_Move        *m,
 }
 
 static void
-_e_mod_move_debug_indicator_controller_objects_visible_set(E_Move        *m,
-                                                           E_Move_Canvas *canvas,
-                                                           Eina_Bool      visi)
-{
-   Eina_List *l;
-   E_Move_Evas_Object *meo, *_meo = NULL;
-   Evas_Object *o = evas_object_top_get(canvas->evas);
-   Eina_Bool found = 0;
-   Ecore_X_Window target_win;
-   E_Move_Indicator_Controller *mic = NULL;
-
-   if (e_mod_move_indicator_controller_state_get(m, &target_win))
-     {
-        mic = m->indicator_controller;
-        while (o)
-          {
-             EINA_LIST_FOREACH(mic->objs, l, meo)
-               {
-                  if (!meo) continue;
-                  if (meo->canvas != canvas) continue;
-                  if (meo->obj == o)
-                    {
-                       found = 1;
-                       _meo = meo;
-                       break;
-                    }
-               }
-
-             if (found && _meo)
-               {
-                  if (visi)
-                     e_mod_move_evas_objs_color_set(mic->objs, 0, 255, 0, 100);
-                  else
-                     e_mod_move_evas_objs_color_set(mic->objs, 0, 0, 0, 0);
-               }
-
-             o = evas_object_below_get(o);
-             found = 0;
-             _meo = NULL;
-          }
-     }
-}
-
-static void
 _e_mod_move_debug_objects_visible_set(Eina_Bool visi)
 {
    E_Move *m = NULL;
@@ -933,9 +811,6 @@ _e_mod_move_debug_objects_visible_set(Eina_Bool visi)
         if (!canvas) continue;
         _e_mod_move_debug_control_objects_visible_set(m, canvas, visi);
         _e_mod_move_debug_widget_objects_visible_set(m, canvas, visi);
-        _e_mod_move_debug_indicator_controller_objects_visible_set(m,
-                                                                   canvas,
-                                                                   visi);
      }
 }
 
@@ -983,7 +858,6 @@ e_mod_move_debug_info_dump(Eina_Bool   to_file,
         _e_mod_move_debug_control_objects_info_dump(m, canvas, fs);
         _e_mod_move_debug_canvas_info_dump(m, canvas, fs);
         _e_mod_move_debug_dim_objects_info_dump(m, canvas, fs);
-        _e_mod_move_debug_indicator_controller_info_dump(m, canvas, fs);
      }
 
    _e_mod_move_debug_event_logs_dump(m, fs);

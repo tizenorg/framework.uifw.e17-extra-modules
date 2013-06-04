@@ -23,8 +23,6 @@ struct _E_Comp_Effect_Image_Launch
 static void      _show_done(void *data, Evas_Object *obj, const char *emission, const char *source);
 static void      _hide_done(void *data, Evas_Object *obj, const char *emission, const char *source);
 static Eina_Bool _launch_timeout(void *data);
-static void      _invisible_win_hide(E_Comp_Win *cw, Eina_Bool show);
-static E_Comp_Win *_bg_win_get(void);
 static E_Comp_Win *_appinapp_bottom_win_get(E_Comp_Win *normal_top);
 
 /* local subsystem globals */
@@ -220,16 +218,6 @@ e_mod_comp_effect_image_launch_show(E_Comp_Effect_Image_Launch *eff,
         E_CHECK_GOTO(res, error);
      }
 
-   // background hide effect
-   if(c->animatable)
-     {
-        bg_cw = _bg_win_get();
-   if (bg_cw)
-     {
-        _invisible_win_hide(bg_cw, EINA_TRUE);
-     }
-     }
-
    // set position of fake launch image
    if (eff->layer_obj)
      {
@@ -322,23 +310,12 @@ EINTERN Eina_Bool
 e_mod_comp_effect_image_launch_hide(E_Comp_Effect_Image_Launch *eff)
 {
    E_Comp *c = e_mod_comp_util_get();
-   E_Comp_Win *bg_cw = NULL;
    E_CHECK_RETURN(c, 0);
    E_CHECK_RETURN(eff, 0);
 
    if (eff->timeout)
      ecore_timer_del(eff->timeout);
    eff->timeout = NULL;
-
-   // background hide effect
-   if(c->animatable)
-     {
-        bg_cw = _bg_win_get();
-   if (bg_cw)
-     {
-        _invisible_win_hide(bg_cw, EINA_FALSE);
-     }
-     }
 
    if (c->animatable)
      {
@@ -469,30 +446,6 @@ _appinapp_bottom_win_get(E_Comp_Win *normal_top)
    return _cw;
 }
 
-
-static E_Comp_Win *
-_bg_win_get(void)
-{
-   E_Comp *c = e_mod_comp_util_get();
-   E_Comp_Win *cw = NULL;
-   E_CHECK_RETURN(c, 0);
-
-   EINA_INLIST_REVERSE_FOREACH(c->wins, cw)
-     {
-        if ((cw->visible) &&
-            (REGION_EQUAL_TO_ROOT(cw)) &&
-            (!cw->invalid) && (!cw->input_only) &&
-            (TYPE_NORMAL_CHECK(cw)))
-          {
-             return cw;
-          }
-        if(TYPE_HOME_CHECK(cw))
-          return cw;
-     }
-   return NULL;
-}
-
-
 static void
 _show_done(void *data,
            Evas_Object *obj __UNUSED__,
@@ -547,7 +500,6 @@ _launch_timeout(void *data)
 {
    E_Comp_Effect_Image_Launch *eff;
    E_Comp *c = e_mod_comp_util_get();
-   E_Comp_Win *bg_cw = NULL;
    eff = (E_Comp_Effect_Image_Launch *)data;
 
    E_CHECK_RETURN(c, 0);
@@ -560,13 +512,6 @@ _launch_timeout(void *data)
    eff->running = EINA_FALSE;
    eff->win = 0;
    eff->fake_image_show_done = EINA_FALSE;
-
-   // background hide effect
-   bg_cw = _bg_win_get();
-   if (bg_cw)
-     {
-        _invisible_win_hide(bg_cw, EINA_FALSE);
-     }
 
    if (c->animatable)
      {
@@ -602,94 +547,4 @@ _launch_timeout(void *data)
    e_mod_comp_render_queue(c);
 
    return EINA_FALSE;
-}
-
-static void
-_invisible_win_hide(E_Comp_Win *cw,
-                    Eina_Bool show)
-{
-   E_Comp *c = e_mod_comp_util_get();
-   Eina_List *ll;
-   E_Comp_Object *co;
-   Eina_Bool visible = 0;
-   E_Comp_Canvas *canvas;
-   E_Comp_Win *_cw = cw;
-   Eina_Inlist *l;
-
-   E_CHECK(cw);
-   E_CHECK(c);
-
-   while ((l = EINA_INLIST_GET(_cw)->prev) != NULL)
-     {
-        visible = 0;
-        _cw = _EINA_INLIST_CONTAINER(_cw, l);
-        E_CHECK(_cw);
-        if ((!_cw) ||
-            (_cw->invalid) ||
-            (_cw->input_only) ||
-            (_cw->win == cw->win) ||
-            TYPE_INDICATOR_CHECK(_cw))
-          {
-             continue;
-          }
-
-        EINA_LIST_FOREACH(_cw->objs, ll, co)
-          {
-             if (!co) continue;
-             if (evas_object_visible_get(co->shadow))
-               {
-                  visible = 1;
-                  break;
-               }
-          }
-        if (!visible) continue;
-
-        // do hide window which is not related window animation effect.
-        _cw->animate_hide = EINA_TRUE;
-        EINA_LIST_FOREACH(_cw->objs, ll, co)
-          {
-             if (!co) continue;
-             evas_object_hide(co->shadow);
-          }
-     }
-
-   EINA_LIST_FOREACH(cw->c->canvases, ll, canvas)
-     {
-        if (!canvas) continue;
-        if (canvas->use_bg_img) continue;
-        evas_object_lower(canvas->bg_img);
-     }
-
-   EINA_LIST_FOREACH(cw->objs, ll, co)
-     {
-        if (!co) continue;
-        if (!cw->hidden_override && cw->show_done)
-          evas_object_show(co->shadow);
-     }
-
-   cw->animate_hide = EINA_FALSE;
-   cw->c->effect_stage = EINA_TRUE;
-
-   if (show)
-     {
-        if (c->animatable)
-          e_mod_comp_effect_signal_add
-            (cw, NULL,
-            "e,state,background,visible,on", "e");
-        else
-          e_mod_comp_effect_signal_add
-            (cw, NULL,
-            "e,state,background,visible,on,noeffect", "e");
-     }
-   else
-     {
-        if (c->animatable)
-          e_mod_comp_effect_signal_add
-            (cw, NULL,
-            "e,state,background,visible,off", "e");
-        else
-          e_mod_comp_effect_signal_add
-            (cw, NULL,
-            "e,state,background,visible,off,noeffect", "e");
-     }
 }

@@ -21,7 +21,10 @@ e_mod_move_cfdata_edd_init(E_Config_DD **conf_edd)
    E_CONFIG_VAL(D, T, qp_scroll_with_clipping, UCHAR);
    E_CONFIG_VAL(D, T, dim_max_opacity, INT);
    E_CONFIG_VAL(D, T, dim_min_opacity, INT);
-   E_CONFIG_VAL(D, T, flick_speed_limit, DOUBLE);
+   E_CONFIG_VAL(D, T, flick_limit.speed, DOUBLE);
+   E_CONFIG_VAL(D, T, flick_limit.angle, DOUBLE);
+   E_CONFIG_VAL(D, T, flick_limit.distance, DOUBLE);
+   E_CONFIG_VAL(D, T, flick_limit.distance_rate, DOUBLE);
    E_CONFIG_VAL(D, T, animation_duration, DOUBLE);
    E_CONFIG_VAL(D, T, event_log, UCHAR);
    E_CONFIG_VAL(D, T, event_log_count, INT);
@@ -79,7 +82,10 @@ e_mod_move_cfdata_config_new(void)
    cfg->qp_scroll_with_clipping = 1;
    cfg->dim_max_opacity = 200;
    cfg->dim_min_opacity = 0;
-   cfg->flick_speed_limit = 200.0;
+   cfg->flick_limit.speed = 200.0;
+   cfg->flick_limit.angle = 0.26; // tangent angle . angle 15's tangent value
+   cfg->flick_limit.distance = 105.0; // sqrt((50 * 50) + (50 * 50)) * 1.5
+   cfg->flick_limit.distance_rate = 0.1; // screen's 10%
    cfg->animation_duration = 0.4;
    cfg->event_log = 1;
    cfg->event_log_count = 600;
@@ -103,20 +109,20 @@ e_mod_move_cfdata_config_new(void)
    cfg->indicator_widget_geometry[E_MOVE_ANGLE_270].h = 1280;
    // mini_apptray widget gemometry setting
    cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].x = 0;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].y = 1230;
+   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].y = 1260;
    cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].w = 720;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].h = 50;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].x = 670;
+   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].h = 20;
+   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].x = 700;
    cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].y = 0;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].w = 50;
+   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].w = 20;
    cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].h = 1280;
    cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].x = 0;
    cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].y = 0;
    cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].w = 720;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].h = 50;
+   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].h = 20;
    cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].x = 0;
    cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].y = 0;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].w = 50;
+   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].w = 20;
    cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].h = 1280;
 
    return cfg;

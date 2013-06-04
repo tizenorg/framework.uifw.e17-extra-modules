@@ -15,34 +15,36 @@ e_mod_comp_policy_init(void)
 {
    if (!shadow_hash) shadow_hash = eina_hash_string_superfast_new(NULL);
 
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_UNKNOWN),        "shadow"      );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DESKTOP),        "no-effect"   );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DOCK),           "shadow_fade");
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_TOOLBAR),        "no-effect"   );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_MENU),           "no-effect"   );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_UTILITY),        "no-effect"   );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_SPLASH),         "no-effect"   );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DIALOG),         "dialog"      );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_NORMAL),         "shadow_fade");
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DROPDOWN_MENU),  "no-effect"   );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_POPUP_MENU),     "shadow"      );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_TOOLTIP),        "shadow"      );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_NOTIFICATION),   "dialog"      );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_COMBO),          "no-effect"   );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DND),            "no-effect"   );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_MENUSCREEN),     "home_screen");
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_QUICKPANEL_BASE),"quickpanel"  );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_QUICKPANEL),     "quickpanel"  );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_TASKMANAGER),    "taskmgr"     );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_LIVEMAGAZINE),   "home_screen");
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_LOCKSCREEN),     "lockscreen"  );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_INDICATOR),      "indicator"   );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_TICKERNOTI),     "dialog"      );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DEBUGGING_INFO), "no-effect"   );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_APPTRAY),        "app_tray"    );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_BACKGROUND),     "no-effect"   );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_ISF_KEYBOARD),   "keyboard"    );
-   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_ISF_SUB),        "shadow"      );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_UNKNOWN),        "shadow"            );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DESKTOP),        "no-effect"         );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DOCK),           "shadow_fade"       );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_TOOLBAR),        "no-effect"         );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_MENU),           "no-effect"         );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_UTILITY),        "no-effect"         );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_SPLASH),         "no-effect"         );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DIALOG),         "dialog"            );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_NORMAL),         "shadow_fade"       );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DROPDOWN_MENU),  "no-effect"         );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_POPUP_MENU),     "shadow"            );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_TOOLTIP),        "shadow"            );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_NOTIFICATION),   "dialog"            );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_COMBO),          "no-effect"         );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DND),            "no-effect"         );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_MENUSCREEN),     "home_screen"       );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_QUICKPANEL_BASE),"quickpanel"        );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_QUICKPANEL),     "quickpanel"        );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_TASKMANAGER),    "taskmgr"           );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_LIVEMAGAZINE),   "home_screen"       );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_LOCKSCREEN),     "lockscreen"        );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_INDICATOR),      "indicator"         );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_TICKERNOTI),     "dialog_without_dim");
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_DEBUGGING_INFO), "no-effect"         );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_APPTRAY),        "app_tray"          );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_MINI_APPTRAY),   "app_tray"          );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_VOLUME),         "dialog_without_dim");
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_BACKGROUND),     "no-effect"         );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_ISF_KEYBOARD),   "keyboard"          );
+   eina_hash_add(shadow_hash, e_util_winid_str_get(E_COMP_WIN_TYPE_ISF_SUB),        "no-effect"         );
 
    return 1;
 }
@@ -184,12 +186,6 @@ e_mod_comp_policy_win_rotation_effect_check(E_Comp_Win *cw)
    E_CHECK_RETURN(cw->visible, 0);
    E_CHECK_RETURN(cw->bd, 0);
    E_CHECK_RETURN(cw->objs, 0);
-
-   if ((_comp_mod->conf->nocomp_fs) &&
-       (cw->c->nocomp))
-     {
-        return EINA_FALSE;
-     }
 
    animatable = e_mod_comp_effect_state_get(cw->eff_type);
    E_CHECK_RETURN(animatable, 0);

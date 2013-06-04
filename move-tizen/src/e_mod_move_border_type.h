@@ -31,6 +31,9 @@
 #define TYPE_PWLOCK_CHECK(a) \
    ((a)->type == E_MOVE_BORDER_TYPE_PWLOCK)
 
+#define TYPE_NOTIFICATION_CHECK(a) \
+   ((a)->type == E_MOVE_BORDER_TYPE_NOTIFICATION)
+
 typedef enum _E_Move_Border_Type
 {
    E_MOVE_BORDER_TYPE_UNKNOWN = 0,

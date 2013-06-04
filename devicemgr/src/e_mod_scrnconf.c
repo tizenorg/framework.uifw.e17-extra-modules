@@ -53,6 +53,8 @@ static struct
 {
    {SC_EXT_RES_1920X1080, 0.0, NULL},
    {SC_EXT_RES_1280X720, 0.0, NULL},
+   {SC_EXT_RES_720X480, 0.0, NULL},
+   {SC_EXT_RES_720X576, 0.0, NULL},
 };
 
 static char *str_output[3] = {
@@ -73,10 +75,12 @@ static char *str_stat[3] = {
     "ACTIVE",
 };
 
-static char *str_resolution[3] = {
+static char *str_resolution[5] = {
     "null",
     "1920x1080",
     "1280x720",
+    "720x480",
+    "720x576",
 };
 
 /* Calculates the vertical refresh rate of a mode. */
@@ -173,6 +177,12 @@ _get_str_resolution(int resolution)
     case SC_EXT_RES_1280X720:
         str = str_resolution[2];
         break;
+    case SC_EXT_RES_720X480:
+        str = str_resolution[3];
+        break;
+    case SC_EXT_RES_720X576:
+        str = str_resolution[4];
+        break;
     default:
         str = str_resolution[0];
         break;
@@ -190,6 +200,10 @@ _get_resolution_str (char *res_name)
         resolution = SC_EXT_RES_1920X1080;
     else if (!strcmp (res_name, str_resolution[2]))
         resolution = SC_EXT_RES_1280X720;
+    else if (!strcmp (res_name, str_resolution[3]))
+        resolution = SC_EXT_RES_720X480;
+    else if (!strcmp (res_name, str_resolution[4]))
+        resolution = SC_EXT_RES_720X576;
     else
         resolution = SC_EXT_RES_NULL;
 

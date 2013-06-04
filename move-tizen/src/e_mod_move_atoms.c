@@ -18,6 +18,8 @@ EINTERN Ecore_X_Atom ATOM_MV_QUICKPANEL_STATE              = 0;
 EINTERN Ecore_X_Atom ATOM_CLIENT_PANEL                     = 0;
 EINTERN Ecore_X_Atom ATOM_MV_PANEL_SCROLLABLE_STATE        = 0;
 EINTERN Ecore_X_Atom ATOM_MV_INDICATOR_GEOMETRY            = 0;
+EINTERN Ecore_X_Atom ATOM_INDICATOR_CMD_WIN                = 0;
+EINTERN Ecore_X_Atom ATOM_ACTIVE_INDICATOR_WIN             = 0;
 
 /* local subsystem globals */
 static Eina_Hash *atoms_hash = NULL;
@@ -37,7 +39,9 @@ static const char *atom_names[] = {
   "_E_MOVE_QUICKPANEL_STATE",
   "_NET_CLIENT_PANEL",
   "_E_MOVE_PANEL_SCROLLABLE_STATE",
-  "_E_MOVE_INDICATOR_GEOMETRY"
+  "_E_MOVE_INDICATOR_GEOMETRY",
+  "_E_INDICATOR_CMD_WIN",
+  "_E_ACTIVE_INDICATOR_WIN"
 };
 
 static const char *external_atom_names[] = {
@@ -82,6 +86,8 @@ e_mod_move_atoms_init(void)
    ATOM_CLIENT_PANEL                     = atoms[i++];
    ATOM_MV_PANEL_SCROLLABLE_STATE        = atoms[i++];
    ATOM_MV_INDICATOR_GEOMETRY            = atoms[i++];
+   ATOM_INDICATOR_CMD_WIN                = atoms[i++];
+   ATOM_ACTIVE_INDICATOR_WIN             = atoms[i++];
 
    for (i = 0; i < n; i++)
      {

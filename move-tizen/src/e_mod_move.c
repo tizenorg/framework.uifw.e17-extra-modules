@@ -163,6 +163,8 @@ _e_mod_move_mouse_btn_dn(void    *data,
                   // if log list is full, delete first log
                   E_Move_Event_Log *first_log = (E_Move_Event_Log*)eina_list_nth(m->ev_logs, 0);
                   m->ev_logs = eina_list_remove(m->ev_logs, first_log);
+                  memset(first_log, 0, sizeof(E_Move_Event_Log));
+                  E_FREE(first_log);
                }
              m->ev_logs = eina_list_append(m->ev_logs, log);
           }
@@ -214,6 +216,8 @@ _e_mod_move_mouse_btn_up(void    *data,
                   // if log list is full, delete first log
                   E_Move_Event_Log *first_log = (E_Move_Event_Log*)eina_list_nth(m->ev_logs, 0);
                   m->ev_logs = eina_list_remove(m->ev_logs, first_log);
+                  memset(first_log, 0, sizeof(E_Move_Event_Log));
+                  E_FREE(first_log);
                }
              m->ev_logs = eina_list_append(m->ev_logs, log);
           }
@@ -260,7 +264,7 @@ _e_mod_move_property(void *data  __UNUSED__,
      _e_mod_move_prop_indicator_geometry(ev);
    else if (a == ECORE_X_ATOM_E_ILLUME_INDICATOR_TYPE_MODE)
      _e_mod_move_prop_indicator_type(ev);
-   else if (a == ATOM_MV_APPTRAY_STATE)
+   else if (a == ATOM_MV_MINI_APPTRAY_STATE)
      _e_mod_move_prop_mini_apptray_state(ev);
 
    return ECORE_CALLBACK_PASS_ON;
@@ -306,7 +310,6 @@ _e_mod_move_visibility_change(void *data __UNUSED__,
                               void      *event)
 {
    Ecore_X_Window win;
-   Ecore_X_Window target_win;
    E_Move_Border *mb = NULL;
    int fully_obscured;
    Ecore_X_Event_Window_Visibility_Change *ev;
@@ -328,23 +331,10 @@ _e_mod_move_visibility_change(void *data __UNUSED__,
    if (fully_obscured)
      {
         mb->visibility = E_MOVE_VISIBILITY_STATE_FULLY_OBSCURED;
-
-        if (e_mod_move_indicator_controller_unset_policy_check(mb))
-          e_mod_move_indicator_controller_unset(mb->m);
-
      }
    else
      {
         mb->visibility = E_MOVE_VISIBILITY_STATE_VISIBLE;
-
-        if (e_mod_move_indicator_controller_set_policy_check(mb))
-          {
-             if (e_mod_move_indicator_controller_state_get(mb->m, &target_win))
-               e_mod_move_indicator_controller_unset(mb->m);
-
-             e_mod_move_indicator_controller_set(mb);
-          }
-
      }
 
    return ECORE_CALLBACK_PASS_ON;
@@ -469,6 +459,11 @@ _e_mod_move_bd_move(void *data __UNUSED__,
 
    E_CHECK_RETURN(ev, ECORE_CALLBACK_PASS_ON);
    E_CHECK_RETURN(ev->border, ECORE_CALLBACK_PASS_ON);
+
+   ELBF(ELBT_MOVE, 0, ev->border->win,
+        "%15.15s| BD_MOVE w:0x%08x c:0x%08x ev[%d,%d]",
+        "MOVE", ev->border->win, ev->border->client.win, ev->border->x, ev->border->y);
+
    mb = _e_mod_move_border_find(ev->border->win);
    E_CHECK_RETURN(m, ECORE_CALLBACK_PASS_ON);
    E_CHECK_RETURN(mb, ECORE_CALLBACK_PASS_ON);
@@ -552,12 +547,19 @@ _e_mod_move_bd_stack(void *data __UNUSED__,
                "[MOVE] ev:%15.15s w1:0x%08x c1:0x%08x w2:0x%08x c2:0x%08x\n",
                "BD_RAISE_ABOVE", ev->border->win, ev->border->client.win,
                ev->stack->win, ev->stack->client.win);
+             ELBF(ELBT_MOVE, 0, ev->border->win,
+                  "%15.15s| BD_RAISE_ABOVE w1:0x%08x c1:0x%08x w2:0x%08x c2:0x%08x",
+                  "MOVE", ev->border->win, ev->border->client.win,
+                  ev->stack->win, ev->stack->client.win);
           }
         else
           {
              L(LT_EVENT_BD,
                "[MOVE] ev:%15.15s w:0x%08x c:0x%08x\n",
                "BD_LOWER", ev->border->win, ev->border->client.win);
+             ELBF(ELBT_MOVE, 0, ev->border->win,
+                  "%15.15s| BD_LOWER w:0x%08x c:0x%08x",
+                  "MOVE", ev->border->win, ev->border->client.win);
           }
      }
    else if (ev->type == E_STACKING_BELOW)
@@ -568,12 +570,19 @@ _e_mod_move_bd_stack(void *data __UNUSED__,
                "[MOVE] ev:%15.15s w1:0x%08x c1:0x%08x w2:0x%08x c2:0x%08x\n",
                "BD_LOWER_BELOW", ev->border->win, ev->border->client.win,
                ev->stack->win, ev->stack->client.win);
+             ELBF(ELBT_MOVE, 0, ev->border->win,
+                  "%15.15s| BD_LOWER_BELOW w1:0x%08x c1:0x%08x w2:0x%08x c2:0x%08x",
+                  "MOVE", ev->border->win, ev->border->client.win,
+                  ev->stack->win, ev->stack->client.win);
           }
         else
           {
              L(LT_EVENT_BD,
                "[MOVE] ev:%15.15s w:0x%08x c:0x%08x\n",
                "BD_RAISE", ev->border->win, ev->border->client.win);
+             ELBF(ELBT_MOVE, 0, ev->border->win,
+                  "%15.15s| BD_RAISE w:0x%08x c:0x%08x",
+                  "MOVE", ev->border->win, ev->border->client.win);
           }
      }
 
@@ -618,6 +627,9 @@ _e_mod_move_bd_new_hook(void *data __UNUSED__,
    L(LT_EVENT_BD,
      "[MOVE] ev:%15.15s w:0x%08x c:0x%08x\n", "BD_NEW_HOOK",
      bd->win, bd->client.win);
+   ELBF(ELBT_MOVE, 0, bd->win,
+        "%15.15s| BD_NEW_HOOK w:0x%08x c:0x%08x",
+        "MOVE", bd->win, bd->client.win);
 
    if (_e_mod_move_border_find(bd->win)) return;
 
@@ -635,6 +647,9 @@ _e_mod_move_bd_del_hook(void *data __UNUSED__,
    L(LT_EVENT_BD,
      "[MOVE] ev:%15.15s w:0x%08x c:0x%08x\n", "BD_DEL_HOOK",
      bd->win, bd->client.win);
+   ELBF(ELBT_MOVE, 0, bd->win,
+        "%15.15s| BD_DEL_HOOK w:0x%08x c:0x%08x",
+        "MOVE", bd->win, bd->client.win);
 
    // border is not processed by _e_border_eval()
    //  - case: bd_new -> bd_del
@@ -660,68 +675,98 @@ _e_mod_move_e_msg_handler(void       *data,
    E_Move *m = e_mod_move_util_get();
    E_Manager *man = (E_Manager *)obj;
    E_Manager_Comp_Source *src = (E_Manager_Comp_Source *)msgdata;
+   E_Move_Mini_Apptray_Widget *mini_apptray_widget = NULL;
+   E_Move_Indicator_Widget *indi_widget = NULL;
 
    L(LT_EVENT_X, "[MOVE] ev:E_MSG '%s':'%s'\n", name, info);
    E_CHECK(m);
 
    // handle only comp.manager msg
-   if (strncmp(name, "comp.manager", sizeof("comp.manager"))) return;
-
-   if (!strncmp(info, "resize.comp", sizeof("resize.comp")))
+   if (!strncmp(name, "comp.manager", sizeof("comp.manager")))
      {
-        L(LT_EVENT_X,
-          "[MOVE] ev:E_MSG %15.15s w:0x%08x manager: %p, comp_src: %p\n",
-          info, e_manager_comp_src_window_get(man,src), man, src);
-     }
-   else if (!strncmp(info, "add.src", sizeof("add.src")))
-     {
-        L(LT_EVENT_X,
-          "[MOVE] ev:E_MSG %15.15s w:0x%08x manager: %p, comp_src: %p\n",
-          info, e_manager_comp_src_window_get(man,src), man, src);
-     }
-   else if (!strncmp(info, "del.src", sizeof("del.src")))
-     {
-        L(LT_EVENT_X,
-          "[MOVE] ev:E_MSG %15.15s w:0x%08x manager: %p, comp_src: %p\n",
-          info, e_manager_comp_src_window_get(man,src), man, src);
-     }
-   else if (!strncmp(info, "config.src", sizeof("config.src")))
-     {
-        L(LT_EVENT_X,
-          "[MOVE] ev:E_MSG %15.15s w:0x%08x manager: %p, comp_src: %p\n",
-          info, e_manager_comp_src_window_get(man,src), man, src);
-        // if Quickpanel is OnScreen then move quickpanel's below window with animation position.
-        if (e_mod_move_quickpanel_visible_check()
-            && !m->qp_scroll_with_clipping
-            && !e_mod_move_quickpanel_objs_animation_state_get(e_mod_move_quickpanel_find()))
+        if (!strncmp(info, "resize.comp", sizeof("resize.comp")))
           {
-             e_mod_move_quickpanel_below_window_reset();
-             e_mod_move_quickpanel_objs_move(e_mod_move_quickpanel_find(), 0, 0);
+             L(LT_EVENT_X,
+               "[MOVE] ev:E_MSG %15.15s w:0x%08x manager: %p, comp_src: %p\n",
+               info, e_manager_comp_src_window_get(man,src), man, src);
           }
-
-        // if indicator widget mode, then apply indicator widget visibility, position
-        if (m->elm_indicator_mode) e_mod_move_indicator_widget_apply();
-
-        e_mod_move_mini_apptray_widget_apply();
-     }
-   else if (!strncmp(info, "visibility.src", sizeof("visibility.src")))
-     {
-        L(LT_EVENT_X,
-          "[MOVE] ev:E_MSG %15.15s w:0x%08x manager: %p, comp_src: %p\n",
-          info, e_manager_comp_src_window_get(man,src), man, src);
-        // if Quickpanel is OnScreen then move quickpanel's below window with animation position.
-        if (e_mod_move_quickpanel_visible_check()
-            && !m->qp_scroll_with_clipping
-            && !e_mod_move_quickpanel_objs_animation_state_get(e_mod_move_quickpanel_find()))
+        else if (!strncmp(info, "add.src", sizeof("add.src")))
           {
-             e_mod_move_quickpanel_below_window_reset();
-             e_mod_move_quickpanel_objs_move(e_mod_move_quickpanel_find(), 0, 0);
+             L(LT_EVENT_X,
+               "[MOVE] ev:E_MSG %15.15s w:0x%08x manager: %p, comp_src: %p\n",
+               info, e_manager_comp_src_window_get(man,src), man, src);
           }
+        else if (!strncmp(info, "del.src", sizeof("del.src")))
+          {
+             L(LT_EVENT_X,
+               "[MOVE] ev:E_MSG %15.15s w:0x%08x manager: %p, comp_src: %p\n",
+               info, e_manager_comp_src_window_get(man,src), man, src);
+          }
+        else if (!strncmp(info, "config.src", sizeof("config.src")))
+          {
+             L(LT_EVENT_X,
+               "[MOVE] ev:E_MSG %15.15s w:0x%08x manager: %p, comp_src: %p\n",
+               info, e_manager_comp_src_window_get(man,src), man, src);
+             // if Quickpanel is OnScreen then move quickpanel's below window with animation position.
+             if (e_mod_move_quickpanel_visible_check()
+                 && !m->qp_scroll_with_clipping
+                 && !e_mod_move_quickpanel_objs_animation_state_get(e_mod_move_quickpanel_find()))
+               {
+                  e_mod_move_quickpanel_below_window_reset();
+                  e_mod_move_quickpanel_objs_move(e_mod_move_quickpanel_find(), 0, 0);
+               }
 
-        // if indicator widget mode, then apply indicator widget visibility, position
-        if (m->elm_indicator_mode) e_mod_move_indicator_widget_apply();
+             // if indicator widget mode, then apply indicator widget visibility, position
+             if (m->elm_indicator_mode) e_mod_move_indicator_widget_apply();
 
-        e_mod_move_mini_apptray_widget_apply();
+             e_mod_move_mini_apptray_widget_apply();
+          }
+        else if (!strncmp(info, "visibility.src", sizeof("visibility.src")))
+          {
+             L(LT_EVENT_X,
+               "[MOVE] ev:E_MSG %15.15s w:0x%08x manager: %p, comp_src: %p\n",
+               info, e_manager_comp_src_window_get(man,src), man, src);
+             // if Quickpanel is OnScreen then move quickpanel's below window with animation position.
+             if (e_mod_move_quickpanel_visible_check()
+                 && !m->qp_scroll_with_clipping
+                 && !e_mod_move_quickpanel_objs_animation_state_get(e_mod_move_quickpanel_find()))
+               {
+                  e_mod_move_quickpanel_below_window_reset();
+                  e_mod_move_quickpanel_objs_move(e_mod_move_quickpanel_find(), 0, 0);
+               }
+
+             // if indicator widget mode, then apply indicator widget visibility, position
+             if (m->elm_indicator_mode) e_mod_move_indicator_widget_apply();
+
+             e_mod_move_mini_apptray_widget_apply();
+          }
+     }
+   else if (!strncmp(name, "screen-reader", sizeof("screen-reader")))
+     {
+        if (!strncmp(info, "enable", sizeof("enable")))
+          {
+             L(LT_EVENT_X, "[MOVE] ev:E_MSG [%s:%s]\n", name, info);
+             if (!m->screen_reader_state) // if screen-reader is not activate then work.
+               {
+                  m->screen_reader_state = EINA_TRUE;
+
+                  indi_widget = e_mod_move_indicator_widget_get();
+                  if (indi_widget) e_mod_move_indicator_widget_del(indi_widget);
+
+                  mini_apptray_widget = e_mod_move_mini_apptray_widget_get();
+                  if (mini_apptray_widget) e_mod_move_mini_apptray_widget_del(mini_apptray_widget);
+               }
+          }
+        else if (!strncmp(info, "disable", sizeof("disable")))
+          {
+             L(LT_EVENT_X, "[MOVE] ev:E_MSG [%s:%s]\n", name, info);
+             if (m->screen_reader_state) // if screen-reader is activate then work.
+               {
+                  m->screen_reader_state = EINA_FALSE;
+                  if (m->elm_indicator_mode) e_mod_move_indicator_widget_apply();
+                  e_mod_move_mini_apptray_widget_apply();
+               }
+          }
      }
 }
 
@@ -761,11 +806,16 @@ _e_mod_move_bd_add_intern(E_Move_Border *mb)
    int x = 0; int y = 0; int w = 0; int h = 0;
    int                       angles[2];
    E_Move                   *m = e_mod_move_util_get();
+   E_Border                 *bd = NULL;
 
    E_CHECK(mb);
    E_CHECK(m);
 
+   bd = mb->bd;
+   E_CHECK(bd);
+
    e_mod_move_border_type_setup(mb);
+   mb->argb = ecore_x_window_argb_get(bd->win);
 
    // Add Move Control Object
    _e_mod_move_ctl_obj_add(mb);
@@ -843,14 +893,16 @@ _e_mod_move_bd_add_intern(E_Move_Border *mb)
 
    // if current window is Indicator, then get indicator_geometry_property.
    if (TYPE_INDICATOR_CHECK(mb))
-     _e_mod_move_prop_indicator_geometry_get(win, m);
+     {
+        e_mod_move_util_prop_indicator_cmd_win_set(win, m);
+        _e_mod_move_prop_indicator_geometry_get(win, m);
+     }
 }
 
 static void
 _e_mod_move_bd_del_intern(E_Move_Border *mb)
 {
    E_Move *m = NULL;
-   Ecore_X_Window target_win;
    E_CHECK(mb);
 
    m = e_mod_move_util_get();
@@ -867,23 +919,6 @@ _e_mod_move_bd_del_intern(E_Move_Border *mb)
              mb->dfn = NULL;
              mb->bd = NULL;
           }
-     }
-
-   if (!m->elm_indicator_mode)
-     {
-        // if indicator destroy and indicator controller is visible then destroy indicator controller
-        if (TYPE_INDICATOR_CHECK(mb))
-          {
-             if (e_mod_move_indicator_controller_state_get(mb->m, &target_win))
-                e_mod_move_indicator_controller_unset(mb->m);
-          }
-     }
-
-   // if indicator controller target win is destroy then destroy indicator controller
-   if (e_mod_move_indicator_controller_state_get(mb->m, &target_win))
-     {
-        if (mb->client_win == target_win)
-          e_mod_move_indicator_controller_unset(mb->m);
      }
 
    if (mb->shape_input) e_mod_move_border_shape_input_free(mb);
@@ -977,18 +1012,6 @@ _e_mod_move_bd_move_resize_intern(E_Move_Border *mb,
                                               mb->y + shape_input_y);
           }
      }
-
-   if (!m->elm_indicator_mode)
-     {
-        // update indicator_contoller's evas_object size & shape mask region
-        if (TYPE_INDICATOR_CHECK(mb))
-          {
-             Ecore_X_Window target_win;
-             if (e_mod_move_indicator_controller_state_get(mb->m, &target_win))
-                e_mod_move_indicator_controller_update(mb->m);
-          }
-     }
-
 }
 
 static void
@@ -1301,7 +1324,7 @@ _e_mod_move_prop_mini_apptray_state_get(Ecore_X_Window             win,
    E_CHECK_RETURN(state, EINA_FALSE);
 
    ret = ecore_x_window_prop_card32_get(win,
-                                        ATOM_MV_APPTRAY_STATE,
+                                        ATOM_MV_MINI_APPTRAY_STATE,
                                         &mini_apptray_state,
                                         1);
 
@@ -1601,7 +1624,6 @@ static Eina_Bool
 _e_mod_move_prop_indicator_state(Ecore_X_Event_Window_Property *ev)
 {
    Ecore_X_Window win;
-   Ecore_X_Window target_win;
    Eina_Bool      indicator_state;
    E_Move_Border *mb = NULL;
    E_Move        *m = NULL;
@@ -1620,24 +1642,10 @@ _e_mod_move_prop_indicator_state(Ecore_X_Event_Window_Property *ev)
         if (indicator_state)
           {
              mb->indicator_state = E_MOVE_INDICATOR_STATE_ON;
-
-             if ((!m->elm_indicator_mode)
-                  && e_mod_move_indicator_controller_unset_policy_check(mb))
-               {
-                  e_mod_move_indicator_controller_unset(mb->m);
-               }
           }
         else
           {
              mb->indicator_state = E_MOVE_INDICATOR_STATE_OFF;
-
-             if ((!m->elm_indicator_mode)
-                  &&e_mod_move_indicator_controller_set_policy_check(mb))
-               {
-                  if (e_mod_move_indicator_controller_state_get(mb->m, &target_win))
-                    e_mod_move_indicator_controller_unset(mb->m);
-                  e_mod_move_indicator_controller_set(mb);
-               }
           }
         // control indicator widget state.
         if (m->elm_indicator_mode)
@@ -1709,7 +1717,6 @@ static Eina_Bool
 _e_mod_move_prop_fullscreen_indicator_show_state(Ecore_X_Event_Window_Property *ev)
 {
    Ecore_X_Window win;
-   Ecore_X_Window target_win;
    Eina_Bool      fullscreen_indicator_show_state;
    E_Move_Border *mb = NULL;
    E_Move        *m = NULL;
@@ -1729,24 +1736,10 @@ _e_mod_move_prop_fullscreen_indicator_show_state(Ecore_X_Event_Window_Property *
         if (fullscreen_indicator_show_state)
           {
              mb->fullscreen_indicator_show_state = E_MOVE_FULLSCREEN_INDICATOR_SHOW_STATE_ON;
-
-             if ((!m->elm_indicator_mode)
-                 &&e_mod_move_indicator_controller_set_policy_check(mb))
-               {
-                  if (e_mod_move_indicator_controller_state_get(mb->m, &target_win))
-                    e_mod_move_indicator_controller_unset(mb->m);
-                  e_mod_move_indicator_controller_set(mb);
-               }
           }
         else
           {
              mb->fullscreen_indicator_show_state = E_MOVE_FULLSCREEN_INDICATOR_SHOW_STATE_OFF;
-
-             if ((!m->elm_indicator_mode)
-                 &&e_mod_move_indicator_controller_unset_policy_check(mb))
-               {
-                  e_mod_move_indicator_controller_unset(mb->m);
-               }
           }
      }
 
@@ -1805,28 +1798,6 @@ _e_mod_move_prop_rotate_root_angle(Ecore_X_Event_Window_Property *ev)
 
    m = e_mod_move_util_get();
    E_CHECK_RETURN(m, EINA_FALSE);
-
-   // if mini_apptray exist, then apply global input region
-   E_CHECK_RETURN(e_mod_move_mini_apptray_find(), EINA_TRUE);
-   E_CHECK_RETURN(e_mod_move_mini_apptray_widget_get(), EINA_TRUE);
-
-   switch (e_mod_move_util_root_angle_get())
-     {
-      case  90:
-      case 180:
-      case 270:
-         // currently, support angle 0 only. because, application is not ready yet.
-         e_manager_comp_input_region_set(m->man, 0, 0, 0, 0);
-         break;
-      case   0:
-      default :
-         e_manager_comp_input_region_set(m->man,
-                                         m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].x,
-                                         m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].y,
-                                         m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].w,
-                                         m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].h);
-         break;
-     }
 
    return EINA_TRUE;
 }
@@ -1983,9 +1954,16 @@ _e_mod_move_msg_window_show(Ecore_X_Event_Client_Message *ev)
 
    comp_obj_visible = e_mod_move_util_compositor_object_visible_get(mb);
 
-   if (REGION_INSIDE_ZONE(mb, zone)) state = EINA_TRUE;
-   else state = EINA_FALSE;
-
+   if (open)
+     {
+        if (mb->visibility == E_MOVE_VISIBILITY_STATE_VISIBLE) state = EINA_TRUE;
+        else state = EINA_FALSE;
+     }
+   else
+     {
+         if (REGION_INSIDE_ZONE(mb, zone)) state = EINA_TRUE;
+         else state = EINA_FALSE;
+     }
    if ((!m->elm_indicator_mode)
        && e_mod_move_indicator_click_get())
      {
@@ -2032,10 +2010,18 @@ _e_mod_move_msg_window_show(Ecore_X_Event_Client_Message *ev)
      {
         if (mb == qp_mb) // Quickpanel Case
           {
-             if ((at_mb) && (REGION_INSIDE_ZONE(at_mb, mb->bd->zone)))
+             if ((at_mb) && (at_mb->visibility == E_MOVE_VISIBILITY_STATE_VISIBLE))
                {
                   L(LT_EVENT_X,
                     "[MOVE] ev:%15.15s _NET_WM_WINDOW_SHOW error. w:0x%07x(state:%d) request:%d, Apptray in On Screen\n",
+                    "X_CLIENT_MESSAGE", win, state, open);
+                  return EINA_FALSE;
+               }
+
+             if ((mini_at_mb) && (mini_at_mb->visibility == E_MOVE_VISIBILITY_STATE_VISIBLE))
+               {
+                  L(LT_EVENT_X,
+                    "[MOVE] ev:%15.15s _NET_WM_WINDOW_SHOW error. w:0x%07x(state:%d) request:%d, Mini Apptray in On Screen\n",
                     "X_CLIENT_MESSAGE", win, state, open);
                   return EINA_FALSE;
                }
@@ -2118,7 +2104,7 @@ _e_mod_move_msg_window_show(Ecore_X_Event_Client_Message *ev)
           }
         else if (mb == at_mb) // Apptray Case
           {
-             if ((qp_mb) && (REGION_INSIDE_ZONE(qp_mb, mb->bd->zone)))
+             if ((qp_mb) && (qp_mb->visibility == E_MOVE_VISIBILITY_STATE_VISIBLE))
                {
                   L(LT_EVENT_X,
                     "[MOVE] ev:%15.15s _NET_WM_WINDOW_SHOW error. w:0x%07x(state:%d) request:%d, Quickpanel in On Screen\n",
@@ -2173,7 +2159,7 @@ _e_mod_move_msg_window_show(Ecore_X_Event_Client_Message *ev)
           }
         else if (mb == mini_at_mb) // MINI_Apptray Case
           {
-             if ((qp_mb) && (REGION_INSIDE_ZONE(qp_mb, mb->bd->zone)))
+             if ((qp_mb) && (qp_mb->visibility == E_MOVE_VISIBILITY_STATE_VISIBLE))
                {
                   L(LT_EVENT_X,
                     "[MOVE] ev:%15.15s _NET_WM_WINDOW_SHOW error. w:0x%07x(state:%d) request:%d, Quickpanel in On Screen\n",
@@ -2181,7 +2167,7 @@ _e_mod_move_msg_window_show(Ecore_X_Event_Client_Message *ev)
                   return EINA_FALSE;
                }
 
-             if ((at_mb) && (REGION_INSIDE_ZONE(at_mb, mb->bd->zone)))
+             if ((at_mb) && (at_mb->visibility == E_MOVE_VISIBILITY_STATE_VISIBLE))
                {
                   L(LT_EVENT_X,
                     "[MOVE] ev:%15.15s _NET_WM_WINDOW_SHOW error. w:0x%07x(state:%d) request:%d, Apptray in On Screen\n",
@@ -2212,9 +2198,14 @@ _e_mod_move_msg_window_show(Ecore_X_Event_Client_Message *ev)
 
              _e_mod_move_msg_window_show_internal_mini_apptray_check(mini_at_mb);
              e_mod_move_mini_apptray_dim_show(mini_at_mb);
-             e_mod_move_mini_apptray_objs_add(mini_at_mb);
-             // mini_apptray_objs_animation_layer_set
-             e_mod_move_mini_apptray_objs_animation_layer_set(mini_at_mb);
+
+             if (REGION_INSIDE_ZONE(mini_at_mb, mini_at_mb->bd->zone))
+               {
+                  e_mod_move_mini_apptray_e_border_move(mini_at_mb, -10000, -10000);
+                  e_mod_move_mini_apptray_objs_add_with_pos(mini_at_mb, -10000, -10000);
+               }
+             else
+                e_mod_move_mini_apptray_objs_add(mini_at_mb);
 
              // send mini_apptray to "move start message".
              LOG(LOG_DEBUG, "WM_WINDOW_SHOW", "[e17:X_CLIENT_MESSAGE:ApptrayShow:ANIMATION_START]");
@@ -2739,7 +2730,10 @@ _e_mod_move_add(E_Manager *man)
    m->indicator_apptray_region_ratio.landscape = _move_mod->conf->indicator_apptray_landscape_region_ratio;
    m->qp_scroll_with_visible_win = _move_mod->conf->qp_scroll_with_visible_win;
    m->qp_scroll_with_clipping = _move_mod->conf->qp_scroll_with_clipping;
-   m->flick_speed_limit = _move_mod->conf->flick_speed_limit;
+   m->flick_limit.speed = _move_mod->conf->flick_limit.speed;
+   m->flick_limit.angle = _move_mod->conf->flick_limit.angle;
+   m->flick_limit.distance = _move_mod->conf->flick_limit.distance;
+   m->flick_limit.distance_rate = _move_mod->conf->flick_limit.distance_rate;
    m->animation_duration = _move_mod->conf->animation_duration;
    m->dim_max_opacity = _move_mod->conf->dim_max_opacity;
    m->dim_min_opacity = _move_mod->conf->dim_min_opacity;

@@ -123,6 +123,7 @@ e_mod_comp_util_win_below_get(E_Comp_Win *cw,
             (!_cw->invalid) &&
             (!_cw->input_only) &&
             (!TYPE_APPTRAY_CHECK(_cw)) &&
+            (!TYPE_MINI_APPTRAY_CHECK(_cw)) &&
             REGION_EQUAL_TO_ROOT(_cw))
           {
              if (normal_check)

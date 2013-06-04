@@ -1,0 +1,464 @@
+/*-----------------------------------------------------*/
+/* group "dialog_without_dim"                          */
+/*-----------------------------------------------------*/
+group { name: "dialog_without_dim";
+   images {
+      image: "comp-sh1.png" COMP;
+      image: "bt_glow.png" COMP;
+   }
+   parts {
+      part { name: "clipper";
+         type: RECT;
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            color: 0 0 0 0;
+            rel1 {
+               relative: -1.0  -1.0;
+               offset: -9999 -9999;
+            }
+            rel2 {
+               relative: 2.0   2.0;
+               offset: 9999  9999;
+            }
+         }
+         description { state: "visible" 0.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+         description { state: "visible" 1.0;
+            inherit: "visible" 0.0;
+         }
+         description { state: "switcher" 0.0;
+            inherit: "visible" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+         description { state: "default" 1.0;
+            inherit: "default" 0.0;
+            visible: 1;
+            color: 255 255 255 255;
+         }
+         description { state: "default" 0.5;
+            inherit: "default" 0.0;
+            visible: 0;
+            color: 0 0 0 0;
+         }
+      }
+      part { name: "shower";
+         type: RECT;
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            visible: 0;
+            rel1 {
+               relative: 0.35  0.35;
+            }
+            rel2 {
+               relative: 0.65  0.65;
+            }
+         }
+         description { state: "visible" 0.0;
+            inherit: "default" 0.0;
+            rel1 {
+               relative: 0.0  0.0;
+               offset: 0    0;
+            }
+            rel2 {
+               relative: 1.0  1.0;
+            }
+         }
+         description { state: "visible" 1.0;
+            inherit: "visible" 0.0;
+         }
+         description { state: "switcher" 0.0;
+            inherit: "default" 0.0;
+            rel1 {
+               relative: 0.0  0.0;
+               offset: 0    0;
+            }
+            rel2 {
+               relative: 1.0  1.0;
+            }
+         }
+         description { state: "indicator_raise_above" 0.0;
+            inherit : "default" 0.0;
+            rel1 {
+               relative: 0.0  0.0;
+               offset: 0    0;
+            }
+            rel2 {
+               relative: 1.0  1.0;
+            }
+         }
+         description { state: "indicator_raise_above" 0.1;
+            inherit : "default" 0.0;
+            rel1 {
+               relative: 0.0  -1.0;
+               offset: 0  0;
+            }
+            rel2 {
+               relative: 1.0  0.0;
+            }
+         }
+      }
+       part { name: "persp";
+         type: RECT;
+         description { state: "default" 0.0;
+            min: 10 10;
+            max: 10 10;
+            visible: 0;
+            perspective.zplane: 0;
+            perspective.focal: 1000;
+         }
+         description { state: "visible" 1.0;
+            inherit: "default" 0.0;
+            perspective.zplane: 0;
+            perspective.focal: 1000;
+         }
+         description { state: "switcher" 0.0;
+            inherit: "default" 0.0;
+            perspective.zplane: -500;
+            perspective.focal: 1000;
+         }
+         description { state: "switcher2" 0.0;
+            inherit: "default" 0.0;
+            perspective.zplane: -500;
+            perspective.focal: 1000;
+         }
+      }
+      part { name: "e.swallow.content";
+         type: SWALLOW;
+         clip_to: "clipper";
+         mouse_events: 0;
+         description { state: "default" 0.0;
+            rel1 {
+               to: "shower";
+            }
+            rel2 {
+               to: "shower";
+            }
+         }
+         description { state: "default" 1.0;
+            inherit: "default" 0.0;
+            rel1.relative: 0 0;
+            rel2.relative: 1.0 1.0;
+         }
+         description { state: "default" 0.5;
+            inherit: "default" 0.0;
+            rel1.relative: 0 0;
+            rel2.relative: 1.0 1.0;
+         }
+         description { state: "visible" 1.0;
+            rel1 {
+               to: "shower";
+            }
+            rel2 {
+               to: "shower";
+            }
+            map {
+               on: 1;
+               smooth: 1;
+               backface_cull: 0;
+               perspective_on: 1;
+               alpha: 0;
+               perspective: "persp";
+               rotation {
+                  x: 0;
+                  y: 0;
+                  z: 0;
+               }
+            }
+         }
+         description { state: "switcher" 0.0;
+            rel1 {
+               to: "shower";
+            }
+            rel2 {
+               to: "shower";
+            }
+            map {
+               on: 1;
+               smooth: 1;
+               backface_cull: 0;
+               perspective_on: 1;
+               alpha: 1;
+               perspective: "persp";
+               rotation {
+                  x: 0;
+                  y: 75;
+                  z: 0;
+              }
+            }
+         }
+         description { state: "switcher2" 0.0;
+            rel1 {
+               to: "shower";
+            }
+            rel2 {
+               to: "shower";
+            }
+            map {
+               on: 1;
+               smooth: 1;
+               backface_cull: 0;
+               perspective_on: 1;
+               alpha: 1;
+               perspective: "persp";
+               rotation {
+                  x: 0;
+                  y: 45;
+                  z: 0;
+              }
+            }
+         }
+      }
+   }
+   programs {
+      program { name: "show1";
+         signal: "e,state,visible,on";
+         source: "e";
+         action: STATE_SET "default" 0.0;
+         target: "clipper";
+         target: "shower";
+         target: "e.swallow.content";
+         after: "show2";
+      }
+      program { name: "show2";
+         action: STATE_SET "visible" 0.0;
+         transition: DECELERATE 0.2;
+         target: "clipper";
+         target: "shower";
+         after  : "show3";
+      }
+      program { name: "show3";
+         action: SIGNAL_EMIT "e,action,show,done" "e";
+      }
+      program { name: "hide1";
+         signal: "e,state,visible,off";
+         source: "e";
+         action: STATE_SET "visible" 0.0;
+         target: "clipper";
+         target: "shower";
+         after: "hide2";
+      }
+      program { name: "hide2";
+         action: STATE_SET "default" 0.0;
+         transition: DECELERATE 0.2;
+         target: "clipper";
+         target: "shower";
+         after: "hide3";
+      }
+      program { name: "hide3";
+         action: SIGNAL_EMIT "e,action,hide,done" "e";
+      }
+      program { name: "raise_above_hide1";
+         signal: "e,state,raise_above,off";
+         source: "e";
+         action: STATE_SET "visible" 0.0;
+         target: "clipper";
+         target: "shower";
+         after: "raise_above_hide2";
+      }
+      program { name: "raise_above_hide2";
+         action: STATE_SET "default" 0.0;
+         transition: DECELERATE 0.2;
+         target: "clipper";
+         target: "shower";
+         after: "raise_above_hide3";
+      }
+      program { name: "raise_above_hide3";
+         action: SIGNAL_EMIT "e,action,raise_above_hide,done" "e";
+      }
+      program { name: "raise_above_hide_post_work";
+         signal: "e,state,raise_above_post,on";
+         source: "e";
+         action: STATE_SET "visible" 0.0;
+         target: "clipper";
+         target: "shower";
+      }
+      program { name: "switcher_on";
+         signal: "e,state,switcher,on";
+         source: "e";
+         action: STATE_SET "visible" 1.0;
+         target: "clipper";
+         target: "shower";
+         target: "persp";
+         target: "e.swallow.content";
+         after: "switcher_on2";
+      }
+      program { name: "switcher_on2";
+         action: STATE_SET "switcher" 0.0;
+         target: "clipper";
+         target: "shower";
+         target: "persp";
+         target: "e.swallow.content";
+         after: "switcher_on3";
+      }
+       program { name: "switcher_on3";
+         action: STATE_SET "switcher2" 0.0;
+         target: "e.swallow.content";
+         transition: LINEAR 0.3;
+         after: "switcher_on4";
+      }
+      program { name: "switcher_on4";
+         action: STATE_SET "visible" 1.0;
+         target: "clipper";
+         target: "shower";
+         target: "persp";
+         target: "e.swallow.content";
+         after: "switcher_on5";
+      }
+      program { name: "switcher_on5";
+         action: SIGNAL_EMIT "e,action,show,done" "e";
+      }
+      program { name: "switcher_on_top";
+         signal: "e,state,switcher_top,on";
+         source: "e";
+         action: STATE_SET "visible" 1.0;
+         target: "clipper";
+         target: "shower";
+         target: "persp";
+         target: "e.swallow.content";
+         after: "switcher_on_top2";
+         after: "switcher_on_top2_2";
+      }
+      program { name: "switcher_on_top2";
+         action: STATE_SET "switcher" 0.0;
+         target: "clipper";
+         target: "shower";
+         target: "persp";
+         transition: LINEAR 0.3;
+         after: "switcher_on_top3";
+                        }
+       program { name: "switcher_on_top2_2";
+         action: STATE_SET "switcher2" 0.0;
+         target: "e.swallow.content";
+         transition: ACCELERATE 0.3;
+      }
+      program { name: "switcher_on_top3";
+         action: STATE_SET "visible" 1.0;
+         target: "clipper";
+         target: "shower";
+         target: "persp";
+         target: "e.swallow.content";
+         after: "switcher_on_top4";
+      }
+      program { name: "switcher_on_top4";
+         action: SIGNAL_EMIT "e,action,show,done" "e";
+      }
+      program { name: "raise_above3";
+         signal: "e,state,raise_above3,on";
+         source: "e";
+         action: STATE_SET "indicator_raise_above" 0.0;
+         target: "shower";
+         after: "raise_above3_2";
+      }
+      program { name: "raise_above3_2";
+         action : STATE_SET "indicator_raise_above" 0.1;
+         transition: SINUSOIDAL 0.2;
+         target: "shower";
+         after : "raise_above3_3";
+      }
+      program { name: "raise_above3_3";
+         action : STATE_SET "indicator_raise_above" 0.1;
+         transition: LINEAR 0.16;
+         target: "shower";
+         after : "raise_above3_4";
+      }
+      program { name: "raise_above3_4";
+         action : STATE_SET "indicator_raise_above" 0.0;
+         transition: SINUSOIDAL 0.2;
+         target: "shower";
+         after : "raise_above3_done";
+      }
+      program { name: "raise_above3_done";
+         action: SIGNAL_EMIT "e,action,raise_above3,done" "e";
+      }
+      program { name: "show1_noeffect";
+         signal: "e,state,visible,on,noeffect";
+         source: "e";
+         action: STATE_SET "default" 0.0;
+         target: "clipper";
+         target: "shower";
+         target: "e.swallow.content";
+         after: "show2_noeffect";
+      }
+      program { name: "show2_noeffect";
+         action: STATE_SET "visible" 0.0;
+         target: "clipper";
+         target: "shower";
+         after: "show3";
+      }
+      program { name: "hide1_noeffect";
+         signal: "e,state,visible,off,noeffect";
+         source: "e";
+         action: STATE_SET "default" 0.0;
+         target: "clipper";
+         target: "shower";
+         after: "hide3";
+      }
+      program { name: "show_background1";
+         signal: "e,state,background,visible,on";
+         source: "e";
+         after: "show_background2";
+      }
+      program { name: "show_background2";
+         action: SIGNAL_EMIT "e,action,background,show,done" "e";
+      }
+      program { name: "hide_background1";
+         signal: "e,state,background,visible,off";
+         source: "e";
+         after: "hide_background2";
+      }
+      program { name: "hide_background2";
+         action: SIGNAL_EMIT "e,action,background,hide,done" "e";
+      }
+      program { name: "show1_custom0";
+         signal: "e,state,visible,on,custom0";
+         source: "e";
+         action: STATE_SET "default" 0.0;
+         target: "clipper";
+         target: "shower";
+         target: "e.swallow.content";
+         after: "show2_custom0";
+      }
+      program { name: "show2_custom0";
+         action: STATE_SET "visible" 0.0;
+         target: "clipper";
+         target: "shower";
+         after: "show3";
+      }
+      program { name: "hide1_custom0";
+         signal: "e,state,visible,off,custom0";
+         source: "e";
+         action: STATE_SET "default" 0.0;
+         target: "clipper";
+         target: "shower";
+         after: "hide2";
+      }
+      program { name: "show1_custom1";
+         signal: "e,state,visible,on,custom1";
+         source: "e";
+         action: STATE_SET "default" 0.0;
+         target: "clipper";
+         target: "shower";
+         target: "e.swallow.content";
+         after: "show2_custom1";
+      }
+      program { name: "show2_custom1";
+         action: STATE_SET "visible" 0.0;
+         target: "clipper";
+         target: "shower";
+         after: "show3";
+      }
+      program { name: "hide1_custom1";
+         signal: "e,state,visible,off,custom1";
+         source: "e";
+         action: STATE_SET "default" 0.0;
+         target: "clipper";
+         target: "shower";
+         after: "hide2";
+      }
+   }
+} /* end of group "dialog" */

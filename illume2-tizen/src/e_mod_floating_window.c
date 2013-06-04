@@ -10,9 +10,6 @@ static Eina_Bool _e_mod_floating_cb_border_del(void *data __UNUSED__,
                                               int type __UNUSED__,
                                               void *event);
 
-static Eina_Bool _e_mod_floating_cb_move_resize_request(void *data __UNUSED__,
-                                                          int type __UNUSED__,
-                                                          void *event);
 static Eina_Bool _e_mod_floating_cb_client_message(void   *data,
                                                      int    type,
                                                      void   *event);
@@ -20,23 +17,10 @@ static Eina_Bool _e_mod_floating_cb_window_property(void  *data,
                                                       int   type,
                                                       void  *event);
 
-/* border event callback function */
-static Eina_Bool _e_mod_floating_cb_mouse_up(void   *data,
-                                              int    type __UNUSED__,
-                                              void   *event);
-static Eina_Bool _e_mod_floating_cb_mouse_move(void    *data,
-                                                int     type __UNUSED__,
-                                                void    *event);
-
-// E Border hook
-static void _e_mod_floating_cb_hook_resize_begin(void *data __UNUSED__,
-                                                 void *data2);
-
 /* general function */
 static int _e_mod_floating_atom_init(void);
 static void _e_mod_floating_border_list_add(E_Border *bd);
 static void _e_mod_floating_border_list_del(E_Border *bd);
-static void _e_mod_floating_border_handler_remove(E_Illume_Floating_Border *ft_bd);
 static void _e_mod_hints_floating_list_set(void);
 static E_Illume_Floating_Border* _e_mod_floating_get_floating_border(Ecore_X_Window win);
 static void _e_mod_floating_window_state_change(Ecore_X_Event_Window_Property *ev);
@@ -51,13 +35,6 @@ static void _e_mod_floating_iconify_all(Eina_Bool iconify);
 
 /* for automatically align the floating windows */
 static void _e_mod_floating_smart_cleanup(Ecore_X_Event_Client_Message *event);
-
-/* for top or bottom maximize */
-static void _e_mod_floating_maximize_coords_handle(E_Illume_Floating_Border *ft_bd,
-                                                     int       x,
-                                                     int       y);
-static void _e_mod_floating_maximize(E_Border *bd, E_Illume_Maximize max);
-static void _e_mod_floating_maximize_internal(E_Border *bd, E_Illume_Maximize max);
 
 /* for controlling app-in-app window */
 static Ecore_X_Atom E_ILLUME_ATOM_FLOATING_WINDOW_ALIGN;
@@ -89,11 +66,6 @@ e_mod_floating_init(void)
                                                NULL));
    _fw_hdls =
       eina_list_append(_fw_hdls,
-                       ecore_event_handler_add(ECORE_X_EVENT_WINDOW_MOVE_RESIZE_REQUEST,
-                                               _e_mod_floating_cb_move_resize_request,
-                                               NULL));
-   _fw_hdls =
-      eina_list_append(_fw_hdls,
                        ecore_event_handler_add(ECORE_X_EVENT_CLIENT_MESSAGE,
                                                _e_mod_floating_cb_client_message,
                                                NULL));
@@ -102,12 +74,6 @@ e_mod_floating_init(void)
                        ecore_event_handler_add(ECORE_X_EVENT_WINDOW_PROPERTY,
                                                _e_mod_floating_cb_window_property,
                                                NULL));
-
-   _fw_hooks =
-      eina_list_append(_fw_hooks,
-                       e_border_hook_add(E_BORDER_HOOK_RESIZE_BEGIN,
-                                         _e_mod_floating_cb_hook_resize_begin,
-                                         NULL));
 
    _idle_enterer = ecore_idle_enterer_add(_e_mod_floating_cb_idle_enterer, NULL);
 
@@ -279,8 +245,6 @@ _e_mod_floating_border_list_del(E_Border *bd)
         return;
      }
 
-   _e_mod_floating_border_handler_remove(ft_bd);
-
    L(LT_FLOATING, "%s(%d) Floating window is removed in list, win:0x%08x\n",
      __func__, __LINE__, bd->win);
 
@@ -293,18 +257,6 @@ _e_mod_floating_border_list_del(E_Border *bd)
    E_FREE(ft_bd);
 
    _e_mod_hints_floating_list_set();
-}
-
-static void
-_e_mod_floating_border_handler_remove(E_Illume_Floating_Border *ft_bd)
-{
-   EINA_SAFETY_ON_NULL_RETURN(ft_bd);
-   EINA_SAFETY_ON_NULL_RETURN(ft_bd->handlers);
-
-   L(LT_FLOATING, "%s(%d) Mouse event handler is removed, win: 0x%08x\n",
-     __func__, __LINE__, ft_bd->bd->client.win);
-
-   E_FREE_LIST(ft_bd->handlers, ecore_event_handler_del);
 }
 
 static void
@@ -403,41 +355,6 @@ end:
 }
 
 static Eina_Bool
-_e_mod_floating_cb_move_resize_request(void *data __UNUSED__,
-                                        int type __UNUSED__,
-                                        void *event)
-{
-   Ecore_X_Event_Window_Move_Resize_Request *e;
-   E_Illume_Floating_Border *ft_bd = NULL;
-
-   e = event;
-   ft_bd = _e_mod_floating_get_floating_border(e->win);
-   if (!ft_bd)
-     {
-        L(LT_FLOATING, "%s(%d) No window in floating list, win: 0x%08x\n",
-          __func__, __LINE__, e->win);
-        goto end;
-     }
-
-   if (ft_bd->handlers == NULL)
-     {
-        L(LT_FLOATING, "%s(%d) Mouse event handler is added, win: 0x%08x\n",
-          __func__, __LINE__, e->win);
-        ft_bd->handlers = eina_list_append(ft_bd->handlers,
-                                           ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_UP,
-                                                                   _e_mod_floating_cb_mouse_up,
-                                                                   ft_bd));
-        ft_bd->handlers = eina_list_append(ft_bd->handlers,
-                                           ecore_event_handler_add(ECORE_EVENT_MOUSE_MOVE,
-                                                                   _e_mod_floating_cb_mouse_move,
-                                                                   ft_bd));
-     }
-
-end:
-   return ECORE_CALLBACK_PASS_ON;
-}
-
-static Eina_Bool
 _e_mod_floating_cb_client_message(void   *data __UNUSED__,
                                    int    type __UNUSED__,
                                    void   *event)
@@ -490,117 +407,6 @@ _e_mod_floating_cb_window_property(void *data __UNUSED__,
 }
 
 static Eina_Bool
-_e_mod_floating_cb_mouse_up(void   *data,
-                             int    type __UNUSED__,
-                             void   *event)
-{
-   Ecore_Event_Mouse_Button *ev;
-   E_Illume_Floating_Border *ft_bd = NULL;
-   E_Border *bd = NULL;
-
-   EINA_SAFETY_ON_NULL_GOTO(event, end);
-   EINA_SAFETY_ON_NULL_GOTO(data, end);
-
-   ev = event;
-   ft_bd = data;
-   bd = ft_bd->bd;
-   EINA_SAFETY_ON_NULL_GOTO(bd, end);
-
-   if ((ev->event_window != bd->win) &&
-       (ev->event_window != bd->event_win) &&
-       (ev->window != bd->event_win))
-     goto end;
-
-   L(LT_FLOATING, "%s(%d) mouse up state, border: 0x%08x\n",
-     __func__, __LINE__, ev->window);
-
-   if (!ft_bd->moving) goto end;
-   ft_bd->moving = 0;
-
-   if (e_illume_border_is_fixed(bd)) goto end;
-
-   _e_mod_floating_maximize_coords_handle(ft_bd, ev->root.x, ev->root.y);
-   _e_mod_floating_border_handler_remove(ft_bd);
-
-end:
-   return ECORE_CALLBACK_PASS_ON;
-}
-
-static Eina_Bool
-_e_mod_floating_cb_mouse_move(void    *data,
-                               int     type __UNUSED__,
-                               void    *event)
-{
-   Ecore_Event_Mouse_Move *ev;
-   E_Illume_Floating_Border *ft_bd = NULL;
-   E_Border *bd = NULL;
-   int new_x = 0, new_y = 0;
-   int threshold = _e_illume_cfg->floating_control_threshold;
-
-   EINA_SAFETY_ON_NULL_GOTO(event, end);
-   EINA_SAFETY_ON_NULL_GOTO(data, end);
-
-   ev = event;
-   ft_bd = data;
-   bd = ft_bd->bd;
-   EINA_SAFETY_ON_NULL_GOTO(bd, end);
-
-   if ((ev->event_window != bd->win) &&
-       (ev->event_window != bd->event_win) &&
-       (ev->window != bd->event_win))
-     goto end;
-
-   if (!bd->moving) goto end;
-   ft_bd->moving = 1;
-
-   L(LT_FLOATING, "%s(%d) mouse move state, border: 0x%08x\n",
-     __func__, __LINE__, ev->window);
-
-   if (e_illume_border_is_fixed(bd)) goto end;
-
-   if (ft_bd->state.maximize_by_illume == 0) goto end;
-   ft_bd->state.maximize_by_illume = 0;
-
-   e_border_unmaximize(bd, E_ILLUME_MAXIMIZE_BOTH);
-
-   new_x = ev->root.x - (bd->w / 2);
-   new_y = ev->root.y - threshold;
-
-   if ((bd->moveinfo.down.button >= 1) && (bd->moveinfo.down.button <= 3))
-     {
-        bd->mouse.last_down[bd->moveinfo.down.button - 1].x = new_x;
-        bd->mouse.last_down[bd->moveinfo.down.button - 1].y = new_y;
-     }
-
-   e_border_move(bd, new_x, new_y);
-
-end:
-   return ECORE_CALLBACK_PASS_ON;
-}
-
-/* if user resize the window in maximized by gesture,
- * change this window back into un-maximize state.
- */
-static void
-_e_mod_floating_cb_hook_resize_begin(void *data __UNUSED__,
-                                     void *data2)
-{
-   E_Illume_Floating_Border *ft_bd = NULL;
-   E_Border *bd = NULL;
-
-   EINA_SAFETY_ON_NULL_RETURN(data2);
-   bd = data2;
-   ft_bd = _e_mod_floating_get_floating_border(bd->win);
-   EINA_SAFETY_ON_NULL_RETURN(ft_bd);
-
-   if (ft_bd->state.maximize_by_illume)
-     {
-        ft_bd->state.maximize_by_illume = 0;
-        bd->maximized = 0;
-     }
-}
-
-static Eina_Bool
 _e_mod_floating_cb_idle_enterer(void *data __UNUSED__)
 {
    E_Illume_Floating_Border *ft_bd = NULL;
@@ -620,23 +426,6 @@ _e_mod_floating_cb_idle_enterer(void *data __UNUSED__)
 
          L(LT_FLOATING, "%s(%d) idle state, win: 0x%08x\n",
            __func__, __LINE__, bd->client.win);
-
-        if (ft_bd->defer.maximize_top)
-          {
-             _e_mod_floating_maximize(bd,
-                                      E_MAXIMIZE_FULLSCREEN |
-                                      E_ILLUME_MAXIMIZE_TOP);
-             ft_bd->state.maximize_by_illume = 1;
-             ft_bd->defer.maximize_top = 0;
-          }
-        else if (ft_bd->defer.maximize_bottom)
-          {
-             _e_mod_floating_maximize(bd,
-                                      E_MAXIMIZE_FULLSCREEN |
-                                      E_ILLUME_MAXIMIZE_BOTTOM);
-             ft_bd->state.maximize_by_illume = 1;
-             ft_bd->defer.maximize_bottom = 0;
-          }
 
         if (ft_bd->defer.close)
           {
@@ -745,121 +534,4 @@ _e_mod_floating_smart_cleanup(Ecore_X_Event_Client_Message *event __UNUSED__)
      }
 
    return;
-}
-
-static void
-_e_mod_floating_maximize_coords_handle(E_Illume_Floating_Border *ft_bd,
-                                        int        x,
-                                        int        y)
-{
-   E_Border *bd = NULL;
-   const int margin = _e_illume_cfg->floating_control_threshold;
-
-   EINA_SAFETY_ON_NULL_RETURN(ft_bd);
-   EINA_SAFETY_ON_NULL_RETURN(ft_bd->bd);
-   bd = ft_bd->bd;
-
-   if ((y >= 0) && (y <= margin))
-     {
-        ft_bd->defer.maximize_top = 1;
-        ft_bd->changed = 1;
-     }
-   else if ((y >= (bd->zone->h - margin)) && (y <= (bd->zone->h -1)))
-     {
-        ft_bd->defer.maximize_bottom = 1;
-        ft_bd->changed = 1;
-     }
-}
-
-static void
-_e_mod_floating_maximize(E_Border *bd, E_Illume_Maximize max)
-{
-   E_OBJECT_CHECK(bd);
-   E_OBJECT_TYPE_CHECK(bd, E_BORDER_TYPE);
-
-   if (!(max & E_ILLUME_MAXIMIZE_DIRECTION)) max |= E_ILLUME_MAXIMIZE_BOTH;
-
-   if ((bd->shaded) || (bd->shading)) return;
-   ecore_x_window_shadow_tree_flush();
-   if (bd->fullscreen)
-     e_border_unfullscreen(bd);
-   if (((bd->maximized & E_ILLUME_MAXIMIZE_DIRECTION) ==
-        (max & E_MAXIMIZE_DIRECTION)) ||
-       ((bd->maximized & E_ILLUME_MAXIMIZE_DIRECTION) ==
-        E_ILLUME_MAXIMIZE_BOTH)) return;
-   if (bd->new_client)
-     {
-        bd->need_maximize = 1;
-        bd->maximized &= ~E_ILLUME_MAXIMIZE_TYPE;
-        bd->maximized |= max;
-        return;
-     }
-
-   bd->pre_res_change.valid = 0;
-   if (!(bd->maximized & E_ILLUME_MAXIMIZE_HORIZONTAL))
-     {
-        bd->saved.x = bd->x - bd->zone->x;
-        bd->saved.w = bd->w;
-     }
-   if (!(bd->maximized & E_ILLUME_MAXIMIZE_VERTICAL))
-     {
-        bd->saved.y = bd->y - bd->zone->y;
-        bd->saved.h = bd->h;
-     }
-
-   bd->saved.zone = bd->zone->num;
-   e_hints_window_size_set(bd);
-
-   e_border_raise(bd);
-
-   _e_mod_floating_maximize_internal(bd, max);
-
-   bd->maximized &= ~E_ILLUME_MAXIMIZE_TYPE;
-   bd->maximized |= max;
-
-   e_hints_window_maximized_set(bd, bd->maximized & E_ILLUME_MAXIMIZE_HORIZONTAL,
-                                bd->maximized & E_ILLUME_MAXIMIZE_VERTICAL);
-   e_remember_update(bd);
-}
-
-static void
-_e_mod_floating_maximize_internal(E_Border *bd, E_Illume_Maximize max)
-{
-   int x1, yy1;
-   int w, h;
-
-   switch (max & E_ILLUME_MAXIMIZE_TYPE)
-     {
-      case E_ILLUME_MAXIMIZE_FULLSCREEN:
-         w = bd->zone->w;
-         h = bd->zone->h;
-
-         e_border_resize_limit(bd, &w, &h);
-         x1 = bd->zone->x + (bd->zone->w - w) / 2;
-         yy1 = bd->zone->y + (bd->zone->h - h) / 2;
-
-         switch (max & E_ILLUME_MAXIMIZE_DIRECTION)
-           {
-            case E_ILLUME_MAXIMIZE_BOTH:
-               e_border_move_resize(bd, x1, yy1, w, h);
-               break;
-
-            case E_ILLUME_MAXIMIZE_VERTICAL:
-               e_border_move_resize(bd, bd->x, yy1, bd->w, h);
-               break;
-
-            case E_ILLUME_MAXIMIZE_HORIZONTAL:
-               e_border_move_resize(bd, x1, bd->y, w, bd->h);
-               break;
-
-            case E_ILLUME_MAXIMIZE_BOTTOM:
-               e_border_move_resize(bd, bd->zone->x, bd->zone->h / 2, w, h / 2);
-               break;
-
-            case E_ILLUME_MAXIMIZE_TOP:
-               e_border_move_resize(bd, bd->zone->x, bd->zone->y, w, h / 2);
-               break;
-           }
-         break;
-     }
 }

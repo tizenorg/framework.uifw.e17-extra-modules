@@ -12,6 +12,13 @@ struct _E_Move_Control_Object
 
    Evas_Object   *obj;    // compositor's evas(window) object
    E_Move_Event  *event;  // evas object's event handler object
+
+   struct {
+     int x;
+     int y;
+     int w;
+     int h;
+   } geometry;
 };
 
 EINTERN E_Move_Control_Object *e_mod_move_ctl_obj_add(E_Move_Border *mb, E_Move_Canvas *canvas);
@@ -29,6 +36,7 @@ EINTERN void                   e_mod_move_bd_move_ctl_objs_raise(E_Move_Border *
 EINTERN void                   e_mod_move_bd_move_ctl_objs_lower(E_Move_Border *mb);
 EINTERN void                   e_mod_move_bd_move_ctl_objs_stack_above(E_Move_Border *mb, E_Move_Border *mb2);
 EINTERN void                   e_mod_move_bd_move_ctl_objs_color_set(E_Move_Border *mb, int r, int g, int b, int a);
+EINTERN void                   e_mod_move_bd_move_ctl_objs_geometry_get(E_Move_Border *mb, int *x, int *y, int *w, int *h);
 
 #endif
 #endif

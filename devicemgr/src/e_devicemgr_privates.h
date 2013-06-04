@@ -17,6 +17,7 @@ typedef enum
 } DEVICEMGR_CFG;
 
 typedef struct _E_Devicemgr_Config E_Devicemgr_Config;
+typedef struct _E_Devicemgr_Config_Rotation E_Devicemgr_Config_Rotation;
 
 /* external variable to store active config */
 extern E_Devicemgr_Config *_e_devicemgr_cfg;
@@ -37,6 +38,13 @@ struct _E_Devicemgr_Config
         Eina_Bool isPopUpEnabled;
         /**< popup enable/disable status */
      } ScrnConf;
+   Eina_List *rotation;
+};
+
+struct _E_Devicemgr_Config_Rotation
+{
+   Eina_Bool   enable;
+   int         angle;
 };
 
 #endif//_E_DEVICEMGR_PRIVATE_H_

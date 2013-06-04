@@ -35,6 +35,7 @@ struct _Config
    unsigned char keyboard_effect;
    unsigned char fake_image_launch;
    int           fake_launch_layer;
+   int            lower_layer;
    unsigned char defer_raise_effect;
    double        max_lock_screen_time;
    double        damage_timeout;

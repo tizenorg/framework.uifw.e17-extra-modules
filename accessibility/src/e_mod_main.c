@@ -915,8 +915,12 @@ static void _e_accessibility_update_input_transform_matrix(void)
 
    if( e_accessibility.ZoomUI.status == ZOOM_OUT )
      {
-        XIChangeProperty(e_accessibility.disp, e_accessibility.touch_deviceid[0], e_accessibility.atomInputTransform,
-                         e_accessibility.atomFloat, 32, PropModeReplace, (unsigned char*)&identity_matrix, 9);
+        for( i = 0 ; i < 3 ; i++ )
+          {
+             XIChangeProperty(e_accessibility.disp, e_accessibility.touch_deviceid[i], e_accessibility.atomInputTransform,
+                              e_accessibility.atomFloat, 32, PropModeReplace, (unsigned char*)&identity_matrix, 9);
+          }
+        XSync(e_accessibility.disp, False);
      }
    else
      {
@@ -925,6 +929,7 @@ static void _e_accessibility_update_input_transform_matrix(void)
              XIChangeProperty(e_accessibility.disp, e_accessibility.touch_deviceid[i], e_accessibility.atomInputTransform,
                               e_accessibility.atomFloat, 32, PropModeReplace, (unsigned char*)&e_accessibility.tmatrix[0], 9);
           }
+        XSync(e_accessibility.disp, False);
      }
 }
 

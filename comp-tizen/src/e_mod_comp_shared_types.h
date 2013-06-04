@@ -13,9 +13,7 @@ typedef struct _E_Comp_Win E_Comp_Win;
 #include "e_mod_comp_canvas.h"
 #include "e_mod_comp_object.h"
 #include "e_mod_comp_policy.h"
-#include "e_mod_comp_animation.h"
 #include "e_mod_comp_effect_win_rotation.h"
-#include "e_mod_comp_effect_tm.h"
 #include "e_mod_comp_effect.h"
 #include "e_mod_comp_win_type.h"
 #include "e_mod_comp_screen.h"
@@ -50,10 +48,6 @@ struct _E_Comp
 
    // added for tizen
    Eina_Bool                     animatable : 1; // if this value is true then window can show animaton. otherwise, window can not show animation effect.
-   Eina_Bool                     switcher : 1; // task switcher is open
-   Eina_Bool                     switcher_obscured : 1; //task switcher is obscured
-   Eina_Bool                     switcher_animating : 1; // task switcher effect is running
-   int                           selected_pos; // selected window's position when task switcher is open
    Eina_Bool                     effect_stage : 1;
    E_Comp_Screen_Lock            lock;
    E_Comp_Screen_Rotation        rotation;
@@ -62,12 +56,17 @@ struct _E_Comp
    Eina_Bool                     keyboard_effect : 1; // True: Compositor Show Keyborad Window Effect / False: Compositor do not show keyboard window effect
    Eina_Bool                     defer_raise_effect : 1; // True : Compositor defer evas object restack on window effect
    Eina_Bool                     fake_image_launch : 1; // True : Enable Fake Image Launch feature
+   E_Comp_Win                   *lower_win; // For saving window on backkey(lower) event
+
+   // home key effect
+   Evas_Object                  *mirror_obj; // image(mirror) object
+   Evas_Object                  *mirror_handler; // shadow(edj) object
 
    // fake image launch
    E_Comp_Effect_Image_Launch   *eff_img;
    Evas                         *evas;
 
-   E_Comp_Win_Shape_Input       *shape_input; // Comp's Global Shape input region
+   Eina_List                    *shape_inputs;
 };
 
 struct _E_Comp_Win
@@ -144,15 +143,14 @@ struct _E_Comp_Win
    Eina_Bool                   show_done : 1 ; // check for show is done
    Eina_Bool                   effect_stage: 1; // check for if background window is hided or not.
    Eina_Bool                   defer_raise; // flag to defer to raise
-   Eina_Bool                   defer_move_resize; // flag to defer to move_resize for shobj
    E_Comp_Effect_Type         *eff_type;
    E_Comp_Effect_Win_Rotation *eff_winrot; // image launch effect
    E_Comp_Win_Type             win_type;
-   E_Comp_Transfer            *transfer;
    E_Comp_Win_Shape_Input     *shape_input;
    E_Comp_BG_Win              *bgwin;
    Eina_Bool                   move_lock : 1; // lock / unlock evas_object's move. evas_object represents window.
    int                         angle; // window's current angle property
+   Eina_Bool                   launched : 1; //flag for checking whether launch or not
 
    // ov object
    Ecore_X_Image              *ov_xim;

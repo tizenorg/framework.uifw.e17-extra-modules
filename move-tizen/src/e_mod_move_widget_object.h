@@ -12,6 +12,13 @@ struct _E_Move_Widget_Object
 
    Evas_Object   *obj;    // compositor's evas(window) object
    E_Move_Event  *event;  // evas object's event handler object
+
+   struct {
+     int x;
+     int y;
+     int w;
+     int h;
+   } geometry;
 };
 
 EINTERN E_Move_Widget_Object *e_mod_move_widget_obj_add(E_Move *m, E_Move_Canvas *canvas);
@@ -30,6 +37,7 @@ EINTERN void                  e_mod_move_widget_objs_lower(Eina_List *objs);
 EINTERN void                  e_mod_move_widget_objs_stack_above(Eina_List *objs, Eina_List *objs2);
 EINTERN void                  e_mod_move_widget_objs_layer_set(Eina_List *objs, short l);
 EINTERN void                  e_mod_move_widget_objs_color_set(Eina_List *objs, int r, int g, int b, int a);
+EINTERN void                  e_mod_move_widget_objs_geometry_get(Eina_List *objs, int *x, int *y, int *w, int *h);
 
 #endif
 #endif

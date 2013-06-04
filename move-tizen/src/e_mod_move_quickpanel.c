@@ -668,6 +668,8 @@ _e_mod_move_quickpanel_objs_animation_frame(void  *data,
                 }
               // Set No Composite Mode & Rotation UnLock & Destroy below win's mirror object
               e_mod_move_quickpanel_stage_deinit(mb);
+
+              ecore_x_e_illume_quickpanel_state_set(zone->black_win, ECORE_X_ILLUME_QUICKPANEL_STATE_OFF);
            }
 
          // if scroll with clipping use case, hold below windows until only animation is working
@@ -947,10 +949,16 @@ _e_mod_move_quickpanel_below_window_objs_add(void)
                   L(LT_EVENT_OBJ,
                     "[MOVE] ev:%15.15s w:0x%08x %s() \n",
                     "EVAS_OBJ", mb->bd->win, __func__);
-                  mb->objs = e_mod_move_bd_move_objs_add(mb, mirror);
-                  e_mod_move_bd_move_objs_move(mb, mb->x, mb->y);
-                  e_mod_move_bd_move_objs_resize(mb, mb->w, mb->h);
-                  e_mod_move_bd_move_objs_show(mb);
+
+                  if (TYPE_NOTIFICATION_CHECK(mb))
+                    mb->objs = e_mod_move_bd_move_objs_add(mb, !mirror);
+                  else
+                    {
+                       mb->objs = e_mod_move_bd_move_objs_add(mb, mirror);
+                       e_mod_move_bd_move_objs_move(mb, mb->x, mb->y);
+                       e_mod_move_bd_move_objs_resize(mb, mb->w, mb->h);
+                       e_mod_move_bd_move_objs_show(mb);
+                    }
                }
           }
      }
@@ -1524,7 +1532,8 @@ e_mod_move_quickpanel_ctl_obj_event_setup(E_Move_Border         *mb,
                            _e_mod_move_quickpanel_cb_motion_move, mb);
    e_mod_move_event_cb_set(mco->event, E_MOVE_EVENT_TYPE_MOTION_END,
                            _e_mod_move_quickpanel_cb_motion_end, mb);
-   e_mod_move_event_send_all_set(mco->event, EINA_TRUE);
+   e_mod_move_event_propagate_type_set(mco->event,
+                                       E_MOVE_EVENT_PROPAGATE_TYPE_IMMEDIATELY);
 }
 
 EINTERN E_Move_Border *
@@ -1622,6 +1631,8 @@ e_mod_move_quickpanel_objs_add(E_Move_Border *mb)
         e_mod_move_bd_move_objs_resize(mb, mb->w, mb->h);
         e_mod_move_bd_move_objs_show(mb);
 
+        if (mb->objs) e_mod_move_util_rotation_lock(mb->m);
+
         if (m->qp_scroll_with_clipping)
           {
              e_mod_move_quickpanel_objs_clipper_add(mb);
@@ -1653,6 +1664,7 @@ e_mod_move_quickpanel_objs_del(E_Move_Border *mb)
      }
 
    e_mod_move_bd_move_objs_del(mb, mb->objs);
+   e_mod_move_util_rotation_unlock(mb->m);
 
    mb->objs = NULL;
 
@@ -1963,6 +1975,8 @@ e_mod_move_quickpanel_e_border_move(E_Move_Border *mb,
                                                             ECORE_X_ILLUME_QUICKPANEL_STATE_ON);
                }
           }
+
+        ecore_x_e_illume_quickpanel_state_set(zone->black_win, ECORE_X_ILLUME_QUICKPANEL_STATE_ON);
      }
 
    e_border_move(bd, x, y);
@@ -2248,7 +2262,6 @@ e_mod_move_quickpanel_stage_init(E_Move_Border *mb)
 
    // Composite mode set true
    e_mod_move_util_compositor_composite_mode_set(m, EINA_TRUE);
-   e_mod_move_util_rotation_lock(m);
 
    return EINA_TRUE;
 }
@@ -2268,8 +2281,6 @@ e_mod_move_quickpanel_stage_deinit(E_Move_Border *mb)
         _e_mod_move_quickpanel_below_window_objs_del();
         _e_mod_move_quickpanel_below_window_unset();
      }
-
-   e_mod_move_util_rotation_unlock(m);
 
    // Composite mode set false
    e_mod_move_util_compositor_composite_mode_set(m, EINA_FALSE);

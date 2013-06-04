@@ -16,6 +16,8 @@ typedef enum _E_Comp_Win_Class_Type
    E_COMP_WIN_CLASS_TYPE_TICKERNOTI,
    E_COMP_WIN_CLASS_TYPE_DEBUGGING_INFO,
    E_COMP_WIN_CLASS_TYPE_APPTRAY,
+   E_COMP_WIN_CLASS_TYPE_MINI_APPTRAY,
+   E_COMP_WIN_CLASS_TYPE_VOLUME,
    E_COMP_WIN_CLASS_TYPE_BACKGROUND,
    E_COMP_WIN_CLASS_TYPE_ISF,
 } E_Comp_Win_Class_Type;
@@ -33,6 +35,8 @@ typedef enum _E_Comp_Win_Name_Type
    E_COMP_WIN_NAME_TYPE_INDICATOR,
    E_COMP_WIN_NAME_TYPE_TICKERNOTI,
    E_COMP_WIN_NAME_TYPE_APPTRAY,
+   E_COMP_WIN_NAME_TYPE_MINI_APPTRAY,
+   E_COMP_WIN_NAME_TYPE_VOLUME,
    E_COMP_WIN_NAME_TYPE_BACKGROUND,
    E_COMP_WIN_NAME_TYPE_ISF_KEYBOARD,
    E_COMP_WIN_NAME_TYPE_ISF_SUB,
@@ -51,10 +55,13 @@ static const char *win_class[] =
    "TASK_MANAGER",
    "LIVE_MAGAZINE",
    "LOCK_SCREEN",
+   "lockscreen",
    "INDICATOR",
-   "tickernoti-syspopup",
+   "quickpanel",
    "DEBUGGING_INFO",
    "APP_TRAY",
+   "MINIAPP_TRAY",
+   "volume",
    "BACKGROUND",
    "ISF",
 };
@@ -68,9 +75,12 @@ static const char *win_name[] =
    "TASK_MANAGER",
    "Live Magazine",
    "LOCK_SCREEN",
+   "lockscreen",
    "INDICATOR",
-   "noti-window",
+   "noti_win",
    "APP_TRAY",
+   "MINIAPP_TRAY",
+   "volume",
    "BACKGROUND",
    // E_COMP_WIN_NAME_TYPE_ISF_KEYBOARD
    "Virtual Keyboard",
@@ -90,10 +100,13 @@ static E_Comp_Win_Class_Type win_class_vals[] =
    E_COMP_WIN_CLASS_TYPE_TASKMANAGER,
    E_COMP_WIN_CLASS_TYPE_LIVEMAGAZINE,
    E_COMP_WIN_CLASS_TYPE_LOCKSCREEN,
+   E_COMP_WIN_CLASS_TYPE_LOCKSCREEN,
    E_COMP_WIN_CLASS_TYPE_INDICATOR,
    E_COMP_WIN_CLASS_TYPE_TICKERNOTI,
    E_COMP_WIN_CLASS_TYPE_DEBUGGING_INFO,
    E_COMP_WIN_CLASS_TYPE_APPTRAY,
+   E_COMP_WIN_CLASS_TYPE_MINI_APPTRAY,
+   E_COMP_WIN_CLASS_TYPE_VOLUME,
    E_COMP_WIN_CLASS_TYPE_BACKGROUND,
    E_COMP_WIN_CLASS_TYPE_ISF
 };
@@ -107,9 +120,12 @@ static E_Comp_Win_Class_Type win_name_vals[] =
    E_COMP_WIN_NAME_TYPE_TASKMANAGER,
    E_COMP_WIN_NAME_TYPE_LIVEMAGAZINE,
    E_COMP_WIN_NAME_TYPE_LOCKSCREEN,
+   E_COMP_WIN_NAME_TYPE_LOCKSCREEN,
    E_COMP_WIN_NAME_TYPE_INDICATOR,
    E_COMP_WIN_NAME_TYPE_TICKERNOTI,
    E_COMP_WIN_NAME_TYPE_APPTRAY,
+   E_COMP_WIN_NAME_TYPE_MINI_APPTRAY,
+   E_COMP_WIN_NAME_TYPE_VOLUME,
    E_COMP_WIN_NAME_TYPE_BACKGROUND,
    E_COMP_WIN_NAME_TYPE_ISF_KEYBOARD,
    E_COMP_WIN_NAME_TYPE_ISF_SUB
@@ -225,8 +241,7 @@ e_mod_comp_win_type_setup(E_Comp_Win *cw)
            res = E_COMP_WIN_TYPE_LIVEMAGAZINE;
          break;
       case E_COMP_WIN_CLASS_TYPE_LOCKSCREEN:
-         if ((ntype == E_COMP_WIN_NAME_TYPE_LOCKSCREEN) &&
-             (wtype == ECORE_X_WINDOW_TYPE_NOTIFICATION))
+         if (ntype == E_COMP_WIN_NAME_TYPE_LOCKSCREEN)
            res = E_COMP_WIN_TYPE_LOCKSCREEN;
          break;
       case E_COMP_WIN_CLASS_TYPE_INDICATOR:
@@ -243,7 +258,7 @@ e_mod_comp_win_type_setup(E_Comp_Win *cw)
            res = E_COMP_WIN_TYPE_DEBUGGING_INFO;
          break;
       case E_COMP_WIN_CLASS_TYPE_ISF:
-         if (wtype != ECORE_X_WINDOW_TYPE_NORMAL)
+         if (wtype != ECORE_X_WINDOW_TYPE_UTILITY)
            break;
          else if (ntype == E_COMP_WIN_NAME_TYPE_ISF_KEYBOARD)
            res = E_COMP_WIN_TYPE_ISF_KEYBOARD;
@@ -258,6 +273,16 @@ e_mod_comp_win_type_setup(E_Comp_Win *cw)
       case E_COMP_WIN_CLASS_TYPE_APPTRAY:
          if (ntype == E_COMP_WIN_NAME_TYPE_APPTRAY)
            res = E_COMP_WIN_TYPE_APPTRAY;
+         break;
+      case E_COMP_WIN_CLASS_TYPE_MINI_APPTRAY:
+         if (ntype == E_COMP_WIN_NAME_TYPE_MINI_APPTRAY)
+           res = E_COMP_WIN_TYPE_MINI_APPTRAY;
+         break;
+      case E_COMP_WIN_CLASS_TYPE_VOLUME:
+         if ((ntype == E_COMP_WIN_NAME_TYPE_VOLUME) &&
+             (wtype == ECORE_X_WINDOW_TYPE_NOTIFICATION))
+           res = E_COMP_WIN_TYPE_VOLUME;
+         break;
       case E_COMP_WIN_CLASS_TYPE_BACKGROUND:
          if (ntype == E_COMP_WIN_NAME_TYPE_BACKGROUND)
            res = E_COMP_WIN_TYPE_BACKGROUND;

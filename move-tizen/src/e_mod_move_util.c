@@ -470,3 +470,241 @@ e_mod_move_util_root_angle_get(void)
 
    return angle;
 }
+
+EINTERN void
+e_mod_move_mouse_event_send(Ecore_X_Window          id,
+                            E_Move_Mouse_Event_Type type,
+                            Evas_Point              pt)
+{
+   E_Border  *bd = NULL;
+   Evas_Coord x = 0, y =0, w, h;
+   int        button = 1;
+
+   E_CHECK(id);
+
+   bd = e_border_find_all_by_client_window(id);
+   if (bd)
+     {
+        x = bd->x;
+        y = bd->y;
+        w = bd->w;
+        h = bd->h;
+     }
+   else ecore_x_window_geometry_get(id, &x, &y, &w, &h);
+
+   switch (type)
+     {
+      case E_MOVE_MOUSE_EVENT_DOWN:
+         e_mod_move_util_mouse_down_send(id,
+                                         pt.x - x,
+                                         pt.y - y,
+                                         button);
+         break;
+
+      case E_MOVE_MOUSE_EVENT_UP:
+         e_mod_move_util_mouse_up_send(id,
+                                       pt.x - x,
+                                       pt.y - y,
+                                       button);
+         break;
+
+      case E_MOVE_MOUSE_EVENT_MOVE:
+         e_mod_move_util_mouse_move_send(id,
+                                         pt.x -x,
+                                         pt.y -y);
+         break;
+
+      default:
+         break;
+    }
+}
+
+EINTERN Eina_Bool
+e_mod_move_util_mouse_down_send(Ecore_X_Window id,
+                                int x,
+                                int y,
+                                int button)
+{
+   XEvent xev;
+   Ecore_X_Window root;
+   int root_x = 0, root_y = 0;
+
+   root = ecore_x_window_root_get(id);
+   ecore_x_pointer_last_xy_get(&root_x, &root_y);
+   xev.xbutton.type = ButtonPress;
+   xev.xbutton.window = id;
+   xev.xbutton.root = root;
+   xev.xbutton.subwindow = id;
+   xev.xbutton.time = ecore_x_current_time_get();
+   xev.xbutton.x = x;
+   xev.xbutton.y = y;
+   xev.xbutton.x_root = root_x;
+   xev.xbutton.y_root = root_y;
+   xev.xbutton.state = 1 << button;
+   xev.xbutton.button = button;
+   xev.xbutton.same_screen = 1;
+   return XSendEvent(ecore_x_display_get(), id, True, ButtonPressMask, &xev) ? EINA_TRUE : EINA_FALSE;
+}
+
+EINTERN Eina_Bool
+e_mod_move_util_mouse_up_send(Ecore_X_Window id,
+                              int x,
+                              int y,
+                              int button)
+{
+   XEvent xev;
+   Ecore_X_Window root;
+   int root_x = 0, root_y = 0;
+
+   root = ecore_x_window_root_get(id);
+   ecore_x_pointer_last_xy_get(&root_x, &root_y);
+   xev.xbutton.type = ButtonRelease;
+   xev.xbutton.window = id;
+   xev.xbutton.root = root;
+   xev.xbutton.subwindow = id;
+   xev.xbutton.time = ecore_x_current_time_get();
+   xev.xbutton.x = x;
+   xev.xbutton.y = y;
+   xev.xbutton.x_root = root_x;
+   xev.xbutton.y_root = root_y;
+   xev.xbutton.state = 0;
+   xev.xbutton.button = button;
+   xev.xbutton.same_screen = 1;
+   return XSendEvent(ecore_x_display_get(), id, True, ButtonReleaseMask, &xev) ? EINA_TRUE : EINA_FALSE;
+}
+
+EINTERN Eina_Bool
+e_mod_move_util_mouse_move_send(Ecore_X_Window id,
+                                int x,
+                                int y)
+{
+   XEvent xev;
+   Ecore_X_Window root;
+   int root_x = 0, root_y = 0;
+
+   root = ecore_x_window_root_get(id);
+   ecore_x_pointer_last_xy_get(&root_x, &root_y);
+   xev.xmotion.type = MotionNotify;
+   xev.xmotion.window = id;
+   xev.xmotion.root = root;
+   xev.xmotion.subwindow = id;
+   xev.xmotion.time = ecore_x_current_time_get();
+   xev.xmotion.x = x;
+   xev.xmotion.y = y;
+   xev.xmotion.x_root = root_x;
+   xev.xmotion.y_root = root_y;
+   xev.xmotion.state = 0;
+   xev.xmotion.is_hint = 0;
+   xev.xmotion.same_screen = 1;
+   return XSendEvent(ecore_x_display_get(), id, True, PointerMotionMask, &xev) ? EINA_TRUE : EINA_FALSE;
+}
+
+EINTERN Eina_Bool
+e_mod_move_util_prop_indicator_cmd_win_get(Ecore_X_Window *win,
+                                           E_Move         *m)
+{
+   int            ret = -1;
+   Ecore_X_Window indi_cmd_win;
+
+   E_CHECK_RETURN(win, EINA_FALSE);
+   E_CHECK_RETURN(m, EINA_FALSE);
+
+   ret = ecore_x_window_prop_window_get(m->man->root,
+                                        ATOM_INDICATOR_CMD_WIN,
+                                        &indi_cmd_win, 1);
+
+   if (ret == -1) return EINA_FALSE;
+
+   *win = indi_cmd_win;
+
+   return EINA_TRUE;
+}
+
+EINTERN Eina_Bool
+e_mod_move_util_prop_indicator_cmd_win_set(Ecore_X_Window win,
+                                           E_Move        *m)
+{
+   Ecore_X_Window indi_cmd_win;
+
+   E_CHECK_RETURN(win, EINA_FALSE);
+   E_CHECK_RETURN(m, EINA_FALSE);
+
+   if (e_mod_move_util_prop_indicator_cmd_win_get(&indi_cmd_win, m))
+     {
+        if (indi_cmd_win != win )
+          ecore_x_window_prop_window_set(m->man->root,
+                                         ATOM_INDICATOR_CMD_WIN,
+                                         &win, 1);
+     }
+   else
+     {
+        ecore_x_window_prop_window_set(m->man->root,
+                                       ATOM_INDICATOR_CMD_WIN,
+                                       &win, 1);
+     }
+   return EINA_TRUE;
+}
+
+EINTERN Eina_Bool
+e_mod_move_util_prop_active_indicator_win_get(Ecore_X_Window *win,
+                                              E_Move         *m)
+{
+   int            ret_prop = -1;
+   Eina_Bool      ret = EINA_FALSE;
+   Ecore_X_Window indi_active_win;
+   Ecore_X_Window indi_cmd_win;
+
+   E_CHECK_RETURN(win, EINA_FALSE);
+   E_CHECK_RETURN(m, EINA_FALSE);
+
+   if (e_mod_move_util_prop_indicator_cmd_win_get(&indi_cmd_win, m))
+     {
+        ret_prop = ecore_x_window_prop_window_get(indi_cmd_win,
+                                                  ATOM_ACTIVE_INDICATOR_WIN,
+                                                  &indi_active_win, 1);
+        if (ret_prop != -1)
+          {
+             *win = indi_active_win;
+             ret = EINA_TRUE;
+          }
+     }
+
+   return ret;
+}
+
+EINTERN Eina_Bool
+e_mod_move_util_prop_active_indicator_win_set(Ecore_X_Window win,
+                                              E_Move        *m)
+{
+   Ecore_X_Window indi_active_win;
+   Ecore_X_Window indi_cmd_win;
+   Eina_Bool      ret = EINA_FALSE;
+
+   E_CHECK_RETURN(win, EINA_FALSE);
+   E_CHECK_RETURN(m, EINA_FALSE);
+
+   if (e_mod_move_util_prop_active_indicator_win_get(&indi_active_win, m))
+     {
+        if (indi_active_win != win )
+          {
+            if (e_mod_move_util_prop_indicator_cmd_win_get(&indi_cmd_win, m))
+              {
+                 ecore_x_window_prop_window_set(indi_cmd_win,
+                                                ATOM_ACTIVE_INDICATOR_WIN,
+                                                &win, 1);
+                 ret = EINA_TRUE;
+              }
+          }
+     }
+   else
+     {
+        if (e_mod_move_util_prop_indicator_cmd_win_get(&indi_cmd_win, m))
+          {
+             ecore_x_window_prop_window_set(indi_cmd_win,
+                                            ATOM_ACTIVE_INDICATOR_WIN,
+                                            &win, 1);
+             ret = EINA_TRUE;
+          }
+     }
+   return ret;
+}

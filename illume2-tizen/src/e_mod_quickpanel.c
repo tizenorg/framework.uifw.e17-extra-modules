@@ -41,6 +41,7 @@ static int _e_mod_quickpanel_root_angle_get (E_Illume_Quickpanel* qp);
 static Ecore_X_Window _e_mod_quickpanel_active_window_get(Ecore_X_Window root);
 static void _e_mod_quickpanel_property_root_angle_change(Ecore_X_Event_Window_Property *event);
 static void _e_mod_quickpanel_property_active_win_change(Ecore_X_Event_Window_Property *event);
+static void _e_mod_quickpanel_property_quickpanel_state_change(Ecore_X_Event_Window_Property *event);
 
 static int _e_mod_quickpanel_bg_layout_add(E_Illume_Quickpanel *qp);
 static int _e_mod_quickpanel_bg_layout_del(E_Illume_Quickpanel *qp);
@@ -61,6 +62,10 @@ static void _e_mod_quickpanel_window_list_set (E_Illume_Quickpanel* qp);
 /* for changeable layer of quickpanel window */
 EINTERN Eina_Bool _e_mod_quickpanel_layer_fetch(E_Illume_Quickpanel *qp, E_Border *bd);
 EINTERN void _e_mod_quickpanel_layer_update(E_Illume_Quickpanel *qp);
+
+static E_Border* _e_mod_quickpanel_find_below_notification(E_Border *qp_bd);
+static void _e_mod_quickpanel_check_hide(E_Border *bd);
+
 
 /* local variables */
 static Eina_List *_qp_hdls = NULL;
@@ -316,6 +321,8 @@ static Eina_Bool _e_mod_quickpanel_cb_border_add(void *data __UNUSED__, int type
         return ECORE_CALLBACK_PASS_ON;
      }
 
+   _e_mod_quickpanel_check_hide(ev->border);
+
    if (!ev->border->client.illume.quickpanel.quickpanel)
       return ECORE_CALLBACK_PASS_ON;
 
@@ -344,25 +351,9 @@ static Eina_Bool _e_mod_quickpanel_cb_border_add(void *data __UNUSED__, int type
    if (e_illume_border_is_quickpanel(ev->border))
      {
         qp->bd = ev->border;
-
-        root = ecore_x_window_root_get(qp->bd->win);
-        active_win = _e_mod_quickpanel_active_window_get(root);
-        if (active_win)
-          {
-             active_bd = e_border_find_by_client_window(active_win);
-             if (active_bd)
-               qp->changes.layer = _e_mod_quickpanel_layer_fetch(qp, active_bd);
-             else
-               {
-                  qp->layer = POL_QUICKPANEL_LAYER;
-                  qp->changes.layer = 1;
-               }
-
-             L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d).. Initializing QP layer: %d\n",
-               __func__, __LINE__, qp->layer);
-
-             if (qp->changes.layer) qp->changed = 1;
-          }
+        qp->layer = POL_QUICKPANEL_LAYER;
+        qp->changes.layer = 1;
+        qp->changed = 1;
      }
 
    // Disable effect of the quickpanel window
@@ -664,18 +655,6 @@ _e_mod_quickpanel_property_active_win_change(Ecore_X_Event_Window_Property *even
    if (!(qp = e_illume_quickpanel_by_zone_get(active_bd->zone)))
      return;
 
-   // Updating quickpanel's layer by active window
-   if (e_illume_border_is_quickpanel(active_bd) == EINA_FALSE)
-     {
-        qp->changes.layer = _e_mod_quickpanel_layer_fetch(qp, active_bd);
-        if (qp->changes.layer)
-          {
-             L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d).. Fetch QP layer: %d\n",
-               __func__, __LINE__, qp->layer);
-             qp->changed = 1;
-          }
-     }
-
    if (e_illume_border_is_lock_screen(active_bd))
      {
         if (!qp->is_lock)
@@ -696,6 +675,29 @@ _e_mod_quickpanel_property_active_win_change(Ecore_X_Event_Window_Property *even
      }
 }
 
+static void
+_e_mod_quickpanel_property_quickpanel_state_change(Ecore_X_Event_Window_Property *event)
+{
+   E_Illume_Quickpanel *qp;
+   E_Zone *zone;
+   Ecore_X_Illume_Quickpanel_State state;
+
+   zone = e_util_zone_window_find(event->win);
+   if (!zone) return;
+
+   if (!(qp = e_illume_quickpanel_by_zone_get(zone)))
+     return;
+
+   // check qp is visible
+   state = ecore_x_e_illume_quickpanel_state_get(event->win);
+   if (state == ECORE_X_ILLUME_QUICKPANEL_STATE_ON)
+     qp->below_bd = _e_mod_quickpanel_find_below_notification(qp->bd);
+   else
+     qp->below_bd = NULL;
+
+   L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d)... QUICK PANEL's below win:0x%07x\n", __func__, __LINE__, qp->below_bd ? qp->below_bd->client.win : (unsigned int)NULL);
+}
+
 static Eina_Bool _e_mod_quickpanel_cb_property(void *data __UNUSED__, int type __UNUSED__, void *event)
 {
    Ecore_X_Event_Window_Property *ev;
@@ -708,6 +710,10 @@ static Eina_Bool _e_mod_quickpanel_cb_property(void *data __UNUSED__, int type _
    else if (ev->atom == ECORE_X_ATOM_NET_ACTIVE_WINDOW)
      {
         _e_mod_quickpanel_property_active_win_change(ev);
+     }
+   else if (ev->atom == ECORE_X_ATOM_E_ILLUME_QUICKPANEL_STATE)
+     {
+        _e_mod_quickpanel_property_quickpanel_state_change(ev);
      }
 
    return ECORE_CALLBACK_PASS_ON;
@@ -751,25 +757,7 @@ _e_mod_quickpanel_cb_border_stack(void *data __UNUSED__, int type __UNUSED__, vo
    if (!ev) return ECORE_CALLBACK_PASS_ON;
    if (e_illume_border_is_quickpanel(ev->border)) return ECORE_CALLBACK_PASS_ON;
 
-   root = ecore_x_window_root_get(ev->border->win);
-   active_win = _e_mod_quickpanel_active_window_get(root);
-   if (!active_win) return ECORE_CALLBACK_PASS_ON;
-
-   // fetching quickpanel's layer
-   if (ev->border->client.win == active_win)
-     {
-        qp = e_illume_quickpanel_by_zone_get(ev->border->zone);
-        if (qp)
-          {
-             qp->changes.layer = _e_mod_quickpanel_layer_fetch(qp, ev->border);
-             if (qp->changes.layer)
-               {
-                  L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d).. Fetch QP layer: %d\n",
-                    __func__, __LINE__, qp->layer);
-                  qp->changed = 1;
-               }
-          }
-     }
+   _e_mod_quickpanel_check_hide(ev->border);
 
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -1375,4 +1363,66 @@ _e_mod_quickpanel_layer_update(E_Illume_Quickpanel *qp)
    L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d).. Updating QP layer: %d\n",
      __func__, __LINE__, qp->layer);
    e_border_layer_set(qp->bd, qp->layer);
+}
+
+static E_Border*
+_e_mod_quickpanel_find_below_notification(E_Border *qp_bd)
+{
+   int i;
+   Eina_List *l;
+
+   if (!qp_bd) return NULL;
+   if (!qp_bd->zone) return NULL;
+
+   /* Find the windows below this one
+      - NOTIFICATION HIGH   : 9
+      - NOTIFICATION NORMAL : 8
+      - NOTIFICATION LOW    : 7
+    */
+   for (i = 9; i >= 7; i--)
+     {
+        E_Border *b;
+
+        EINA_LIST_REVERSE_FOREACH(qp_bd->zone->container->layers[i].clients, l, b)
+          {
+             if (!b) continue;
+             if (b->zone != qp_bd->zone) continue;
+
+             if ((b->x >= qp_bd->zone->w) || (b->y >= qp_bd->zone->h)) continue;
+             if (((b->x + b->w) <= 0) || ((b->y + b->h) <= 0)) continue;
+
+             return b;
+          }
+     }
+
+   return NULL;
+}
+
+static void _e_mod_quickpanel_check_hide(E_Border *bd)
+{
+   E_Illume_Quickpanel *qp;
+   if (!bd) return;
+
+   if (bd->layer >= POL_NOTIFICATION_LAYER_LOW)
+     {
+        qp = e_illume_quickpanel_by_zone_get(bd->zone);
+        if (qp)
+          {
+             // check qp is visible
+             Ecore_X_Illume_Quickpanel_State state;
+             E_Border *below_bd;
+
+             state = ecore_x_e_illume_quickpanel_state_get(bd->zone->black_win);
+             if (state == ECORE_X_ILLUME_QUICKPANEL_STATE_ON)
+               {
+                  // check qp's below is chaged or not
+                  below_bd = _e_mod_quickpanel_find_below_notification(qp->bd);
+                  if (qp->bd != below_bd)
+                    {
+                       ecore_x_e_illume_quickpanel_state_send(bd->zone->black_win, ECORE_X_ILLUME_QUICKPANEL_STATE_OFF);
+                       L(LT_QUICKPANEL, "[ILLUME2][QP] %s(%d).. Send Quickpanel state OFF.\n", __func__, __LINE__);
+                    }
+               }
+          }
+     }
 }

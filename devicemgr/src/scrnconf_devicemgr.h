@@ -21,6 +21,8 @@ typedef enum
     SC_EXT_RES_NULL,            /* null */
     SC_EXT_RES_1920X1080,       /* 1920 x 1080 */
     SC_EXT_RES_1280X720,        /* 1280 x 720 */
+    SC_EXT_RES_720X480,         /* 720 x 480 */
+    SC_EXT_RES_720X576,         /* 720 x 576 */
 } SC_EXT_RES;
 
 /* send status */

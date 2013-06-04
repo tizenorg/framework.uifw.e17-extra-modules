@@ -111,6 +111,8 @@ e_mod_move_bd_move_ctl_objs_move(E_Move_Border *mb,
              zy = mco->zone->y;
           }
         evas_object_move(mco->obj, x - zx, y - zy);
+        mco->geometry.x = x;
+        mco->geometry.y = y;
      }
 }
 
@@ -126,6 +128,8 @@ e_mod_move_bd_move_ctl_objs_resize(E_Move_Border *mb,
         if (!mco) continue;
         if (!mco->obj) continue;
         evas_object_resize(mco->obj, w, h);
+        mco->geometry.w = w;
+        mco->geometry.h = h;
      }
 }
 
@@ -246,6 +250,32 @@ e_mod_move_bd_move_ctl_objs_color_set(E_Move_Border *mb,
         if (!mco) continue;
         if (!mco->obj) continue;
         evas_object_color_set(mco->obj, r, g, b, a);
+     }
+}
+
+EINTERN void
+e_mod_move_bd_move_ctl_objs_geometry_get(E_Move_Border *mb,
+                                         int           *x,
+                                         int           *y,
+                                         int           *w,
+                                         int           *h)
+{
+   Eina_List *l;
+   E_Move_Control_Object *mco;
+
+   E_CHECK(mb);
+   E_CHECK(x);
+   E_CHECK(y);
+   E_CHECK(w);
+   E_CHECK(h);
+
+   EINA_LIST_FOREACH(mb->ctl_objs, l, mco)
+     {
+        if (!mco) continue;
+        *x = mco->geometry.x;
+        *y = mco->geometry.y;
+        *w = mco->geometry.w;
+        *h = mco->geometry.h;
      }
 }
 

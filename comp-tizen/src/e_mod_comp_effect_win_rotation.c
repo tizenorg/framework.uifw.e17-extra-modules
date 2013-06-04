@@ -11,7 +11,6 @@ struct _E_Comp_Effect_Win_Rotation
 {
    Eina_Bool    ready : 1;
    Eina_Bool    run   : 1;
-   Ecore_Timer *timeout;
    struct {
       int       req;
       int       cur;
@@ -21,9 +20,7 @@ struct _E_Comp_Effect_Win_Rotation
 /* local subsystem functions */
 static Eina_Bool _win_rotation_begin(E_Comp_Win *cw, Eina_Bool timeout);
 static void      _win_rotation_done(void *data, Evas_Object *obj, const char *emission, const char *source);
-static Eina_Bool _angle_get(Ecore_X_Window win, int *req, int *curr);
-static Eina_Bool _begin_timeout(void *data);
-static Eina_Bool _end_timeout(void *data);
+static Eina_Bool _angle_get(E_Comp_Win *cw, int *req, int *curr);
 
 /* externally accessible functions */
 EINTERN E_Comp_Effect_Win_Rotation *
@@ -40,8 +37,6 @@ EINTERN void
 e_mod_comp_effect_win_rotation_free(E_Comp_Effect_Win_Rotation *r)
 {
    E_CHECK(r);
-   if (r->timeout) ecore_timer_del(r->timeout);
-   r->timeout = NULL;
    E_FREE(r);
 }
 
@@ -60,9 +55,10 @@ e_mod_comp_effect_win_rotation_handler_prop(Ecore_X_Event_Window_Property *ev)
    int req_angle = -1;
    int cur_angle = -1;
    Eina_Bool res, effect;
-   Ecore_X_Sync_Counter counter;
    Ecore_X_Window win;
    E_Comp_Effect_Win_Rotation *r;
+   E_Comp_Canvas *canvas = NULL;
+   Eina_List *l;
 
    E_CHECK_RETURN(ev, 0);
    E_CHECK_RETURN(ev->win, 0);
@@ -87,7 +83,7 @@ e_mod_comp_effect_win_rotation_handler_prop(Ecore_X_Event_Window_Property *ev)
         return EINA_FALSE;
      }
 
-   res = _angle_get(win, &req_angle, &cur_angle);
+   res = _angle_get(cw, &req_angle, &cur_angle);
    if (!res) return EINA_FALSE;
 
    cw->angle = req_angle;
@@ -117,8 +113,24 @@ e_mod_comp_effect_win_rotation_handler_prop(Ecore_X_Event_Window_Property *ev)
    r->ready = EINA_TRUE;
    r->ang.req = req_angle;
    r->ang.cur = cur_angle;
-   if (r->timeout) ecore_timer_del(r->timeout);
-   r->timeout = ecore_timer_add(4.0f, _begin_timeout, cw);
+
+   if (_comp_mod->conf->nocomp_fs)
+     {
+        EINA_LIST_FOREACH(cw->c->canvases, l, canvas)
+          {
+             if (canvas->nocomp.mode != E_NOCOMP_MODE_RUN) continue;
+             if ((cw->nocomp) && (cw == canvas->nocomp.cw))
+               {
+                  L(LT_EVENT_X,
+                    "COMP|%31s|new_w:0x%08x|nocomp.cw:0x%08x canvas:%d\n",
+                    "ROTATION_HANDLER NOCOMP_END",
+                    cw ? e_mod_comp_util_client_xid_get(cw) : 0,
+                    e_mod_comp_util_client_xid_get(canvas->nocomp.cw),
+                    canvas->num);
+                  e_mod_comp_canvas_nocomp_end(canvas);
+               }
+          }
+     }
 
    L(LT_EVENT_X, "COMP|%31s|%d\n",
      "ready", r->ready);
@@ -141,6 +153,8 @@ e_mod_comp_effect_win_rotation_handler_release(E_Comp_Win *cw)
 {
    E_CHECK_RETURN(cw, 0);
    E_CHECK_RETURN(cw->eff_winrot, 0);
+   if (e_mod_comp_effect_win_roation_run_check(cw->eff_winrot))
+     _win_rotation_done(cw, NULL, NULL, NULL);
    e_mod_comp_effect_win_rotation_free(cw->eff_winrot);
    cw->eff_winrot = NULL;
    return EINA_TRUE;
@@ -165,13 +179,7 @@ _win_rotation_begin(E_Comp_Win *cw,
      "COMP|%31s|timeout:%d\n",
      "win_rot_begin", timeout);
 
-   if (r->timeout)
-     {
-        ecore_timer_del(r->timeout);
-        r->timeout = NULL;
-     }
-
-   switch (r->ang.req - r->ang.cur)
+   switch (r->ang.cur - r->ang.req)
      {
       case -270: e_mod_comp_effect_signal_add(cw, NULL, "e,state,window,rotation,90",   "e"); break;
       case -180: e_mod_comp_effect_signal_add(cw, NULL, "e,state,window,rotation,180",  "e"); break;
@@ -219,7 +227,6 @@ _win_rotation_begin(E_Comp_Win *cw,
           }
      }
 
-   r->timeout = ecore_timer_add(4.0f, _end_timeout, cw);
    return EINA_TRUE;
 }
 
@@ -238,11 +245,6 @@ _win_rotation_done(void        *data,
    E_CHECK(cw->eff_winrot);
 
    r = cw->eff_winrot;
-   if (r->timeout)
-     {
-        ecore_timer_del(r->timeout);
-        r->timeout = NULL;
-     }
 
    if (!cw->show_done) cw->show_done = EINA_TRUE;
 
@@ -269,77 +271,26 @@ _win_rotation_done(void        *data,
 }
 
 static Eina_Bool
-_angle_get(Ecore_X_Window  win,
+_angle_get(E_Comp_Win     *cw,
            int            *req,
            int            *curr)
 {
-   Eina_Bool res = EINA_FALSE;
-   int ret, count;
-   int angle[2] = {-1, -1};
-   unsigned char* data = NULL;
-
-   E_CHECK_RETURN(win, 0);
+   E_CHECK_RETURN(cw, 0);
+   E_CHECK_RETURN(cw->bd, 0);
    E_CHECK_RETURN(req, 0);
    E_CHECK_RETURN(curr, 0);
 
-   ret = ecore_x_window_prop_property_get
-           (win, ECORE_X_ATOM_E_ILLUME_ROTATE_WINDOW_ANGLE,
-           ECORE_X_ATOM_CARDINAL, 32, &data, &count);
-   if (ret <= 0)
-     {
-        if (data) E_FREE(data);
-        return res;
-     }
-
-   if (ret && data)
-     {
-        memcpy(&angle, data, sizeof (int)*count);
-        if (count == 2) res = EINA_TRUE;
-     }
-
-   if (data) E_FREE(data);
-
-   *req  = angle[_WND_REQUEST_ANGLE_IDX];
-   *curr = angle[_WND_CURR_ANGLE_IDX];
-
-   if (angle[0] == -1 &&
-       angle[1] == -1)
-     {
-        res = EINA_FALSE;
-     }
+   *req  = cw->bd->client.e.state.rot.prev;
+   *curr = cw->bd->client.e.state.rot.curr;
 
    L(LT_EVENT_X,
-     "COMP|%31s|%d=>%d count:%d res:%s\n",
+     "COMP|%31s|w:0x%08x|%d=>%d\n",
      "rot_prop_get",
-     angle[_WND_CURR_ANGLE_IDX],
-     angle[_WND_REQUEST_ANGLE_IDX],
-     count, res ? "Ture" : "False");
+     e_mod_comp_util_client_xid_get(cw),
+     *req,
+     *curr);
 
-   return res;
-}
-
-static Eina_Bool
-_begin_timeout(void *data)
-{
-   E_Comp_Win *cw = (E_Comp_Win*)data;
-   E_CHECK_RETURN(cw, 0);
-   fprintf(stderr, "[E17-comp] %s(%d) w:0x%08x\n",
-           __func__, __LINE__,
-           e_mod_comp_util_client_xid_get(cw));
-   _win_rotation_begin(cw, EINA_TRUE);
-   return ECORE_CALLBACK_CANCEL;
-}
-
-static Eina_Bool
-_end_timeout(void *data)
-{
-   E_Comp_Win *cw = (E_Comp_Win*)data;
-   E_CHECK_RETURN(cw, 0);
-   fprintf(stderr,"[E17-comp] %s(%d) w:0x%08x\n",
-           __func__, __LINE__,
-           e_mod_comp_util_client_xid_get(cw));
-   _win_rotation_done((void*)cw, NULL, NULL, NULL);
-   return ECORE_CALLBACK_CANCEL;
+   return EINA_TRUE;
 }
 
 EINTERN Eina_Bool
@@ -360,11 +311,11 @@ e_mod_comp_effect_win_angle_get(E_Comp_Win *cw)
    if (st == E_COMP_EFFECT_STYLE_NONE)
      return EINA_FALSE;
 
-   res = _angle_get(win, &req_angle, &cur_angle);
+   res = _angle_get(cw, &req_angle, &cur_angle);
    if (!res)
      return EINA_FALSE;
 
-   cw->angle = req_angle;
+   cw->angle = cur_angle;
    cw->angle %= 360;
 
    return EINA_TRUE;

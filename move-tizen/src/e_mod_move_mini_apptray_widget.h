@@ -9,6 +9,7 @@ struct _E_Move_Mini_Apptray_Widget
    Ecore_X_Window  win;
    Eina_Bool       mini_apptray_move;
    Evas_Point      pos; // mouse position
+   int             input_region_id;
 };
 
 typedef struct _E_Move_Mini_Apptray_Widget E_Move_Mini_Apptray_Widget;

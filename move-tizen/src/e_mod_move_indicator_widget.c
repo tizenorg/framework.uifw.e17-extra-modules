@@ -3,20 +3,24 @@
 #include "e_mod_move.h"
 
 /* local subsystem functions */
-static Eina_Bool _e_mod_move_indicator_widget_apptray_move_set(E_Move_Indicator_Widget *indi_widget, Eina_Bool state);
-static Eina_Bool _e_mod_move_indicator_widget_quickpanel_move_set(E_Move_Indicator_Widget *indi_widget, Eina_Bool state);
-static Eina_Bool _e_mod_move_indicator_widget_apptray_move_get(E_Move_Indicator_Widget *indi_widget);
-static Eina_Bool _e_mod_move_indicator_widget_quickpanel_move_get(E_Move_Indicator_Widget *indi_widget);
-static Eina_Bool _e_mod_move_indicator_widget_cb_motion_start_internal_apptray_check(E_Move_Border *at_mb);
-static Eina_Bool _e_mod_move_indicator_widget_cb_motion_start_internal_quickpanel_check(E_Move_Border *qp_mb);
-static Eina_Bool _e_mod_move_indicator_widget_quickpanel_flick_process(E_Move_Indicator_Widget *indi_widget, E_Move_Border *mb2, int angle, Eina_Bool state);
-static Eina_Bool _e_mod_move_indicator_widget_apptray_flick_process(E_Move_Indicator_Widget *indi_widget, E_Move_Border *mb2, int angle, Eina_Bool state);
-static Eina_Bool _e_mod_move_indicator_widget_home_region_release_check(E_Move_Indicator_Widget  *indi_widget, Eina_Bool apptray_move, int angle, Evas_Point pos);
-static Eina_Bool _e_mod_move_indicator_widget_cb_motion_start(void *data, void *event_info);
-static Eina_Bool _e_mod_move_indicator_widget_cb_motion_move(void *data, void *event_info);
-static Eina_Bool _e_mod_move_indicator_widget_cb_motion_end(void *data, void *event_info);
-static void      _e_mod_move_indicator_widget_obj_event_setup(E_Move_Indicator_Widget *indicator_widget, E_Move_Widget_Object *mwo);
-static Eina_Bool _e_mod_move_indicator_widget_scrollable_object_movable_check(E_Move_Border *mb, Evas_Point pos);
+static Eina_Bool      _e_mod_move_indicator_widget_apptray_move_set(E_Move_Indicator_Widget *indi_widget, Eina_Bool state);
+static Eina_Bool      _e_mod_move_indicator_widget_quickpanel_move_set(E_Move_Indicator_Widget *indi_widget, Eina_Bool state);
+static Eina_Bool      _e_mod_move_indicator_widget_apptray_move_get(E_Move_Indicator_Widget *indi_widget);
+static Eina_Bool      _e_mod_move_indicator_widget_quickpanel_move_get(E_Move_Indicator_Widget *indi_widget);
+static Eina_Bool      _e_mod_move_indicator_widget_cb_motion_start_internal_apptray_check(E_Move_Border *at_mb);
+static Eina_Bool      _e_mod_move_indicator_widget_cb_motion_start_internal_quickpanel_check(E_Move_Border *qp_mb);
+static Eina_Bool      _e_mod_move_indicator_widget_quickpanel_flick_process(E_Move_Indicator_Widget *indi_widget, E_Move_Border *mb2, int angle, Eina_Bool state);
+static Eina_Bool      _e_mod_move_indicator_widget_apptray_flick_process(E_Move_Indicator_Widget *indi_widget, E_Move_Border *mb2, int angle, Eina_Bool state);
+static Eina_Bool      _e_mod_move_indicator_widget_home_region_release_check(E_Move_Indicator_Widget  *indi_widget, Eina_Bool apptray_move, int angle, Evas_Point pos);
+static Eina_Bool      _e_mod_move_indicator_widget_cb_motion_start(void *data, void *event_info);
+static Eina_Bool      _e_mod_move_indicator_widget_cb_motion_move(void *data, void *event_info);
+static Eina_Bool      _e_mod_move_indicator_widget_cb_motion_end(void *data, void *event_info);
+static void           _e_mod_move_indicator_widget_obj_event_setup(E_Move_Indicator_Widget *indicator_widget, E_Move_Widget_Object *mwo);
+static Eina_Bool      _e_mod_move_indicator_widget_scrollable_object_movable_check(E_Move_Border *mb, Evas_Point pos);
+static Eina_Bool      _e_mod_move_indicator_widget_target_window_find_by_pointer(Ecore_X_Window *win, int x, int y);
+static Ecore_X_Window _e_mod_move_indicator_widget_event_win_find(void *event_info);
+static Eina_Bool      _e_mod_move_indicator_widget_target_window_policy_check(E_Move_Border *mb);
+static Eina_Bool      _e_mod_move_indicator_widget_event_send_policy_check(E_Move_Indicator_Widget *indi_widget, Evas_Point pos);
 
 /* local subsystem functions */
 static Eina_Bool
@@ -327,6 +331,7 @@ _e_mod_move_indicator_widget_cb_motion_start(void *data,
    E_Move_Indicator_Widget *indi_widget = (E_Move_Indicator_Widget *)data;
 
    E_Move_Border *mb = NULL;
+   E_Move_Border *ev_mb = NULL;
    E_Move_Border *qp_mb = NULL;
    E_Move_Border *at_mb = NULL;
    E_Move_Event_Motion_Info *info;
@@ -335,11 +340,23 @@ _e_mod_move_indicator_widget_cb_motion_start(void *data,
    Eina_Bool clicked = EINA_FALSE;
    Eina_List *l;
    E_Move_Scroll_Region_Indicator scroll_region = E_MOVE_SCROLL_REGION_NONE;
+   Ecore_X_Window ev_win = 0;
 
    info  = (E_Move_Event_Motion_Info *)event_info;
    m = e_mod_move_util_get();
 
    E_CHECK_RETURN(indi_widget, EINA_FALSE);
+
+   // clicked window indicator policy check
+   EINA_LIST_FOREACH(indi_widget->objs, l, mwo)
+     {
+        if (!mwo) continue;
+        ev_win = e_mod_move_event_win_get(mwo->event);
+     }
+   ev_mb = e_mod_move_border_client_find(ev_win);
+   E_CHECK_RETURN(_e_mod_move_indicator_widget_target_window_policy_check(ev_mb),
+                  EINA_FALSE);
+
    mb = e_mod_move_border_client_find(indi_widget->win);
 
    if (!m || !mb || !indi_widget || !info) return EINA_FALSE;
@@ -694,7 +711,7 @@ _e_mod_move_indicator_widget_cb_motion_end(void *data,
    if (!qp_mv_state && !at_mv_state) goto finish;
 
    e_mod_move_flick_data_update(mb, info->coord.x, info->coord.y);
-   flick_state = e_mod_move_flick_state_get(mb, EINA_FALSE);
+   flick_state = e_mod_move_flick_state_get(mb, EINA_TRUE);
 
    if (qp_mv_state)
      {
@@ -969,7 +986,10 @@ _e_mod_move_indicator_widget_obj_event_setup(E_Move_Indicator_Widget *indicator_
    e_mod_move_event_cb_set(mwo->event, E_MOVE_EVENT_TYPE_MOTION_END,
                            _e_mod_move_indicator_widget_cb_motion_end,
                            indicator_widget);
-   e_mod_move_event_send_all_set(mwo->event, EINA_TRUE);
+   e_mod_move_event_win_find_cb_set(mwo->event,
+                                    _e_mod_move_indicator_widget_event_win_find);
+   e_mod_move_event_propagate_type_set(mwo->event,
+                                       E_MOVE_EVENT_PROPAGATE_TYPE_IMMEDIATELY);
 }
 
 static Eina_Bool
@@ -1010,6 +1030,148 @@ _e_mod_move_indicator_widget_scrollable_object_movable_check(E_Move_Border *mb, 
      }
 
    if ((val1 / val2) > threshold) ret = EINA_TRUE;
+
+   return ret;
+}
+
+static Eina_Bool
+_e_mod_move_indicator_widget_target_window_find_by_pointer(Ecore_X_Window *win,
+                                                           int x,
+                                                           int y)
+{
+   E_Move        *m = NULL;
+   E_Move_Border *find_mb = NULL;
+   Eina_Bool      found = EINA_FALSE;
+   Eina_Bool      ret = EINA_FALSE;
+   Ecore_X_Window noti_win = 0;
+   Eina_Bool      noti_win_saved = EINA_FALSE;
+
+   E_CHECK_RETURN(win, EINA_FALSE);
+   m = e_mod_move_util_get();
+   E_CHECK_RETURN(m, EINA_FALSE);
+
+   EINA_INLIST_REVERSE_FOREACH(m->borders, find_mb)
+     {
+        if (!find_mb->bd) continue;
+
+        // finding visible border
+        if (!find_mb->visible) continue;
+
+        // finding pointed border
+        if (!E_INSIDE(x, y, find_mb->bd->x, find_mb->bd->y,
+                            find_mb->bd->w, find_mb->bd->h))
+          continue;
+
+        // if notification , alpha, and indicator_state_none then search again below.
+        if (TYPE_NOTIFICATION_CHECK(find_mb)
+            && (find_mb->argb)
+            && (find_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
+          {
+             if (!noti_win_saved)
+               {
+                  noti_win = find_mb->bd->client.win;
+                  noti_win_saved = EINA_TRUE;
+               }
+             continue;
+          }
+        else
+          {
+             found = EINA_TRUE;
+             break;
+          }
+     }
+
+   if (found)
+     {
+        if ((find_mb)
+            && (find_mb->indicator_state == E_MOVE_INDICATOR_STATE_ON))
+          {
+             *win = find_mb->bd->client.win;
+             ret = EINA_TRUE;
+          }
+        else
+          {
+             if (noti_win_saved)
+               {
+                  *win = noti_win;
+                  ret = EINA_TRUE;
+               }
+             else
+               {
+                  *win = find_mb->bd->client.win;
+                  ret = EINA_TRUE;
+               }
+          }
+     }
+
+   return ret;
+}
+
+static Ecore_X_Window
+_e_mod_move_indicator_widget_event_win_find(void *event_info)
+{
+   E_Move_Event_Motion_Info *info = NULL;
+   E_Border                 *find_bd = NULL;
+   Ecore_X_Window            win = 0, res_win = 0;
+   info  = (E_Move_Event_Motion_Info *)event_info;
+
+   E_CHECK_RETURN(info, 0);
+
+   find_bd = e_mod_move_util_border_find_by_pointer(info->coord.x, info->coord.y);
+
+   if (_e_mod_move_indicator_widget_target_window_find_by_pointer(&win,
+                                                                  info->coord.x,
+                                                                  info->coord.y))
+     {
+         res_win = win;
+     }
+
+   L(LT_EVENT_OBJ,
+     "[MOVE] ev:%15.15s INDICATOR_WIDGET_EVENT_WIN_FIND w:0x%08x (%4d,%4d)\n",
+     "EVAS_OBJ", res_win, info->coord.x, info->coord.y);
+
+   return res_win;
+}
+
+static Eina_Bool
+_e_mod_move_indicator_widget_target_window_policy_check(E_Move_Border *mb)
+{
+   E_Move        *m = e_mod_move_util_get();
+   E_Zone        *zone = NULL;
+   Eina_Bool      ret = EINA_FALSE;
+   E_Border      *bd = NULL;
+
+   E_CHECK_RETURN(m, EINA_FALSE);
+   E_CHECK_RETURN(mb, EINA_FALSE);
+
+   bd = mb->bd;
+   E_CHECK_RETURN(bd, EINA_FALSE);
+   zone = bd->zone;
+   E_CHECK_RETURN(zone, EINA_FALSE);
+
+   if (REGION_EQUAL_TO_ZONE(mb, zone)  // check fullscreen
+       && (zone->id == 0)              // change zone->id comparing to bd's profile property (mobile)
+       && (mb->indicator_state == E_MOVE_INDICATOR_STATE_ON)
+       && (mb->indicator_type == E_MOVE_INDICATOR_TYPE_1))
+     {
+         ret = EINA_TRUE;
+     }
+
+   return ret;
+}
+
+static Eina_Bool
+_e_mod_move_indicator_widget_event_send_policy_check(E_Move_Indicator_Widget *indi_widget,
+                                                     Evas_Point               pos)
+{
+   int x = 0, y = 0, w = 0, h = 0;
+   Eina_Bool ret = EINA_FALSE;
+
+   E_CHECK_RETURN(indi_widget, EINA_FALSE);
+
+   e_mod_move_widget_objs_geometry_get(indi_widget->objs, &x ,&y, &w, &h);
+
+   if (E_INSIDE(pos.x, pos.y, x, y, w, h)) ret = EINA_TRUE;
 
    return ret;
 }
@@ -1058,6 +1220,7 @@ e_mod_move_indicator_widget_target_window_find(Ecore_X_Window *win)
    m = e_mod_move_util_get();
    E_CHECK_RETURN(m, EINA_FALSE);
 
+   // fix later
    EINA_INLIST_REVERSE_FOREACH(m->borders, find_mb)
      {
         if (!find_mb->bd) continue;
@@ -1073,9 +1236,9 @@ e_mod_move_indicator_widget_target_window_find(Ecore_X_Window *win)
      }
 
    if (found
-       && (find_mb->indicator_state == E_MOVE_INDICATOR_STATE_ON)
-       && (find_mb->indicator_type == E_MOVE_INDICATOR_TYPE_1)
-       && !(TYPE_INDICATOR_CHECK(find_mb))
+//       && (find_mb->indicator_state == E_MOVE_INDICATOR_STATE_ON)
+//       && (find_mb->indicator_type == E_MOVE_INDICATOR_TYPE_1)
+//       && !(TYPE_INDICATOR_CHECK(find_mb))
        && !(TYPE_APPTRAY_CHECK(find_mb))
        && !(TYPE_QUICKPANEL_CHECK(find_mb)))
      {
@@ -1090,15 +1253,18 @@ e_mod_move_indicator_widget_target_window_find(Ecore_X_Window *win)
 EINTERN void
 e_mod_move_indicator_widget_apply(void)
 {
-   E_Move         *m = NULL;
-   Ecore_X_Window  target_win;
+   E_Move                  *m = NULL;
    E_Move_Indicator_Widget *indi_widget = NULL;
+   Ecore_X_Window           target_win;
+   E_Move_Border           *target_mb = NULL;
 
    m = e_mod_move_util_get();
    E_CHECK(m);
+   if (m->screen_reader_state) return;
 
    if (e_mod_move_indicator_widget_target_window_find(&target_win))
      {
+        target_mb = e_mod_move_border_client_find(target_win);
         // if previous indicator widget is created
         if ((indi_widget = e_mod_move_indicator_widget_get()))
           {
@@ -1110,8 +1276,9 @@ e_mod_move_indicator_widget_apply(void)
                   // if current indicator widget's win is not equal to finded win
                   // then del previous indicator_widget and add new indicator widget.
                   e_mod_move_indicator_widget_del(indi_widget);
-
                   e_mod_move_indicator_widget_set(e_mod_move_indicator_widget_add(target_win));
+                  if (!TYPE_NOTIFICATION_CHECK(target_mb))
+                    e_mod_move_util_prop_active_indicator_win_set(target_win, m);
                }
           }
         else
@@ -1119,6 +1286,8 @@ e_mod_move_indicator_widget_apply(void)
              //if previous indicator widget is not creagted
              //then add new indicator widget.
              e_mod_move_indicator_widget_set(e_mod_move_indicator_widget_add(target_win));
+             if (!TYPE_NOTIFICATION_CHECK(target_mb))
+               e_mod_move_util_prop_active_indicator_win_set(target_win, m);
           }
      }
    else
@@ -1195,13 +1364,14 @@ e_mod_move_indicator_widget_add(Ecore_X_Window win)
         e_mod_move_widget_objs_color_set(indi_widget->objs, 0, 0, 0, 0);
         e_mod_move_widget_objs_show(indi_widget->objs);
         e_mod_move_widget_objs_raise(indi_widget->objs);
-#if 0 // for debug
-        e_mod_move_widget_objs_color_set(indi_widget->objs, 0, 0, 255, 128);
-#endif
 
         // Set Input Shape Mask
-        if (e_mod_move_border_shape_input_new(mb))
-          e_mod_move_border_shape_input_rect_set(mb, x, y, w, h);
+        if ((indi_widget->input_region_id = e_manager_comp_input_region_id_new(m->man)))
+          {
+             e_manager_comp_input_region_id_set(m->man,
+                                                indi_widget->input_region_id,
+                                                x, y, w, h);
+          }
         else
           goto error_cleanup;
      }
@@ -1248,7 +1418,8 @@ e_mod_move_indicator_widget_del(E_Move_Indicator_Widget *indi_widget)
 
    if ((mb = e_mod_move_border_client_find(indi_widget->win)))
      {
-        e_mod_move_border_shape_input_free(mb);
+        if (indi_widget->input_region_id)
+          e_manager_comp_input_region_id_del(m->man, indi_widget->input_region_id);
 
         // if indicaor widget is deleted, then apptray or quickpanel's mirror object hide with animation
         if (indi_widget->quickpanel_move)
@@ -1429,7 +1600,12 @@ e_mod_move_indicator_widget_angle_change(Ecore_X_Window win)
               e_mod_move_widget_objs_resize(indi_widget->objs, w, h);
 
               //change Input Shape Mask
-              e_mod_move_border_shape_input_rect_set(mb, x, y, w, h);
+              if (indi_widget->input_region_id)
+                {
+                   e_manager_comp_input_region_id_set(m->man,
+                                                      indi_widget->input_region_id,
+                                                      x, y, w, h);
+                }
               ret = EINA_TRUE;
            }
      }
@@ -1571,6 +1747,10 @@ e_mod_move_indicator_widget_type_change(Ecore_X_Window win, E_Move_Indicator_Typ
              // indicator type is not type_1 -> delete current indicator widget
              e_mod_move_indicator_widget_del(indi_widget);
              e_mod_move_indicator_widget_set(NULL);
+#if 1
+             // change later
+             e_mod_move_indicator_widget_apply();
+#endif
           }
      }
    else

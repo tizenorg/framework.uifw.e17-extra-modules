@@ -5,18 +5,18 @@
 
 struct _E_Move_Event
 {
-   E_Move_Event_State       state;
-   Evas_Object             *obj;
-   Eina_List               *queue;
-   Eina_Bool                send_all;
-   Eina_Bool                find_redirect_win;
-   Eina_Bool                click;
-   E_Move_Event_Data_Type   data_type;
+   E_Move_Event_State          state;
+   Evas_Object                *obj;
+   Eina_List                  *queue;
+   Eina_Bool                   click;
+   E_Move_Event_Data_Type      data_type;
+   E_Move_Event_Propagate_Type propagate_type;
 
    struct {
-     Ecore_X_Window         id;
-     int                    angle;
-     E_Move_Event_Angle_Cb  fn_angle_get;
+     Ecore_X_Window           id;
+     int                      angle;
+     E_Move_Event_Angle_Cb    fn_angle_get;
+     E_Move_Event_Win_Find_Cb fn_win_find;
    } win;
 
    struct {
@@ -202,6 +202,8 @@ _ev_cb_mouse_down(void            *data,
                   // if log list is full, delete first log
                   E_Move_Event_Log *first_log = (E_Move_Event_Log*)eina_list_nth(m->ev_logs, 0);
                   m->ev_logs = eina_list_remove(m->ev_logs, first_log);
+                  memset(first_log, 0, sizeof(E_Move_Event_Log));
+                  E_FREE(first_log);
                }
              m->ev_logs = eina_list_append(m->ev_logs, log);
           }
@@ -228,10 +230,12 @@ _ev_cb_mouse_down(void            *data,
                              EVAS_CALLBACK_MOUSE_DOWN);
    if (!motion) goto event_pass;
 
-   if (ev->find_redirect_win)
+   if (ev->win.fn_win_find)
      {
-        E_Border* find_bd = e_mod_move_util_border_find_by_pointer(motion->coord.x, motion->coord.y);
-        if (find_bd) ev->win.id = find_bd->client.win;
+        Ecore_X_Window  find_win;
+        find_win = ev->win.fn_win_find(motion);
+
+        if (find_win) ev->win.id = find_win;
         else ev->win.id = 0;
      }
 
@@ -246,15 +250,25 @@ _ev_cb_mouse_down(void            *data,
           e_mod_move_event_angle_set(ev, angles[0]);
      }
 
-   if (ev->send_all)
+   // E_MOVE_EVENT_PROPAGATE_TYPE_NONE case
+   if (ev->propagate_type == E_MOVE_EVENT_PROPAGATE_TYPE_NONE)
      {
-        // ev->state = E_MOVE_EVENT_STATE_HOLD; // is it right?
+        _ev_cb_call(ev, motion);
+        _motion_info_free(motion);
+        motion = NULL;
+        goto event_none;
+     }
+
+   // E_MOVE_EVENT_PROPAGATE_TYPE_IMMEDIATELY case
+   if (ev->propagate_type == E_MOVE_EVENT_PROPAGATE_TYPE_IMMEDIATELY)
+     {
         _ev_cb_call(ev, motion);
         _motion_info_free(motion);
         motion = NULL;
         goto event_pass;
      }
 
+   // E_MOVE_EVENT_PROPAGATE_TYPE_DEFERRED case
    if (!ev->ev_check.cb)
      {
         ev->state = E_MOVE_EVENT_STATE_HOLD;
@@ -274,6 +288,11 @@ event_pass:
                ev->obj,
                event_info,
                EVAS_CALLBACK_MOUSE_DOWN);
+   return;
+
+event_none:
+   ev->state = E_MOVE_EVENT_STATE_PASS;
+   return;
 }
 
 static void
@@ -306,7 +325,20 @@ _ev_cb_mouse_move(void            *data,
      }
 #endif
 
-   if (ev->send_all)
+   // E_MOVE_EVENT_PROPAGATE_TYPE_NONE case
+   if (ev->propagate_type == E_MOVE_EVENT_PROPAGATE_TYPE_NONE)
+     {
+        motion = _motion_info_new(event_info,
+                                  EVAS_CALLBACK_MOUSE_MOVE);
+        if (!motion) goto event_none;
+        _ev_cb_call(ev, motion);
+        _motion_info_free(motion);
+        motion = NULL;
+        goto event_none;
+     }
+
+   // E_MOVE_EVENT_PROPAGATE_TYPE_IMMEDIATELY case
+   if (ev->propagate_type == E_MOVE_EVENT_PROPAGATE_TYPE_IMMEDIATELY)
      {
         motion = _motion_info_new(event_info,
                                   EVAS_CALLBACK_MOUSE_MOVE);
@@ -317,6 +349,7 @@ _ev_cb_mouse_move(void            *data,
         goto event_pass;
      }
 
+   // E_MOVE_EVENT_PROPAGATE_TYPE_DEFERRED case
    switch (ev->state)
      {
       case E_MOVE_EVENT_STATE_CHECK:
@@ -361,6 +394,11 @@ event_pass:
                ev->obj,
                event_info,
                EVAS_CALLBACK_MOUSE_MOVE);
+   return;
+
+event_none:
+   ev->state = E_MOVE_EVENT_STATE_PASS;
+   e_mod_move_event_data_clear(ev);
 }
 
 static void
@@ -433,6 +471,8 @@ _ev_cb_mouse_up(void            *data,
                   // if log list is full, delete first log
                   E_Move_Event_Log *first_log = (E_Move_Event_Log*)eina_list_nth(m->ev_logs, 0);
                   m->ev_logs = eina_list_remove(m->ev_logs, first_log);
+                  memset(first_log, 0, sizeof(E_Move_Event_Log));
+                  E_FREE(first_log);
                }
              m->ev_logs = eina_list_append(m->ev_logs, log);
           }
@@ -453,7 +493,20 @@ _ev_cb_mouse_up(void            *data,
      }
 #endif
 
-   if (ev->send_all)
+   // E_MOVE_EVENT_PROPAGATE_TYPE_NONE case
+   if (ev->propagate_type == E_MOVE_EVENT_PROPAGATE_TYPE_NONE)
+     {
+        motion = _motion_info_new(event_info,
+                                  EVAS_CALLBACK_MOUSE_UP);
+        if (!motion) goto event_none;
+        _ev_cb_call(ev, motion);
+        _motion_info_free(motion);
+        motion = NULL;
+        goto event_none;
+     }
+
+   // E_MOVE_EVENT_PROPAGATE_TYPE_IMMEDIATELY case
+   if (ev->propagate_type == E_MOVE_EVENT_PROPAGATE_TYPE_IMMEDIATELY)
      {
         motion = _motion_info_new(event_info,
                                   EVAS_CALLBACK_MOUSE_UP);
@@ -464,6 +517,7 @@ _ev_cb_mouse_up(void            *data,
         goto event_pass;
      }
 
+   // E_MOVE_EVENT_PROPAGATE_TYPE_DEFERRED case
    switch (ev->state)
      {
       case E_MOVE_EVENT_STATE_CHECK:
@@ -503,6 +557,12 @@ event_pass:
                ev->obj,
                event_info,
                EVAS_CALLBACK_MOUSE_UP);
+   ev->state = E_MOVE_EVENT_STATE_UNKOWN;
+   return;
+
+event_none:
+   ev->state = E_MOVE_EVENT_STATE_PASS;
+   e_mod_move_event_data_clear(ev);
    ev->state = E_MOVE_EVENT_STATE_UNKOWN;
 }
 
@@ -581,25 +641,25 @@ _event_pass(Ecore_X_Window     id,
      {
       case EVAS_CALLBACK_MOUSE_DOWN:
         down = event_info;
-        ecore_x_mouse_down_send(id,
-                                down->canvas.x -x,
-                                down->canvas.y -y,
-                                down->button);
+        e_mod_move_util_mouse_down_send(id,
+                                        down->canvas.x -x,
+                                        down->canvas.y -y,
+                                        down->button);
         break;
 
       case EVAS_CALLBACK_MOUSE_UP:
         up = event_info;
-        ecore_x_mouse_up_send(id,
-                              up->canvas.x -x,
-                              up->canvas.y -y,
-                              up->button);
+        e_mod_move_util_mouse_up_send(id,
+                                        up->canvas.x -x,
+                                        up->canvas.y -y,
+                                        up->button);
         break;
 
       case EVAS_CALLBACK_MOUSE_MOVE:
         move = event_info;
-        ecore_x_mouse_move_send(id,
-                                move->cur.output.x -x,
-                                move->cur.output.y -y);
+        e_mod_move_util_mouse_move_send(id,
+                                        move->cur.output.x -x,
+                                        move->cur.output.y -y);
         break;
 
       default:
@@ -705,6 +765,7 @@ e_mod_move_event_free(E_Move_Event *ev)
    ev->win.id = 0;
    ev->win.angle = 0;
    ev->win.fn_angle_get = NULL;
+   ev->win.fn_win_find = NULL;
    ev->ev_check.cb = NULL;
    ev->ev_check.data = NULL;
    ev->obj = NULL;
@@ -829,11 +890,11 @@ e_mod_move_event_data_clear(E_Move_Event *ev)
 }
 
 EINTERN Eina_Bool
-e_mod_move_event_send_all_set(E_Move_Event *ev,
-                              Eina_Bool     send_all)
+e_mod_move_event_propagate_type_set(E_Move_Event               *ev,
+                                    E_Move_Event_Propagate_Type type)
 {
    if (!ev) return EINA_FALSE;
-   ev->send_all = send_all;
+   ev->propagate_type = type;
    return EINA_TRUE;
 }
 
@@ -847,10 +908,17 @@ e_mod_move_event_data_type_set(E_Move_Event          *ev,
 }
 
 EINTERN Eina_Bool
-e_mod_move_event_find_redirect_win_set(E_Move_Event *ev,
-                                       Eina_Bool     find_redirect_win)
+e_mod_move_event_win_find_cb_set(E_Move_Event            *ev,
+                                 E_Move_Event_Win_Find_Cb cb)
 {
    if (!ev) return EINA_FALSE;
-   ev->find_redirect_win = find_redirect_win;
+   ev->win.fn_win_find = cb;
    return EINA_TRUE;
+}
+
+EINTERN Ecore_X_Window
+e_mod_move_event_win_get(E_Move_Event *ev)
+{
+   if (!ev) return 0;
+   return ev->win.id;
 }

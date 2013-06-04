@@ -59,6 +59,7 @@ e_mod_comp_cfdata_edd_init(E_Config_DD **conf_edd, E_Config_DD **match_edd)
    E_CONFIG_VAL(D, T, keyboard_effect, UCHAR);
    E_CONFIG_VAL(D, T, fake_image_launch, UCHAR);
    E_CONFIG_VAL(D, T, fake_launch_layer, INT);
+   E_CONFIG_VAL(D, T, lower_layer, INT);
    E_CONFIG_VAL(D, T, defer_raise_effect, UCHAR);
    E_CONFIG_VAL(D, T, max_lock_screen_time, DOUBLE);
    E_CONFIG_VAL(D, T, damage_timeout, DOUBLE);
@@ -123,6 +124,7 @@ e_mod_comp_cfdata_config_new(void)
    cfg->keyboard_effect = 0;
    cfg->fake_image_launch = 0;
    cfg->fake_launch_layer = 0;
+   cfg->lower_layer = 5;
    cfg->defer_raise_effect = 0;
    cfg->max_lock_screen_time = 2.0;
    cfg->damage_timeout = 10.0;

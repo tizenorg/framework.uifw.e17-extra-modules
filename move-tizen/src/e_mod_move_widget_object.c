@@ -127,6 +127,8 @@ e_mod_move_widget_objs_move(Eina_List *objs,
              zy = mwo->zone->y;
           }
         evas_object_move(mwo->obj, x - zx, y - zy);
+        mwo->geometry.x = x;
+        mwo->geometry.y = y;
      }
 }
 
@@ -136,13 +138,15 @@ e_mod_move_widget_objs_resize(Eina_List *objs,
                               int        h)
 {
    Eina_List *l;
-   E_Move_Evas_Object *meo;
+   E_Move_Widget_Object *mwo;
    E_CHECK(objs);
-   EINA_LIST_FOREACH(objs, l, meo)
+   EINA_LIST_FOREACH(objs, l, mwo)
      {
-        if (!meo) continue;
-        if (!meo->obj) continue;
-        evas_object_resize(meo->obj, w, h);
+        if (!mwo) continue;
+        if (!mwo->obj) continue;
+        evas_object_resize(mwo->obj, w, h);
+        mwo->geometry.w = w;
+        mwo->geometry.h = h;
      }
 }
 
@@ -265,5 +269,31 @@ e_mod_move_widget_objs_color_set(Eina_List *objs,
         if (!mwo) continue;
         if (!mwo->obj) continue;
         evas_object_color_set(mwo->obj, r, g, b, a);
+     }
+}
+
+EINTERN void
+e_mod_move_widget_objs_geometry_get(Eina_List *objs,
+                                    int       *x,
+                                    int       *y,
+                                    int       *w,
+                                    int       *h)
+{
+   Eina_List *l;
+   E_Move_Widget_Object *mwo;
+
+   E_CHECK(objs);
+   E_CHECK(x);
+   E_CHECK(y);
+   E_CHECK(w);
+   E_CHECK(h);
+
+   EINA_LIST_FOREACH(objs, l, mwo)
+     {
+        if (!mwo) continue;
+        *x = mwo->geometry.x;
+        *y = mwo->geometry.y;
+        *w = mwo->geometry.w;
+        *h = mwo->geometry.h;
      }
 }

@@ -248,10 +248,10 @@ e_mod_comp_canvas_nocomp_begin(E_Comp_Canvas *canvas)
    cw = canvas->nocomp.prepare.cw;
    E_CHECK_RETURN(cw, EINA_FALSE);
 
-   L(LT_EVENT_X,
-     "COMP|%31s|w:0x%08x|canvas:%d dmg:%d\n",
-     "NOCOMP_BEGIN", e_mod_comp_util_client_xid_get(cw),
-     canvas->num, cw->dmg_updates);
+   ELBF(ELBT_COMP, 0,
+        e_mod_comp_util_client_xid_get(cw),
+        "NOCOMP_BEGIN canvas:%d dmg:%d",
+        canvas->num, cw->dmg_updates);
 
    e_mod_comp_hw_ov_win_msg_show
      (E_COMP_LOG_TYPE_NOCOMP,
@@ -339,10 +339,10 @@ e_mod_comp_canvas_nocomp_end(E_Comp_Canvas *canvas)
    cw = canvas->nocomp.cw;
    E_CHECK_RETURN(cw, EINA_FALSE);
 
-   L(LT_EVENT_X,
-     "COMP|%31s|nocomp.cw:0x%08x canvas:%d\n",
-     "NOCOMP_END", e_mod_comp_util_client_xid_get(cw),
-     canvas->num);
+   ELBF(ELBT_COMP, 0,
+        e_mod_comp_util_client_xid_get(cw),
+        "NOCOMP_END canvas:%d",
+        canvas->num, cw->dmg_updates);
 
    e_mod_comp_hw_ov_win_msg_show
      (E_COMP_LOG_TYPE_NOCOMP,

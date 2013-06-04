@@ -155,7 +155,7 @@
           after: "show-done";
         }
         program { name: "show-done";
-          action: SIGNAL_EMIT "e,action,rotation,done" "e";
+          action: SIGNAL_EMIT "e,action,show,done" "e";
         }
         program { name: "show_noeffect";
           signal: "e,state,visible,on,noeffect";

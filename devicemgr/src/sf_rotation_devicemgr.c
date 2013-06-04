@@ -27,6 +27,7 @@
 #include <sensor.h>
 #include <vconf.h>
 #include <X11/Xlib.h>
+#include "e_devicemgr_privates.h"
 #include "sf_rotation_devicemgr.h"
 
 typedef struct _E_DM_Sensor_Rotation E_DM_Sensor_Rotation;
@@ -39,6 +40,7 @@ struct _E_DM_Sensor_Rotation
    Ecore_Timer                    *retry_timer;
    int                             retry_count;
    Eina_Bool                       lock;
+   Eina_Bool                       connected;
 };
 
 /* static global variables */
@@ -46,8 +48,8 @@ static E_DM_Sensor_Rotation rot;
 static Ecore_X_Atom ATOM_DEVICE_ROTATION_ANGLE = 0;
 
 /* local subsystem functions */
-static void      _sensor_connect(void);
-static void      _sensor_disconnect(void);
+static Eina_Bool _sensor_connect(void);
+static Eina_Bool _sensor_disconnect(void);
 static Eina_Bool _sensor_connect_retry_timeout(void *data);
 static void      _sensor_rotation_changed_cb(unsigned int event_type, sensor_event_data_t *event, void *data);
 static void      _vconf_cb_lock_change(keynode_t *node, void *data);
@@ -58,8 +60,32 @@ static int       _ang_get(enum accelerometer_rotate_state state);
 Eina_Bool 
 e_mod_sf_rotation_init(void)
 {
+   int r = 0, lock = 0;
+   Eina_Bool res = EINA_FALSE;
+
+   rot.connected = EINA_FALSE;
    rot.retry_count = 0;
-   _sensor_connect();
+   res = _sensor_connect();
+   if (res)
+     {
+        r = vconf_get_bool(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, &lock);
+        if (r)
+          {
+             ELBF(ELBT_ROT, 0, 0,
+                  "ERR! AUTO_ROTATE_SCREEN_BOOL get failed. "
+                  "r:%d lock:%d", r, lock);
+          }
+        else
+          {
+             rot.lock = !lock;
+             vconf_notify_key_changed(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL,
+                                      _vconf_cb_lock_change,
+                                      NULL);
+             ELBF(ELBT_ROT, 0, 0,
+                  "AUTO_ROTATE_SCREEN_BOOL get succeeded. "
+                  "lock:%d rot.locK%d", lock, rot.lock);
+          }
+     }
    _sensor_rotation_set(0);
    return EINA_TRUE;
 }
@@ -67,15 +93,17 @@ e_mod_sf_rotation_init(void)
 Eina_Bool 
 e_mod_sf_rotation_deinit(void)
 {
+   vconf_ignore_key_changed(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, _vconf_cb_lock_change);
    _sensor_disconnect();
    return EINA_TRUE;
 }
 
 /* local subsystem functions */
-static void
+static Eina_Bool
 _sensor_connect(void)
 {
    int h, r, lock = 0;
+   if (rot.connected) return EINA_TRUE;
 
    if (rot.retry_timer)
      {
@@ -115,27 +143,10 @@ _sensor_connect(void)
    rot.started = EINA_TRUE;
    rot.retry_count = 0;
    rot.lock = EINA_FALSE;
+   rot.connected = EINA_TRUE;
 
    ELB(ELBT_ROT, "sf_connect succeeded", h);
-
-   r = vconf_get_bool(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, &lock);
-   if (r)
-     {
-        ELBF(ELBT_ROT, 0, 0,
-             "ERR! AUTO_ROTATE_SCREEN_BOOL get failed. "
-             "r:%d lock:%d", r, lock);
-     }
-   else
-     {
-        rot.lock = !lock;
-        vconf_notify_key_changed(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL,
-                                 _vconf_cb_lock_change,
-                                 NULL);
-        ELBF(ELBT_ROT, 0, 0,
-             "AUTO_ROTATE_SCREEN_BOOL get succeeded. "
-             "lock:%d rot.locK%d", lock, rot.lock);
-     }
-   return;
+   return EINA_TRUE;
 
 error:
    if (rot.retry_count <= 20)
@@ -144,15 +155,15 @@ error:
                                           _sensor_connect_retry_timeout,
                                           NULL);
      }
-   return;
+   return EINA_FALSE;
 }
 
-static void
+static Eina_Bool
 _sensor_disconnect(void)
 {
    int r;
+   if (!rot.connected) return EINA_TRUE;
 
-   vconf_ignore_key_changed(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, _vconf_cb_lock_change);
    rot.lock = EINA_FALSE;
 
    if (rot.retry_timer)
@@ -166,23 +177,23 @@ _sensor_disconnect(void)
    if (rot.handle < 0)
      {
         ELB(ELBT_ROT, "ERR! invalid handle", rot.handle);
-        return;
+        goto error;
      }
 
    if (rot.started)
      {
+        r = sf_stop(rot.handle);
+        if (r < 0)
+          {
+             ELB(ELBT_ROT, "ERR! sf_stop failed", r);
+             goto error;
+          }
         r = sf_unregister_event(rot.handle,
                                 ACCELEROMETER_EVENT_ROTATION_CHECK);
         if (r < 0)
           {
              ELB(ELBT_ROT, "ERR! sf_unregister_event failed", r);
-             return;
-          }
-        r = sf_stop(rot.handle);
-        if (r < 0)
-          {
-             ELB(ELBT_ROT, "ERR! sf_stop failed", r);
-             return;
+             goto error;
           }
         rot.started = EINA_TRUE;
      }
@@ -191,15 +202,23 @@ _sensor_disconnect(void)
    if (r < 0)
      {
         ELB(ELBT_ROT, "ERR! sf_disconnect failed", r);
-        return;
+        goto error;
      }
 
    rot.handle = -1;
+   rot.connected = EINA_FALSE;
+   ELB(ELBT_ROT, "sf_disconnect succeeded", NULL);
+   return EINA_TRUE;
+error:
+   return EINA_FALSE;
 }
 
 static Eina_Bool
 _sensor_connect_retry_timeout(void *data)
 {
+   int r = 0, lock = 0;
+   Eina_Bool res = EINA_FALSE;
+
    if (rot.retry_timer)
      {
         ecore_timer_del(rot.retry_timer);
@@ -207,28 +226,62 @@ _sensor_connect_retry_timeout(void *data)
      }
    rot.retry_count++;
    ELB(ELBT_ROT, "retrying to connect sensor", rot.retry_count);
-   _sensor_connect();
+   res = _sensor_connect();
+   if (res)
+     {
+        r = vconf_get_bool(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL, &lock);
+        if (r)
+          {
+             ELBF(ELBT_ROT, 0, 0,
+                  "ERR! AUTO_ROTATE_SCREEN_BOOL get failed. "
+                  "r:%d lock:%d", r, lock);
+          }
+        else
+          {
+             rot.lock = !lock;
+             vconf_notify_key_changed(VCONFKEY_SETAPPL_AUTO_ROTATE_SCREEN_BOOL,
+                                      _vconf_cb_lock_change,
+                                      NULL);
+             ELBF(ELBT_ROT, 0, 0,
+                  "AUTO_ROTATE_SCREEN_BOOL get succeeded. "
+                  "lock:%d rot.locK%d", lock, rot.lock);
+          }
+     }
+
    return ECORE_CALLBACK_CANCEL;
 }
 
 static int
 _ang_get(enum accelerometer_rotate_state state)
 {
-   int ang = -1;
+   E_Devicemgr_Config_Rotation *cr = NULL;
+   Eina_List *l = NULL;
+   int ang = -1, res = -1;
 
    /* change CW (SensorFW) to CCW(EFL) */
    switch (state)
      {
-      case ROTATION_EVENT_0:   ang =   0; break;
-      case ROTATION_EVENT_90:  ang = 270; break;
-      case ROTATION_EVENT_180: ang = 180; break;
-      case ROTATION_EVENT_270: ang =  90; break;
+      case ROTATION_EVENT_0:     ang = 0; break;
+      case ROTATION_EVENT_90:    ang = 270; break;
+      case ROTATION_EVENT_180:   ang = 180; break;
+      case ROTATION_EVENT_270:   ang = 90; break;
       default:
-        ELB(ELBT_ROT, "ERR! unknown state", state);
+         ELB(ELBT_ROT, "ERR! unknown state", state);
         break;
      }
 
-   return ang;
+   EINA_LIST_FOREACH(_e_devicemgr_cfg->rotation, l, cr)
+     {
+        if (!cr) continue;
+        if (cr->angle == ang)
+          {
+             if (cr->enable)
+               res = ang;
+             break;
+          }
+     }
+
+   return res;
 }
 
 static void
@@ -252,9 +305,10 @@ _sensor_rotation_changed_cb(unsigned int         event_type,
 
     ELBF(ELBT_ROT, 0, 0, "ROT_EV state:%d angle:%d", state, ang);
 
-    e_zone_rotation_set(zone, ang);
-    rot.state = state;
+    if (ang != -1)
+      e_zone_rotation_set(zone, ang);
 
+    rot.state = state;
     _sensor_rotation_set(ang);
 }
 
@@ -265,6 +319,7 @@ _vconf_cb_lock_change(keynode_t *node,
    E_Manager *m = NULL;
    E_Zone *zone = NULL;
    int lock = 0, z_ang = -1, ang = -1;
+   Eina_Bool res = EINA_FALSE;
    if (!node)
      {
         ELB(ELBT_ROT, "ERR! node is NULL", 0);
@@ -279,25 +334,33 @@ _vconf_cb_lock_change(keynode_t *node,
 
    if (lock)
      {
+        // disconnect sensor for reducing the current sinking.
+        _sensor_disconnect();
         if (zone) e_zone_rotation_set(zone, 0);
         rot.state = ROTATION_EVENT_0;
      }
    else
      {
-        enum accelerometer_rotate_state state;
-        if (sf_check_rotation(&state) < 0)
+        // connect sensor for auto rotation.
+        res = _sensor_connect();
+        ELB(ELBT_ROT, "_sensor_connect() res", res);
+        if (res)
           {
-             ELB(ELBT_ROT, "ERR! getting rotation failed", state);
-          }
-        else
-          {
-             ang = _ang_get(state);
-             if (zone) z_ang = e_zone_rotation_get(zone);
-             if ((ang != -1) && (ang != z_ang))
+             enum accelerometer_rotate_state state;
+             if (sf_check_rotation(&state) < 0)
                {
-                  if (zone) e_zone_rotation_set(zone, ang);
-                  rot.state = state;
-                  _sensor_rotation_set(ang);
+                  ELB(ELBT_ROT, "ERR! getting rotation failed", state);
+               }
+             else
+               {
+                  ang = _ang_get(state);
+                  if (zone) z_ang = e_zone_rotation_get(zone);
+                  if ((ang != -1) && (ang != z_ang))
+                    {
+                       if (zone) e_zone_rotation_set(zone, ang);
+                       rot.state = state;
+                       _sensor_rotation_set(ang);
+                    }
                }
           }
      }

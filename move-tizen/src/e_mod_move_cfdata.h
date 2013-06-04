@@ -15,7 +15,14 @@ struct _Config
    unsigned char qp_scroll_with_clipping; // 1: quickpanel scroll with clipping 0: qp scroll without clipping
    int           dim_max_opacity; // dim max opacity
    int           dim_min_opacity; // dim min opacity
-   double        flick_speed_limit; // flick speed limitation
+
+   struct {
+      double speed;
+      double angle;
+      double distance;
+      double distance_rate;
+   } flick_limit; // indicator / quickpanel / apptray flick limitation
+
    double        animation_duration; // apptray / quickpanel move animation duration
    unsigned char event_log; // 1 :ecore & evas_object debug event logging  0: do not log event
    int           event_log_count; // ecore & evas_object debug event logging count

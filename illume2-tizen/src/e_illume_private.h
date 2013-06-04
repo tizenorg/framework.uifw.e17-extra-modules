@@ -11,6 +11,7 @@
 
 /* define layer values here so we don't have to grep through code to change */
 /* layer level 10 (450~) */
+# define POL_QUICKPANEL_LAYER 450
 
 /* layer level 9 (400~449) */
 # define POL_NOTIFICATION_LAYER_HIGH 400
@@ -19,7 +20,6 @@
 # define POL_NOTIFICATION_LAYER_NORMAL 350
 
 /* layer level 7 (300~349) */
-# define POL_QUICKPANEL_LAYER 300
 # define POL_NOTIFICATION_LAYER 300
 # define POL_INDICATOR_LAYER 300
 # define POL_NOTIFICATION_LAYER_LOW 300
@@ -28,6 +28,7 @@
 # define POL_FULLSCREEN_LAYER 250
 
 /* layer level 5 (200~249) */
+# define POL_APPTRAY_LAYER 200
 
 /* layer level 4 (150~199) */
 # define POL_STATE_ABOVE_LAYER 150

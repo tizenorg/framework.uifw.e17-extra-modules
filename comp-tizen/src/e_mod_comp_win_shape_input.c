@@ -9,15 +9,134 @@ struct _E_Comp_Win_Shape_Input
    int x, y, w, h;
 };
 
+struct _E_Comp_Shape_Input
+{
+   int id;
+   int x, y, w, h;
+};
+
 /* local subsystem functions */
+static int
+_e_mod_comp_shape_input_new_id_get(E_Comp *c)
+{
+   int new_id = 1;
+   E_Comp_Shape_Input *shape_input = NULL;
+   Eina_List *l = NULL;
+   Eina_Bool create_id = EINA_FALSE;
+
+   E_CHECK_RETURN(c, 0);
+
+   while (new_id < INT_MAX)
+     {
+        create_id = EINA_TRUE;
+
+        EINA_LIST_FOREACH(c->shape_inputs, l, shape_input)
+          {
+             if (shape_input->id == new_id)
+               {
+                  new_id++;
+                  create_id = EINA_FALSE;
+                  break;
+               }
+           }
+
+        if (create_id) break;
+     }
+
+   if (create_id) return new_id;
+   else return 0;
+}
 
 /* externally accessible functions */
+EINTERN int
+e_mod_comp_shape_input_new(E_Comp *c)
+{
+   int id = 0;
+   E_Comp_Shape_Input *shape_input;
+   E_CHECK_RETURN(c, 0);
+
+   id = _e_mod_comp_shape_input_new_id_get(c);
+   if (id)
+     {
+        shape_input = E_NEW(E_Comp_Shape_Input, 1);
+        E_CHECK_RETURN(shape_input, 0);
+
+        shape_input->id = id;
+        c->shape_inputs = eina_list_append(c->shape_inputs, shape_input);
+     }
+   return id;
+}
+
+EINTERN Eina_Bool
+e_mod_comp_shape_input_set(E_Comp *c,
+                           int     id,
+                           int     x,
+                           int     y,
+                           int     w,
+                           int     h)
+{
+   Eina_Bool found = EINA_FALSE;
+   E_Comp_Shape_Input *shape_input = NULL;
+   Eina_List *l = NULL;
+
+   E_CHECK_RETURN(c, EINA_FALSE);
+   if ( id <= 0 ) return EINA_FALSE;
+
+   EINA_LIST_FOREACH(c->shape_inputs, l, shape_input)
+     {
+        if (shape_input->id == id)
+          {
+             shape_input->x = x;
+             shape_input->y = y;
+             shape_input->w = w;
+             shape_input->h = h;
+             found = EINA_TRUE;
+             break;
+          }
+     }
+
+   return found;
+}
+
+EINTERN Eina_Bool
+e_mod_comp_shape_input_del(E_Comp *c,
+                           int     id)
+{
+   E_Comp_Shape_Input *shape_input = NULL;
+   E_Comp_Shape_Input *find_shape_input = NULL;
+   Eina_List *l = NULL;
+   Eina_Bool found = EINA_FALSE;
+
+   E_CHECK_RETURN(c, EINA_FALSE);
+   if ( id <= 0 ) return EINA_FALSE;
+
+   EINA_LIST_FOREACH(c->shape_inputs, l, shape_input)
+     {
+        if (shape_input->id == id)
+          {
+             find_shape_input = shape_input;
+             found = EINA_TRUE;
+             break;
+          }
+     }
+
+   if (find_shape_input)
+     {
+        c->shape_inputs = eina_list_remove(c->shape_inputs, find_shape_input);
+        memset(find_shape_input, 0, sizeof(E_Comp_Shape_Input));
+        E_FREE(find_shape_input);
+     }
+
+   return found;
+}
+
 EINTERN Eina_Bool
 e_mod_comp_win_shape_input_update(E_Comp *c)
 {
    E_Comp_Win *_cw = NULL;
    Eina_List *l = NULL;
    E_Comp_Canvas *canvas = NULL;
+   E_Comp_Shape_Input *shape_input = NULL;
 
    pixman_region32_t vis_part;
    pixman_region32_t win_part;
@@ -124,19 +243,21 @@ e_mod_comp_win_shape_input_update(E_Comp *c)
         pixman_region32_copy(&vis_part, &res_part);
      }
 
-     if ((c->shape_input) // comp's global shape input region apply
-          && (E_INTERSECTS(0, 0, c->man->w, c->man->h,
-                           c->shape_input->x, c->shape_input->y,
-                           c->shape_input->w, c->shape_input->h)))
+     EINA_LIST_FOREACH(c->shape_inputs, l, shape_input)
        {
-          pixman_region32_init_rect(&comp_input_part,
-                                    c->shape_input->x,
-                                    c->shape_input->y,
-                                    c->shape_input->w,
-                                    c->shape_input->h);
+          if (E_INTERSECTS(0, 0, c->man->w, c->man->h,
+                           shape_input->x, shape_input->y,
+                           shape_input->w, shape_input->h))
+            {
+               pixman_region32_init_rect(&comp_input_part,
+                                         shape_input->x,
+                                         shape_input->y,
+                                         shape_input->w,
+                                         shape_input->h);
 
-          pixman_region32_copy(&res_input_part, &sum_input_part);
-          pixman_region32_union(&sum_input_part, &res_input_part, &comp_input_part);
+               pixman_region32_copy(&res_input_part, &sum_input_part);
+               pixman_region32_union(&sum_input_part, &res_input_part, &comp_input_part);
+            }
        }
 
    input_rects = pixman_region32_rectangles(&sum_input_part, &num_input_rects);
@@ -209,14 +330,6 @@ e_mod_comp_win_shape_input_update(E_Comp *c)
 }
 
 EINTERN E_Comp_Win_Shape_Input *
-e_mod_comp_shape_input_new(void)
-{
-   E_Comp_Win_Shape_Input *input;
-   input = E_NEW(E_Comp_Win_Shape_Input, 1);
-   return input;
-}
-
-EINTERN E_Comp_Win_Shape_Input *
 e_mod_comp_win_shape_input_new(E_Comp_Win *cw)
 {
    Eina_List *l;
@@ -235,7 +348,8 @@ e_mod_comp_win_shape_input_new(E_Comp_Win *cw)
         evas_object_pass_events_set(co->img, EINA_FALSE);
         evas_object_pass_events_set(co->shadow, EINA_FALSE);
      }
-   return e_mod_comp_shape_input_new();
+
+   return E_NEW(E_Comp_Win_Shape_Input, 1);
 }
 
 EINTERN void

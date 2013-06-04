@@ -38,8 +38,6 @@ module_la_SOURCES      = e_mod_main.c \
                          e_mod_move_util.h \
                          e_mod_move_indicator.c \
                          e_mod_move_indicator.h \
-                         e_mod_move_indicator_controller.c \
-                         e_mod_move_indicator_controller.h \
                          e_mod_move_apptray.c \
                          e_mod_move_apptray.h \
                          e_mod_move_quickpanel.c \

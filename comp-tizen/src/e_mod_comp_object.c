@@ -16,6 +16,15 @@ e_mod_comp_obj_add(E_Comp_Win    *cw,
      {
         co->shadow = edje_object_add(canvas->evas);
         co->img = evas_object_image_filled_add(canvas->evas);
+
+        if ((!co->shadow) || (!co->img))
+          {
+             ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+                  "%15.15s|ERROR shadow:%p img:%p evas:%p argb:%d canvas_num:%d",
+                  "OBJECT_CREATE", co->shadow, co->img,
+                  canvas->evas, cw->argb, canvas->num);
+          }
+
         evas_object_image_colorspace_set(co->img, EVAS_COLORSPACE_ARGB8888);
         if (cw->argb) evas_object_image_alpha_set(co->img, 1);
         else evas_object_image_alpha_set(co->img, 0);
@@ -23,6 +32,15 @@ e_mod_comp_obj_add(E_Comp_Win    *cw,
    else
      {
         co->shadow = evas_object_rectangle_add(canvas->evas);
+
+        if (!co->shadow)
+          {
+             ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+                  "%15.15s|ERROR shadow:%p evas:%p canvas_num:%d",
+                  "OBJECT_CREATE", co->shadow, canvas->evas,
+                  canvas->num);
+          }
+
         evas_object_color_set(co->shadow, 0, 0, 0, 0);
      }
 

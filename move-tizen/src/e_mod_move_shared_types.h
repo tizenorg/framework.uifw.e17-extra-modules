@@ -33,7 +33,6 @@ typedef enum _E_Move_Mini_Apptray_State              E_Move_Mini_Apptray_State;
 #include "e_mod_move_flick.h"
 #include "e_mod_move_dim_object.h"
 #include "e_mod_move_evas_object.h"
-#include "e_mod_move_indicator_controller.h"
 #include "e_mod_move_widget_object.h"
 #include "e_mod_move_indicator_widget.h"
 #include "e_mod_move_mini_apptray_widget.h"
@@ -112,19 +111,25 @@ struct _E_Move
       double landscape;
    } indicator_apptray_region_ratio; // indicator's always region ratio
 
+   struct {
+      double speed;
+      double angle;
+      double distance;
+      double distance_rate;
+   } flick_limit; // indicator / quickpanel / apptray flick limit check
+
    Eina_Bool                    qp_scroll_with_visible_win : 1;
    Eina_Bool                    qp_scroll_with_clipping : 1;
-   double                       flick_speed_limit; // indicator / quickpanel / apptray flick speed limit check
    double                       animation_duration; // apptray / quickpanel move animation duration
    int                          dim_max_opacity; // dim max opacity
    int                          dim_min_opacity; // dim min opacity
-   E_Move_Indicator_Controller *indicator_controller; // indicator_controller
    Eina_Bool                    ev_log : 1; // 1 :ecore & evas_object debug event logging  0: do not log event
    int                          ev_log_cnt; // ecore & evas_object debug event logging count
    Eina_List                   *ev_logs; // debug_event_log list
    Eina_Bool                    elm_indicator_mode : 1; // 1: indicator widget mode / 0: indicator window mode
    E_Move_Indicator_Widget     *indicator_widget; // indicator widget data ( it contains widget object, internal data)
    E_Move_Mini_Apptray_Widget  *mini_apptray_widget; // mini_apptray widget data ( it contains widget object, internal data)
+   Eina_Bool                    screen_reader_state : 1; // screen reader state  enabled  or disabled
 
    struct {
       int x;
@@ -151,6 +156,7 @@ struct _E_Move_Border
    Eina_List                             *objs; // list of E_Move_Object. ( it represts Compositor's Shadow Object or Mirror Object)
    Eina_List                             *ctl_objs; // list of E_Move_Control_Object. E_Move_Control_Object has E_Move_Event.
    Eina_Bool                              visible : 1; // is visible. if border is visible, Object could move.
+   Eina_Bool                              argb : 1; // is argb
    E_Move_Border_Type                     type;
    E_Move_Border_Shape_Input             *shape_input; // it reprents window's input shape mask info
    E_Move_Border_Contents                *contents; // it reprents window's contents region info

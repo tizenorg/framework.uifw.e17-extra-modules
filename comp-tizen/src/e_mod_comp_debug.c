@@ -200,28 +200,34 @@ EINTERN Eina_Bool
 e_mod_comp_debug_edje_error_get(Evas_Object *o,
                                 Ecore_X_Window win)
 {
-   int err = EDJE_LOAD_ERROR_NONE;
-   E_CHECK_RETURN(o, 0);
+   Edje_Load_Error err = edje_object_load_error_get(o);
+   char *_err_msg = NULL;
+   Eina_Bool res = EINA_TRUE;
 
-   if ((err = edje_object_load_error_get(o)) != EDJE_LOAD_ERROR_NONE)
+   if (err != EDJE_LOAD_ERROR_NONE)
      {
         switch (err)
           {
-           case EDJE_LOAD_ERROR_GENERIC:                    fprintf(stderr, "[E17-comp] EDJE_LOAD_ERROR_GENERIC! win:0x%08x\n",                    win); break;
-           case EDJE_LOAD_ERROR_DOES_NOT_EXIST:             fprintf(stderr, "[E17-comp] EDJE_LOAD_ERROR_DOES_NOT_EXIST! win:0x%08x\n",             win); break;
-           case EDJE_LOAD_ERROR_PERMISSION_DENIED:          fprintf(stderr, "[E17-comp] EDJE_LOAD_ERROR_PERMISSION_DENIED! win:0x%08x\n",          win); break;
-           case EDJE_LOAD_ERROR_RESOURCE_ALLOCATION_FAILED: fprintf(stderr, "[E17-comp] EDJE_LOAD_ERROR_RESOURCE_ALLOCATION_FAILED! win:0x%08x\n", win); break;
-           case EDJE_LOAD_ERROR_CORRUPT_FILE:               fprintf(stderr, "[E17-comp] EDJE_LOAD_ERROR_CORRUPT_FILE! win:0x%08x\n",               win); break;
-           case EDJE_LOAD_ERROR_UNKNOWN_FORMAT:             fprintf(stderr, "[E17-comp] EDJE_LOAD_ERROR_UNKNOWN_FORMAT! win:0x%08x\n",             win); break;
-           case EDJE_LOAD_ERROR_INCOMPATIBLE_FILE:          fprintf(stderr, "[E17-comp] EDJE_LOAD_ERROR_INCOMPATIBLE_FILE! win:0x%08x\n",          win); break;
-           case EDJE_LOAD_ERROR_UNKNOWN_COLLECTION:         fprintf(stderr, "[E17-comp] EDJE_LOAD_ERROR_UNKNOWN_COLLECTION! win:0x%08x\n",         win); break;
-           case EDJE_LOAD_ERROR_RECURSIVE_REFERENCE:        fprintf(stderr, "[E17-comp] EDJE_LOAD_ERROR_RECURSIVE_REFERENCE! win:0x%08x\n",        win); break;
-           default:
-              break;
+           case EDJE_LOAD_ERROR_GENERIC:                    _err_msg = strdup("ERR_GENERIC");                    break;
+           case EDJE_LOAD_ERROR_DOES_NOT_EXIST:             _err_msg = strdup("ERR_DOES_NOT_EXIST");             break;
+           case EDJE_LOAD_ERROR_PERMISSION_DENIED:          _err_msg = strdup("ERR_PERMISSION_DENIED");          break;
+           case EDJE_LOAD_ERROR_RESOURCE_ALLOCATION_FAILED: _err_msg = strdup("ERR_RESOURCE_ALLOCATION_FAILED"); break;
+           case EDJE_LOAD_ERROR_CORRUPT_FILE:               _err_msg = strdup("ERR_CORRUPT_FILE");               break;
+           case EDJE_LOAD_ERROR_UNKNOWN_FORMAT:             _err_msg = strdup("ERR_UNKNOWN_FORMAT");             break;
+           case EDJE_LOAD_ERROR_INCOMPATIBLE_FILE:          _err_msg = strdup("ERR_INCOMPATIBLE_FILE");          break;
+           case EDJE_LOAD_ERROR_UNKNOWN_COLLECTION:         _err_msg = strdup("ERR_UNKNOWN_COLLECTION");         break;
+           case EDJE_LOAD_ERROR_RECURSIVE_REFERENCE:        _err_msg = strdup("ERR_RECURSIVE_REFERENCE");        break;
+           default:                                         _err_msg = strdup("ERR_UNKNOWN_ERROR");              break;
           }
-        return EINA_FALSE;
+        res = EINA_FALSE;
      }
-   return EINA_TRUE;
+
+   if (res) _err_msg = strdup("SUCCESS");
+   fprintf(stderr, "[E17-comp] %s win:0x%08x o:%p\n", _err_msg, win, o);
+   ELBF(ELBT_COMP, 0, win, "%15.15s|o:%p %s", "EDC", o, _err_msg);
+   free(_err_msg);
+
+   return res;
 }
 
 EINTERN Eina_Bool

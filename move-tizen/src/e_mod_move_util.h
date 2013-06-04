@@ -79,6 +79,14 @@ typedef enum _E_Move_Panel_Type
    E_MOVE_PANEL_TYPE_APPTRAY
 } E_Move_Panel_Type;
 
+typedef enum _E_Move_Mouse_Event_Type
+{
+   E_MOVE_MOUSE_EVENT_NONE = 0,
+   E_MOVE_MOUSE_EVENT_DOWN,
+   E_MOVE_MOUSE_EVENT_MOVE,
+   E_MOVE_MOUSE_EVENT_UP
+} E_Move_Mouse_Event_Type;
+
 EINTERN void                           e_mod_move_util_set(E_Move *m, E_Manager *man);
 EINTERN E_Move                        *e_mod_move_util_get(void);
 EINTERN Eina_Bool                      e_mod_move_util_border_visible_get(E_Move_Border *mb);
@@ -98,6 +106,13 @@ EINTERN E_Move_Scroll_Region_Indicator e_mod_move_indicator_region_scroll_check(
 EINTERN Eina_Bool                      e_mod_move_panel_scrollable_state_init(E_Move_Panel_Scrollable_State *panel_scrollable_state);
 EINTERN Eina_Bool                      e_mod_move_panel_scrollable_state_get(Ecore_X_Window win, E_Move_Panel_Scrollable_State *panel_scrollable_state);
 EINTERN Eina_Bool                      e_mod_move_panel_scrollable_get(E_Move_Border *mb, E_Move_Panel_Type type);
-
+EINTERN void                           e_mod_move_mouse_event_send(Ecore_X_Window id, E_Move_Mouse_Event_Type type, Evas_Point pt);
+EINTERN Eina_Bool                      e_mod_move_util_mouse_down_send(Ecore_X_Window id, int x, int y, int button);
+EINTERN Eina_Bool                      e_mod_move_util_mouse_up_send(Ecore_X_Window id, int x, int y, int button);
+EINTERN Eina_Bool                      e_mod_move_util_mouse_move_send(Ecore_X_Window id, int x, int y);
+EINTERN Eina_Bool                      e_mod_move_util_prop_indicator_cmd_win_get(Ecore_X_Window *win, E_Move *m);
+EINTERN Eina_Bool                      e_mod_move_util_prop_indicator_cmd_win_set(Ecore_X_Window win, E_Move *m);
+EINTERN Eina_Bool                      e_mod_move_util_prop_active_indicator_win_get(Ecore_X_Window *win, E_Move *m);
+EINTERN Eina_Bool                      e_mod_move_util_prop_active_indicator_win_set(Ecore_X_Window win, E_Move *m);
 #endif
 #endif

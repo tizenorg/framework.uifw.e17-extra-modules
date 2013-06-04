@@ -3,14 +3,16 @@
 #include "e_mod_move.h"
 
 /* local subsystem functions */
-static Eina_Bool _e_mod_move_mini_apptray_widget_mini_apptray_move_set(E_Move_Mini_Apptray_Widget *mini_apptray_widget, Eina_Bool state);
-static Eina_Bool _e_mod_move_mini_apptray_widget_mini_apptray_move_get(E_Move_Mini_Apptray_Widget *mini_apptray_widget);
-static Eina_Bool _e_mod_move_mini_apptray_widget_cb_motion_start_internal_mini_apptray_check(E_Move_Border *mini_apptray_mb);
-static Eina_Bool _e_mod_move_mini_apptray_widget_mini_apptray_flick_process(E_Move_Mini_Apptray_Widget *mini_apptray_widget, E_Move_Border *mb2, int angle, Eina_Bool state);
-static Eina_Bool _e_mod_move_mini_apptray_widget_cb_motion_start(void *data, void *event_info);
-static Eina_Bool _e_mod_move_mini_apptray_widget_cb_motion_move(void *data, void *event_info);
-static Eina_Bool _e_mod_move_mini_apptray_widget_cb_motion_end(void *data, void *event_info);
-static void      _e_mod_move_mini_apptray_widget_obj_event_setup(E_Move_Mini_Apptray_Widget *mini_apptray_widget, E_Move_Widget_Object *mwo);
+static Eina_Bool      _e_mod_move_mini_apptray_widget_mini_apptray_move_set(E_Move_Mini_Apptray_Widget *mini_apptray_widget, Eina_Bool state);
+static Eina_Bool      _e_mod_move_mini_apptray_widget_mini_apptray_move_get(E_Move_Mini_Apptray_Widget *mini_apptray_widget);
+static Eina_Bool      _e_mod_move_mini_apptray_widget_cb_motion_start_internal_mini_apptray_check(E_Move_Border *mini_apptray_mb);
+static Eina_Bool      _e_mod_move_mini_apptray_widget_mini_apptray_flick_process(E_Move_Mini_Apptray_Widget *mini_apptray_widget, E_Move_Border *mb2, int angle, Eina_Bool state);
+static Eina_Bool      _e_mod_move_mini_apptray_widget_cb_motion_start(void *data, void *event_info);
+static Eina_Bool      _e_mod_move_mini_apptray_widget_cb_motion_move(void *data, void *event_info);
+static Eina_Bool      _e_mod_move_mini_apptray_widget_cb_motion_end(void *data, void *event_info);
+static Ecore_X_Window _e_mod_move_mini_apptray_event_win_find(void *event_info);
+static void           _e_mod_move_mini_apptray_widget_obj_event_setup(E_Move_Mini_Apptray_Widget *mini_apptray_widget, E_Move_Widget_Object *mwo);
+static Eina_Bool      _e_mod_move_mini_apptray_widget_event_send_policy_check(E_Move_Mini_Apptray_Widget *mini_apptray_widget, Evas_Point pos);
 
 /* local subsystem functions */
 static Eina_Bool
@@ -56,18 +58,21 @@ _e_mod_move_mini_apptray_widget_cb_motion_start_internal_mini_apptray_check(E_Mo
               break;
           }
      }
+
    if (found
-        && (find_mb->bd->client.netwm.type == ECORE_X_WINDOW_TYPE_NOTIFICATION))
+        && (find_mb->bd->client.netwm.type == ECORE_X_WINDOW_TYPE_NOTIFICATION)
+        && REGION_EQUAL_TO_ZONE(find_mb, find_mb->bd->zone))
      {
         return EINA_FALSE;
      }
    // check if notification window is on-screen.
 
    e_mod_move_mini_apptray_dim_show(mini_apptray_mb);
-   e_mod_move_mini_apptray_objs_add(mini_apptray_mb);
 
-   // mini_apptray_objs_animation_layer_set
-   e_mod_move_mini_apptray_objs_animation_layer_set(mini_apptray_mb);
+   if (REGION_INSIDE_ZONE(mini_apptray_mb, mini_apptray_mb->bd->zone))
+     e_mod_move_mini_apptray_objs_add_with_pos(mini_apptray_mb, -10000, -10000);
+   else
+     e_mod_move_mini_apptray_objs_add(mini_apptray_mb);
 
    return EINA_TRUE;
 }
@@ -146,13 +151,27 @@ _e_mod_move_mini_apptray_widget_cb_motion_start(void *data,
    Evas_Event_Mouse_Down *mouse_down_event = NULL;
    Eina_Bool clicked = EINA_FALSE;
    Eina_List *l;
+   E_Move_Border *ev_mb = NULL;
+   Ecore_X_Window ev_win = 0;
 
    info  = (E_Move_Event_Motion_Info *)event_info;
    m = e_mod_move_util_get();
 
    E_CHECK_RETURN(mini_apptray_widget, EINA_FALSE);
-   mb = e_mod_move_border_client_find(mini_apptray_widget->win);
 
+   // clicked window indicator policy check
+   EINA_LIST_FOREACH(mini_apptray_widget->objs, l, mwo)
+     {
+        if (!mwo) continue;
+        ev_win = e_mod_move_event_win_get(mwo->event);
+     }
+   ev_mb = e_mod_move_border_client_find(ev_win);
+   // Check Mini Apptray State ( property )
+   if ((ev_mb)
+        && (ev_mb->mini_apptray_state == E_MOVE_MINI_APPTRAY_STATE_OFF))
+     return EINA_FALSE;
+
+   mb = e_mod_move_border_client_find(mini_apptray_widget->win);
    if (!m || !mb || !mini_apptray_widget || !info) return EINA_FALSE;
 
    mouse_down_event = info->event_info;
@@ -178,13 +197,19 @@ _e_mod_move_mini_apptray_widget_cb_motion_start(void *data,
    /* check if apptray exists on the current zone */
    mini_apptray_mb = e_mod_move_mini_apptray_find();
    if ((mini_apptray_mb) &&
-       (REGION_INSIDE_ZONE(mini_apptray_mb, mb->bd->zone)))
+       (mini_apptray_mb->visibility == E_MOVE_VISIBILITY_STATE_VISIBLE))
      {
         L(LT_EVENT_OBJ,
           "[MOVE] ev:%15.15s w:0x%08x MINI_APPTRAY_WIDGET_MOTION_START %s\n",
           "EVAS_OBJ", mb->bd->win,
           "mini_apptray exists. return.");
         return EINA_FALSE;
+     }
+
+   if ((mini_apptray_mb) &&
+       (REGION_INSIDE_ZONE(mini_apptray_mb, mb->bd->zone)))
+     {
+        e_mod_move_mini_apptray_e_border_move(mini_apptray_mb, -10000, -10000);
      }
 
    EINA_LIST_FOREACH(mini_apptray_widget->objs, l, mwo)
@@ -201,7 +226,7 @@ _e_mod_move_mini_apptray_widget_cb_motion_start(void *data,
         goto error_cleanup;
      }
 
-   e_mod_move_mini_apptray_e_border_raise(mini_apptray_mb);
+   //e_mod_move_mini_apptray_e_border_raise(mini_apptray_mb);
    _e_mod_move_mini_apptray_widget_mini_apptray_move_set(mini_apptray_widget, EINA_TRUE);
    e_mod_move_mini_apptray_objs_animation_start_position_set(mini_apptray_mb,
                                                              mb->angle);
@@ -239,6 +264,8 @@ _e_mod_move_mini_apptray_widget_cb_motion_move(void *data,
    Eina_List                   *l;
    Eina_Bool                    click = EINA_FALSE;
    int                          angle;
+   Eina_Bool                    flick_state = EINA_FALSE;
+   E_Move_Border               *mini_apptray_mb = NULL;
 
    info  = (E_Move_Event_Motion_Info *)event_info;
    m = e_mod_move_util_get();
@@ -261,10 +288,24 @@ _e_mod_move_mini_apptray_widget_cb_motion_move(void *data,
         if (!mwo) continue;
         click = e_mod_move_event_click_get(mwo->event);
      }
-
    E_CHECK_RETURN(click, EINA_FALSE);
 
-// do not work on moving just work on flick action
+   // do not work on moving just work on flick action
+   e_mod_move_flick_data_update(mb, info->coord.x, info->coord.y);
+   flick_state = e_mod_move_flick_state_get2(mb);
+
+   if (_e_mod_move_mini_apptray_widget_mini_apptray_move_get(mini_apptray_widget))
+     {
+        mini_apptray_mb = e_mod_move_mini_apptray_find();
+
+        if (_e_mod_move_mini_apptray_widget_mini_apptray_flick_process(mini_apptray_widget,
+                                                                       mini_apptray_mb,
+                                                                       angle, flick_state))
+          {
+             return EINA_TRUE;
+          }
+     }
+
 #if 0
    if (_e_mod_move_mini_apptray_widget_mini_apptray_move_get(mini_apptray_widget))
      {
@@ -308,8 +349,9 @@ _e_mod_move_mini_apptray_widget_cb_motion_move(void *data,
         if (need_move)
           e_mod_move_mini_apptray_objs_move(mini_apptray_mb, x, y);
      }
-#endif
+
    mini_apptray_widget->pos = info->coord; // save mouse move position
+#endif
 
    return EINA_TRUE;
 }
@@ -330,6 +372,7 @@ _e_mod_move_mini_apptray_widget_cb_motion_end(void *data,
    Eina_Bool                    click = EINA_FALSE;
    Eina_Bool                    flick_state = EINA_FALSE;
    int                          angle = 0;
+   Ecore_X_Window               ev_win = 0;
 
    info  = (E_Move_Event_Motion_Info *)event_info;
    m = e_mod_move_util_get();
@@ -360,7 +403,7 @@ _e_mod_move_mini_apptray_widget_cb_motion_end(void *data,
    E_CHECK_GOTO(click, error_cleanup);
 
    e_mod_move_flick_data_update(mb, info->coord.x, info->coord.y);
-   flick_state = e_mod_move_flick_state_get(mb, EINA_TRUE);
+   flick_state = e_mod_move_flick_state_get2(mb);
 
    if (_e_mod_move_mini_apptray_widget_mini_apptray_move_get(mini_apptray_widget))
      {
@@ -377,9 +420,7 @@ _e_mod_move_mini_apptray_widget_cb_motion_end(void *data,
              // if mini_apptray animation is not called, must destory datas explicit
              if (mini_apptray_mb)
                {
-                  e_mod_move_mini_apptray_objs_animation_layer_unset(mini_apptray_mb);
                   e_border_focus_set(mini_apptray_mb ->bd, 0, 0);
-                  e_border_lower(mini_apptray_mb ->bd);
                   e_mod_move_mini_apptray_dim_hide(mini_apptray_mb );
                   e_mod_move_mini_apptray_objs_del(mini_apptray_mb );
                }
@@ -462,6 +503,21 @@ _e_mod_move_mini_apptray_widget_cb_motion_end(void *data,
      }
 #endif
 
+   // if flick check fail then, redirect event
+   EINA_LIST_FOREACH(mini_apptray_widget->objs, l, mwo)
+     {
+        if (!mwo) continue;
+        ev_win = e_mod_move_event_win_get(mwo->event);
+     }
+
+   if (ev_win)
+     {
+        e_mod_move_mouse_event_send(ev_win, E_MOVE_MOUSE_EVENT_MOVE, mini_apptray_widget->pos);
+        e_mod_move_mouse_event_send(ev_win, E_MOVE_MOUSE_EVENT_DOWN, mini_apptray_widget->pos);
+        e_mod_move_mouse_event_send(ev_win, E_MOVE_MOUSE_EVENT_MOVE, info->coord);
+        e_mod_move_mouse_event_send(ev_win, E_MOVE_MOUSE_EVENT_UP, info->coord);
+     }
+
    mini_apptray_widget->pos = info->coord; // save mouse up position
 
    EINA_LIST_FOREACH(mini_apptray_widget->objs, l, mwo)
@@ -475,6 +531,28 @@ error_cleanup:
    _e_mod_move_mini_apptray_widget_mini_apptray_move_set(mini_apptray_widget, EINA_FALSE);
 
    return EINA_TRUE;
+}
+
+static Ecore_X_Window
+_e_mod_move_mini_apptray_event_win_find(void *event_info)
+{
+   E_Move_Event_Motion_Info *info = NULL;
+   E_Border                 *find_bd = NULL;
+   Ecore_X_Window            win = 0;
+   info  = (E_Move_Event_Motion_Info *)event_info;
+
+   E_CHECK_RETURN(info, 0);
+
+   find_bd = e_mod_move_util_border_find_by_pointer(info->coord.x, info->coord.y);
+
+   if (find_bd) win = find_bd->client.win;
+   else win = 0;
+
+   L(LT_EVENT_OBJ,
+     "[MOVE] ev:%15.15s MINI_APPTRAY_EVENT_WIN_FIND w:0x%08x (%4d,%4d)\n",
+     "EVAS_OBJ", win, info->coord.x, info->coord.y);
+
+   return win;
 }
 
 static void
@@ -501,8 +579,26 @@ _e_mod_move_mini_apptray_widget_obj_event_setup(E_Move_Mini_Apptray_Widget *mini
    e_mod_move_event_cb_set(mwo->event, E_MOVE_EVENT_TYPE_MOTION_END,
                            _e_mod_move_mini_apptray_widget_cb_motion_end,
                            mini_apptray_widget);
-   e_mod_move_event_send_all_set(mwo->event, EINA_TRUE);
-   e_mod_move_event_find_redirect_win_set(mwo->event, EINA_TRUE);
+   e_mod_move_event_propagate_type_set(mwo->event,
+                                       E_MOVE_EVENT_PROPAGATE_TYPE_NONE);
+   e_mod_move_event_win_find_cb_set(mwo->event,
+                                    _e_mod_move_mini_apptray_event_win_find);
+}
+
+static Eina_Bool
+_e_mod_move_mini_apptray_widget_event_send_policy_check(E_Move_Mini_Apptray_Widget *mini_apptray_widget,
+                                                        Evas_Point                  pos)
+{
+   int x = 0, y = 0, w = 0, h = 0;
+   Eina_Bool ret = EINA_FALSE;
+
+   E_CHECK_RETURN(mini_apptray_widget, EINA_FALSE);
+
+   e_mod_move_widget_objs_geometry_get(mini_apptray_widget->objs, &x ,&y, &w, &h);
+
+   if (E_INSIDE(pos.x, pos.y, x, y, w, h)) ret = EINA_TRUE;
+
+   return ret;
 }
 
 /* externally accessible functions */
@@ -550,6 +646,7 @@ e_mod_move_mini_apptray_widget_target_window_find(Ecore_X_Window *win)
    m = e_mod_move_util_get();
    E_CHECK_RETURN(m, EINA_FALSE);
 
+   // fix later
    EINA_INLIST_REVERSE_FOREACH(m->borders, find_mb)
      {
         if (!find_mb->bd) continue;
@@ -582,14 +679,23 @@ e_mod_move_mini_apptray_widget_target_window_find(Ecore_X_Window *win)
 EINTERN void
 e_mod_move_mini_apptray_widget_apply(void)
 {
-   E_Move         *m = NULL;
-   Ecore_X_Window  target_win;
+   E_Move                     *m = NULL;
    E_Move_Mini_Apptray_Widget *mini_apptray_widget = NULL;
+   E_Move_Border              *mini_apptray_mb = NULL;
+   Ecore_X_Window              target_win;
 
    m = e_mod_move_util_get();
    E_CHECK(m);
 
-   E_CHECK(e_mod_move_mini_apptray_find());
+   if (m->screen_reader_state) return;
+
+   mini_apptray_mb = e_mod_move_mini_apptray_find();
+   if (!mini_apptray_mb)
+     {
+        if ((mini_apptray_widget = e_mod_move_mini_apptray_widget_get()))
+          e_mod_move_mini_apptray_widget_del(mini_apptray_widget);
+        return;
+     }
 
    if (e_mod_move_mini_apptray_widget_target_window_find(&target_win))
      {
@@ -693,21 +799,16 @@ e_mod_move_mini_apptray_widget_add(Ecore_X_Window win)
         e_mod_move_widget_objs_raise(mini_apptray_widget->objs);
 
         // Set Input Shape Mask
-        switch (e_mod_move_util_root_angle_get())
+        // change later
+        if ((mini_apptray_widget->input_region_id = e_manager_comp_input_region_id_new(m->man)))
           {
-           case  90:
-           case 180:
-           case 270:
-              // currently, support angle 0 only. because, application is not ready yet.
-              break;
-           case   0:
-           default :
-              e_manager_comp_input_region_set(m->man,
-                                              m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].x,
-                                              m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].y,
-                                              m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].w,
-                                              m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].h);
-              break;
+             e_manager_comp_input_region_id_set(m->man,
+                                                mini_apptray_widget->input_region_id,
+                                                x, y, w, h);
+          }
+        else
+          {
+             goto error_cleanup;
           }
      }
    else
@@ -743,16 +844,15 @@ e_mod_move_mini_apptray_widget_del(E_Move_Mini_Apptray_Widget *mini_apptray_widg
    E_CHECK(mini_apptray_widget);
    m = e_mod_move_util_get();
 
-   if (e_mod_move_mini_apptray_widget_click_get(mini_apptray_widget))
-     ecore_x_mouse_up_send(mini_apptray_widget->win,
-                           mini_apptray_widget->pos.x,
-                           mini_apptray_widget->pos.y,
-                           1);
-
    if ((mb = e_mod_move_border_client_find(mini_apptray_widget->win)))
      {
         // compositor's input region free
-        e_manager_comp_input_region_set(m->man, 0, 0, 0, 0);
+        // change later
+        if (mini_apptray_widget->input_region_id)
+          {
+             e_manager_comp_input_region_id_del(m->man,
+                                                mini_apptray_widget->input_region_id);
+          }
 
         // if mini_apptray_widget is deleted, then mini_apptray's mirror object hide with animation
         if (mini_apptray_widget->mini_apptray_move)
@@ -761,28 +861,24 @@ e_mod_move_mini_apptray_widget_del(E_Move_Mini_Apptray_Widget *mini_apptray_widg
              E_CHECK_GOTO(mini_apptray_mb, error_cleanup);
              zone = mini_apptray_mb->bd->zone;
 
-// following geometry will be changed. for flick-down effect
              switch (mb->angle)
                {
-                case   0:
-                   x = 0;
-                   y = mini_apptray_mb->h * -1;
-                   break;
                 case  90:
-                   x = mini_apptray_mb->w * -1;
+                   x = zone->w;
                    y = 0;
                    break;
                 case 180:
                    x = 0;
-                   y = zone->h;
+                   y = mini_apptray_mb->h * -1;
                    break;
                 case 270:
-                   x = zone->w;
+                   x = mini_apptray_mb->w * -1;
                    y = 0;
                    break;
+                case   0:
                 default :
                    x = 0;
-                   y = mini_apptray_mb->h * -1;
+                   y = zone->h;
                    break;
                }
              if (e_mod_move_mini_apptray_objs_animation_state_get(mini_apptray_mb))
@@ -791,9 +887,6 @@ e_mod_move_mini_apptray_widget_del(E_Move_Mini_Apptray_Widget *mini_apptray_widg
                   e_mod_move_mini_apptray_objs_animation_clear(mini_apptray_mb);
                }
              e_mod_move_mini_apptray_objs_add(mini_apptray_mb);
-
-             // mini_apptray_objs_animation_layer_set
-             e_mod_move_mini_apptray_objs_animation_layer_set(mini_apptray_mb);
 
              e_mod_move_mini_apptray_e_border_move(mini_apptray_mb, x, y);
              e_mod_move_mini_apptray_objs_animation_move(mini_apptray_mb, x, y);
@@ -864,21 +957,12 @@ e_mod_move_mini_apptray_widget_angle_change(Ecore_X_Window win)
               e_mod_move_widget_objs_resize(mini_apptray_widget->objs, w, h);
 
               // Set Input Shape Mask
-              switch (e_mod_move_util_root_angle_get())
+              // change later
+              if (mini_apptray_widget->input_region_id)
                 {
-                 case  90:
-                 case 180:
-                 case 270:
-                    // currently, support angle 0 only. because, application is not ready yet.
-                    break;
-                 case   0:
-                 default :
-                    e_manager_comp_input_region_set(m->man,
-                                                    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].x,
-                                                    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].y,
-                                                    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].w,
-                                                    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].h);
-                    break;
+                   e_manager_comp_input_region_id_set(m->man,
+                                                      mini_apptray_widget->input_region_id,
+                                                      x, y, w, h);
                 }
 
               ret = EINA_TRUE;

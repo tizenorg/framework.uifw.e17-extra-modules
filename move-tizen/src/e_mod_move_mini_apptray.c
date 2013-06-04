@@ -24,6 +24,7 @@ static Eina_Bool      _e_mod_move_mini_apptray_objs_position_get(E_Move_Border *
 static Eina_Bool      _e_mod_move_mini_apptray_objs_animation_frame(void  *data, double pos);
 static Eina_Bool      _e_mod_move_mini_apptray_flick_process(E_Move_Border *mb, int angle, Eina_Bool state);
 static Eina_Bool      _e_mod_move_mini_apptray_dim_objs_apply(E_Move_Border *mb, int x, int y);
+static Eina_Bool      _e_mod_move_mini_apptray_ctl_event_send_policy_check(E_Move_Border *mb, Evas_Point pos);
 
 /* local subsystem functions */
 static Eina_Bool
@@ -82,9 +83,6 @@ _e_mod_move_mini_apptray_cb_motion_start(void *data,
 
    e_mod_move_mini_apptray_objs_add(mb);
 
-   // mini_apptray_objs_animation_layer_set
-   e_mod_move_mini_apptray_objs_animation_layer_set(mb);
-
    // send mini_apptray to "move start message".
    e_mod_move_mini_apptray_anim_state_send(mb, EINA_TRUE);
    return EINA_TRUE;
@@ -109,6 +107,9 @@ _e_mod_move_mini_apptray_cb_motion_move(void *data,
    int angle = 0;
    Eina_Bool click = EINA_FALSE;
    E_Zone *zone = NULL;
+   int x = 0, y = 0;
+   int cx, cy, cw, ch;
+   Eina_Bool contents_region = EINA_FALSE;
 
    info  = (E_Move_Event_Motion_Info *)event_info;
    if (!mb || !info) return EINA_FALSE;
@@ -127,29 +128,85 @@ _e_mod_move_mini_apptray_cb_motion_move(void *data,
         click = e_mod_move_event_click_get(mco->event);
      }
    E_CHECK_RETURN(click, EINA_FALSE);
-/// change later?
-// todo flick-up
+
+   if (_e_mod_move_mini_apptray_ctl_event_send_policy_check(mb, info->coord))
+     {
+        EINA_LIST_FOREACH(mb->ctl_objs, l, mco)
+          {
+             if (!mco) continue;
+             e_mod_move_event_propagate_type_set(mco->event, E_MOVE_EVENT_PROPAGATE_TYPE_IMMEDIATELY);
+          }
+     }
+   else
+     {
+        EINA_LIST_FOREACH(mb->ctl_objs, l, mco)
+          {
+             if (!mco) continue;
+             e_mod_move_event_propagate_type_set(mco->event, E_MOVE_EVENT_PROPAGATE_TYPE_NONE);
+          }
+     }
+
+   contents_region = e_mod_move_border_contents_rect_get(mb, &cx, &cy ,&cw, &ch);
+
    switch (angle)
      {
       case   0:
-         if (info->coord.y < mb->h)
-           e_mod_move_mini_apptray_objs_move(mb, 0, info->coord.y - mb->h);
+         if (info->coord.y > (zone->h - mb->h))
+           {
+              if (contents_region)
+                {
+                   if (info->coord.y > cy) y =  info->coord.y - cy;
+                }
+              else
+                {
+                   y =  info->coord.y;
+                }
+           }
          break;
       case  90:
-         if (info->coord.x < mb->w)
-           e_mod_move_mini_apptray_objs_move(mb, info->coord.x - mb->w, 0);
+         if (info->coord.x > (zone->w - mb->w))
+           {
+              if (contents_region)
+                {
+                   if (info->coord.x > cx) x = info->coord.x - cx;
+                }
+              else
+                {
+                   x = info->coord.x;
+                }
+           }
          break;
       case 180:
-         if (info->coord.y > (zone->h - mb->h))
-           e_mod_move_mini_apptray_objs_move(mb, 0, info->coord.y);
+         if (info->coord.y < mb->h)
+           {
+              if (contents_region)
+                {
+                   if (info->coord.y < ch) y = info->coord.y - ch;
+                }
+              else
+                {
+                   y = info->coord.y - mb->h;
+                }
+           }
          break;
       case 270:
-         if (info->coord.x > (zone->w - mb->w))
-           e_mod_move_mini_apptray_objs_move(mb, info->coord.x, 0);
+         if (info->coord.x < mb->w)
+           {
+              if (contents_region)
+                {
+                   if (info->coord.x < cw) x = info->coord.x - cw;
+                }
+              else
+                {
+                   x = info->coord.x - mb->w;
+                }
+           }
          break;
       default :
          break;
      }
+
+   e_mod_move_mini_apptray_objs_move(mb, x, y);
 
    return EINA_TRUE;
 }
@@ -192,6 +249,13 @@ _e_mod_move_mini_apptray_cb_motion_end(void *data,
      }
    E_CHECK_GOTO(click, finish);
 
+   // event send all set
+   EINA_LIST_FOREACH(mb->ctl_objs, l, mco)
+     {
+        if (!mco) continue;
+        e_mod_move_event_propagate_type_set(mco->event, E_MOVE_EVENT_PROPAGATE_TYPE_IMMEDIATELY);
+     }
+
    e_mod_move_flick_data_update(mb, info->coord.x, info->coord.y);
    flick_state = e_mod_move_flick_state_get(mb, EINA_FALSE);
    if (_e_mod_move_mini_apptray_flick_process(mb, angle, flick_state))
@@ -201,35 +265,7 @@ _e_mod_move_mini_apptray_cb_motion_end(void *data,
 
    switch (angle)
      {
-		 // change later
-		 // todo flick-up
       case   0:
-         check_h = mb->y + mb->h;
-         if (check_h) check_h /= 2;
-         if (info->coord.y < check_h)
-           {
-              e_mod_move_mini_apptray_e_border_move(mb, 0, mb->h * -1);
-              e_mod_move_mini_apptray_objs_animation_move(mb, 0, mb->h * -1);
-           }
-         else
-           {
-              e_mod_move_mini_apptray_objs_animation_move(mb, 0, 0);
-           }
-         break;
-      case  90:
-         check_w = mb->w;
-         if (check_w) check_w /= 2;
-         if (info->coord.x < check_w)
-           {
-              e_mod_move_mini_apptray_e_border_move(mb, mb->w * -1, 0);
-              e_mod_move_mini_apptray_objs_animation_move(mb, mb->w * -1, 0);
-           }
-         else
-           {
-              e_mod_move_mini_apptray_objs_animation_move(mb, 0, 0);
-           }
-         break;
-      case 180:
          check_h = mb->h;
          if (check_h) check_h /= 2;
          if (info->coord.y > (zone->h - check_h))
@@ -242,7 +278,7 @@ _e_mod_move_mini_apptray_cb_motion_end(void *data,
               e_mod_move_mini_apptray_objs_animation_move(mb, 0, (zone->h - mb->h));
            }
          break;
-      case 270:
+      case  90:
          check_w = mb->w;
          if (check_w) check_w /= 2;
          if (info->coord.x > (zone->w - check_w))
@@ -253,6 +289,32 @@ _e_mod_move_mini_apptray_cb_motion_end(void *data,
          else
            {
               e_mod_move_mini_apptray_objs_animation_move(mb, zone->w - mb->w, 0);
+           }
+         break;
+      case 180:
+         check_h = mb->y + mb->h;
+         if (check_h) check_h /= 2;
+         if (info->coord.y < check_h)
+           {
+              e_mod_move_mini_apptray_e_border_move(mb, 0, mb->h * -1);
+              e_mod_move_mini_apptray_objs_animation_move(mb, 0, mb->h * -1);
+           }
+         else
+           {
+              e_mod_move_mini_apptray_objs_animation_move(mb, 0, 0);
+           }
+         break;
+      case 270:
+         check_w = mb->w;
+         if (check_w) check_w /= 2;
+         if (info->coord.x < check_w)
+           {
+              e_mod_move_mini_apptray_e_border_move(mb, mb->w * -1, 0);
+              e_mod_move_mini_apptray_objs_animation_move(mb, mb->w * -1, 0);
+           }
+         else
+           {
+              e_mod_move_mini_apptray_objs_animation_move(mb, 0, 0);
            }
          break;
       default :
@@ -325,13 +387,9 @@ _e_mod_move_mini_apptray_objs_animation_frame(void  *data,
 
    if (pos >= 1.0)
      {
-        // mini_apptray_objs_animation_layer_unset
-        e_mod_move_mini_apptray_objs_animation_layer_unset(mb);
-
         if (!(REGION_INSIDE_ZONE(mb, mb->bd->zone)))
           {
              e_border_focus_set(mb->bd, 0, 0);
-             e_border_lower(mb->bd);
              e_mod_move_mini_apptray_dim_hide(mb);
           }
 
@@ -371,15 +429,14 @@ _e_mod_move_mini_apptray_flick_process(E_Move_Border *mb,
      }
 
    e_mod_move_flick_data_free(mb);
-// change later
-// doto flick-up
+
    switch (angle)
      {
-      case  90: x = mb->w * -1; y = 0;          break;
-      case 180: x = 0;          y = zone->h;    break;
-      case 270: x = zone->w;    y = 0;          break;
+      case  90: x = zone->w;    y = 0;          break;
+      case 180: x = 0;          y = mb->h * -1; break;
+      case 270:    x = mb->w * -1; y = 0;       break;
       case   0:
-      default : x = 0;          y = mb->h * -1; break;
+      default : x = 0;          y = zone->h;    break;
      }
 
    e_mod_move_mini_apptray_e_border_move(mb, x, y);
@@ -449,6 +506,23 @@ _e_mod_move_mini_apptray_dim_objs_apply(E_Move_Border *mb,
    return EINA_TRUE;
 }
 
+static Eina_Bool
+_e_mod_move_mini_apptray_ctl_event_send_policy_check(E_Move_Border *mb,
+                                                     Evas_Point     pos)
+{
+   int x = 0, y = 0, w = 0, h = 0;
+   Eina_Bool ret = EINA_FALSE;
+
+   E_CHECK_RETURN(mb, EINA_FALSE);
+   E_CHECK_RETURN(TYPE_MINI_APPTRAY_CHECK(mb), EINA_FALSE);
+
+   e_mod_move_bd_move_ctl_objs_geometry_get(mb, &x ,&y, &w, &h);
+
+   if (E_INSIDE(pos.x, pos.y, x, y, w, h)) ret = EINA_TRUE;
+
+   return ret;
+}
+
 /* externally accessible functions */
 EINTERN void
 e_mod_move_mini_apptray_ctl_obj_event_setup(E_Move_Border         *mb,
@@ -470,7 +544,8 @@ e_mod_move_mini_apptray_ctl_obj_event_setup(E_Move_Border         *mb,
                            _e_mod_move_mini_apptray_cb_motion_move, mb);
    e_mod_move_event_cb_set(mco->event, E_MOVE_EVENT_TYPE_MOTION_END,
                            _e_mod_move_mini_apptray_cb_motion_end, mb);
-   e_mod_move_event_send_all_set(mco->event, EINA_TRUE);
+   e_mod_move_event_propagate_type_set(mco->event,
+                                       E_MOVE_EVENT_PROPAGATE_TYPE_IMMEDIATELY);
 }
 
 EINTERN E_Move_Border *
@@ -548,6 +623,27 @@ e_mod_move_mini_apptray_objs_add(E_Move_Border *mb)
         e_mod_move_bd_move_objs_move(mb, mb->x, mb->y);
         e_mod_move_bd_move_objs_resize(mb, mb->w, mb->h);
         e_mod_move_bd_move_objs_show(mb);
+        if (mb->objs) e_mod_move_util_rotation_lock(mb->m);
+     }
+   return EINA_TRUE;
+}
+
+EINTERN Eina_Bool
+e_mod_move_mini_apptray_objs_add_with_pos(E_Move_Border *mb,
+                                          int            x,
+                                          int            y)
+{
+   Eina_Bool mirror = EINA_TRUE;
+   E_CHECK_RETURN(mb, EINA_FALSE);
+   E_CHECK_RETURN(TYPE_MINI_APPTRAY_CHECK(mb), EINA_FALSE);
+
+   if (!(mb->objs))
+     {
+        mb->objs = e_mod_move_bd_move_objs_add(mb, mirror);
+        e_mod_move_bd_move_objs_move(mb, x, y);
+        e_mod_move_bd_move_objs_resize(mb, mb->w, mb->h);
+        e_mod_move_bd_move_objs_show(mb);
+        if (mb->objs) e_mod_move_util_rotation_lock(mb->m);
      }
    return EINA_TRUE;
 }
@@ -558,6 +654,7 @@ e_mod_move_mini_apptray_objs_del(E_Move_Border *mb)
    E_CHECK_RETURN(mb, EINA_FALSE);
    E_CHECK_RETURN(TYPE_MINI_APPTRAY_CHECK(mb), EINA_FALSE);
    e_mod_move_bd_move_objs_del(mb, mb->objs);
+   e_mod_move_util_rotation_unlock(mb->m);
    mb->objs = NULL;
    return EINA_TRUE;
 }
@@ -720,6 +817,7 @@ e_mod_move_mini_apptray_internal_data_del(E_Move_Border *mb)
    e_mod_move_mini_apptray_dim_hide(mb);
    E_FREE(mini_apptray_data);
    mb->data = NULL;
+   e_mod_move_mini_apptray_widget_apply();// disable/destory mini_apptray_widget related datas
    return EINA_TRUE;
 }
 
@@ -741,7 +839,6 @@ e_mod_move_mini_apptray_e_border_move(E_Move_Border *mb,
                   zone->w, zone->h,
                   x, y, mb->w, mb->h))
      {
-        e_border_raise(mb->bd);
         e_border_focus_set(mb->bd, 1, 1);
      }
    else
@@ -799,7 +896,6 @@ e_mod_move_mini_apptray_dim_show(E_Move_Border *mb)
         e_mod_move_bd_move_dim_objs_show(mini_apptray_data->dim_objs);
         mini_apptray_data->opacity = dim_min;
         mb->data = mini_apptray_data;
-        e_mod_move_util_rotation_lock(mb->m);
      }
    else
      {
@@ -809,8 +905,6 @@ e_mod_move_mini_apptray_dim_show(E_Move_Border *mb)
              e_mod_move_util_compositor_composite_mode_set(mb->m, EINA_TRUE);
 
              mini_apptray_data->dim_objs = e_mod_move_bd_move_dim_objs_add(mb);
-             if (mini_apptray_data->dim_objs)
-                e_mod_move_util_rotation_lock(mb->m);
           }
         if (mini_apptray_data->dim_objs)
           {
@@ -843,8 +937,6 @@ e_mod_move_mini_apptray_dim_hide(E_Move_Border *mb)
    mini_apptray_data->dim_objs = NULL;
    mini_apptray_data->opacity = dim_min;
 
-   e_mod_move_util_rotation_unlock(mb->m);
-
    // Composite mode set false
    e_mod_move_util_compositor_composite_mode_set(mb->m, EINA_FALSE);
 
@@ -861,21 +953,37 @@ e_mod_move_mini_apptray_objs_animation_start_position_set(E_Move_Border *mb,
 {
    E_Zone *zone;
    int x, y;
+   int cx, cy, cw, ch;
+   Eina_Bool contents_region = EINA_FALSE;
 
    E_CHECK_RETURN(mb, EINA_FALSE);
    E_CHECK_RETURN(TYPE_MINI_APPTRAY_CHECK(mb), EINA_FALSE);
 
    angle = ((angle % 360) / 90) * 90;
    zone = mb->bd->zone;
+   contents_region = e_mod_move_border_contents_rect_get(mb, &cx, &cy ,&cw, &ch);
+
 // change later
 // todo flick-up position
    switch (angle)
      {
-      case  90: x = zone->x + zone->w; y = 0;                 break;
-      case 180: x = 0;                 y = mb->h * -1;        break;
-      case 270: x = mb->w * -1;        y = 0;                 break;
+      case  90:
+         if (contents_region) { x = zone->x + zone->w - cx; y = 0; }
+         else                 { x = zone->x + zone->w;      y = 0; }
+         break;
+      case 180:
+         if (contents_region) { x = 0; y = mb->h * -1 + (mb->h - ch); }
+         else                 { x = 0; y = mb->h * -1;                }
+         break;
+      case 270:
+         if (contents_region) { x = mb->w * -1 + (mb->w - cw); y = 0; }
+         else                 { x = mb->w * -1;                y = 0; }
+         break;
       case   0:
-      default : x = 0;                 y = zone->y + zone->h; break;
+      default :
+         if (contents_region) { x = 0; y = zone->y + zone->h - cy; }
+         else                 { x = 0; y = zone->y + zone->h;      }
+         break;
      }
 
    _e_mod_move_mini_apptray_objs_position_set(mb, x, y);

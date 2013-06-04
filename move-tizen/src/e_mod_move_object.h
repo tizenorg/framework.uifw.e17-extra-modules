@@ -13,6 +13,13 @@ struct _E_Move_Object
    Evas_Object   *obj;    // compositor's evas(window) object
    Eina_Bool      mirror; // TRUE: use compositor's mirror_obj / FALSE: use compositor's shadow_obj
    Evas_Object   *clipper;// clipping evas object
+
+   struct {
+     int x;
+     int y;
+     int w;
+     int h;
+   } geometry;
 };
 
 EINTERN E_Move_Object *e_mod_move_obj_add(E_Move_Border *mb, E_Move_Canvas *canvas, Eina_Bool mirror);
@@ -36,6 +43,7 @@ EINTERN void           e_mod_move_bd_move_objs_clipper_show(E_Move_Border *mb);
 EINTERN void           e_mod_move_bd_move_objs_clipper_hide(E_Move_Border *mb);
 EINTERN void           e_mod_move_bd_move_objs_clipper_move(E_Move_Border *mb, int x, int y);
 EINTERN void           e_mod_move_bd_move_objs_clipper_resize(E_Move_Border *mb, int w, int h);
+EINTERN void           e_mod_move_bd_move_objs_geometry_get(E_Move_Border *mb, int *x, int *y, int *w, int *h);
 
 #endif
 #endif

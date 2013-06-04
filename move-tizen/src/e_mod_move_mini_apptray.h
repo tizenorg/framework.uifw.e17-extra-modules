@@ -29,6 +29,7 @@ EINTERN E_Move_Border *e_mod_move_mini_apptray_find(void);
 EINTERN Eina_Bool e_mod_move_mini_apptray_click_get(void);
 EINTERN Eina_Bool e_mod_move_mini_apptray_event_clear(void);
 EINTERN Eina_Bool e_mod_move_mini_apptray_objs_add(E_Move_Border *mb);
+EINTERN Eina_Bool e_mod_move_mini_apptray_objs_add_with_pos(E_Move_Border *mb, int x, int y);
 EINTERN Eina_Bool e_mod_move_mini_apptray_objs_del(E_Move_Border *mb);
 EINTERN Eina_Bool e_mod_move_mini_apptray_objs_move(E_Move_Border *mb, int x, int y);
 EINTERN Eina_Bool e_mod_move_mini_apptray_objs_raise(E_Move_Border *mb);

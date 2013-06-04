@@ -18,9 +18,7 @@ INCLUDES               = -I. \
 			 
 pkgdir                 = $(libdir)/enlightenment/modules/$(MODULE)/$(MODULE_ARCH)
 pkg_LTLIBRARIES        = module.la
-module_la_SOURCES      = e_mod_comp_animation.c \
-                         e_mod_comp_animation.h \
-                         e_mod_comp_atoms.c \
+module_la_SOURCES      = e_mod_comp_atoms.c \
                          e_mod_comp_atoms.h \
                          e_mod_comp_bg_win.c \
                          e_mod_comp_bg_win.h \
@@ -36,8 +34,6 @@ module_la_SOURCES      = e_mod_comp_animation.c \
                          e_mod_comp_effect.h \
                          e_mod_comp_effect_image_launch.c \
                          e_mod_comp_effect_image_launch.h \
-                         e_mod_comp_effect_tm.c \
-                         e_mod_comp_effect_tm.h \
                          e_mod_comp_effect_win_rotation.c \
                          e_mod_comp_effect_win_rotation.h \
                          e_mod_comp_hw_ov_win.c \

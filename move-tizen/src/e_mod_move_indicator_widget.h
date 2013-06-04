@@ -10,6 +10,7 @@ struct _E_Move_Indicator_Widget
    Eina_Bool       quickpanel_move;
    Eina_Bool       apptray_move;
    Evas_Point      pos; // mouse position
+   int             input_region_id;
 };
 
 typedef struct _E_Move_Indicator_Widget E_Move_Indicator_Widget;

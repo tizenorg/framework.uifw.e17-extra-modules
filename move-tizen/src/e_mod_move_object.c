@@ -46,7 +46,8 @@ e_mod_move_obj_add(E_Move_Border *mb,
              mo->obj = e_manager_comp_src_shadow_get(m->man, comp_src);
              E_CHECK_GOTO(mo->obj, error_cleanup);
              evas_object_data_set(mo->obj,"comp_shadow_obj", mo->obj);
-
+             //comp's shadow obj move lock
+             e_manager_comp_src_move_lock(m->man, comp_src);
              evas_object_event_callback_add(mo->obj, EVAS_CALLBACK_DEL,
                                             _e_mod_move_cb_comp_object_del, mb);
           }
@@ -121,12 +122,32 @@ EINTERN void
 e_mod_move_bd_move_objs_del(E_Move_Border *mb,
                             Eina_List     *objs)
 {
+   E_Move *m = NULL;
+   E_Manager_Comp_Source *comp_src = NULL;
    E_Move_Object *mo;
+
    E_CHECK(mb);
    E_CHECK(objs);
+
+   m = mb->m;
+   E_CHECK(m);
+
    EINA_LIST_FREE(objs, mo)
      {
         if (mo->mirror) e_mod_move_util_border_hidden_set(mb, EINA_FALSE);
+        else
+          {
+              if (mb->bd)
+                {
+                   comp_src = e_manager_comp_src_get(m->man, mb->bd->win);
+                   if (comp_src)
+                     {
+                        e_mod_move_bd_move_objs_move(mb, mb->x, mb->y);
+                        //comp's shadow obj move unlock
+                        e_manager_comp_src_move_unlock(m->man, comp_src);
+                     }
+                }
+          }
         e_mod_move_obj_del(mo);
      }
 }
@@ -150,6 +171,9 @@ e_mod_move_bd_move_objs_move(E_Move_Border *mb,
              zy = mo->zone->y;
           }
         evas_object_move(mo->obj, x - zx, y - zy);
+
+        mo->geometry.x = x;
+        mo->geometry.y = y;
      }
 }
 
@@ -166,6 +190,9 @@ e_mod_move_bd_move_objs_resize(E_Move_Border *mb,
         if (!mo) continue;
         if (!mo->obj) continue;
         evas_object_resize(mo->obj, w, h);
+
+        mo->geometry.w = w;
+        mo->geometry.h = h;
      }
 }
 
@@ -406,6 +433,32 @@ e_mod_move_bd_move_objs_clipper_resize(E_Move_Border *mb,
         if (!mo->clipper) continue;
 
         evas_object_resize(mo->clipper, w, h);
+     }
+}
+
+EINTERN void
+e_mod_move_bd_move_objs_geometry_get(E_Move_Border *mb,
+                                     int           *x,
+                                     int           *y,
+                                     int           *w,
+                                     int           *h)
+{
+   Eina_List *l;
+   E_Move_Object *mo;
+
+   E_CHECK(mb);
+   E_CHECK(x);
+   E_CHECK(y);
+   E_CHECK(w);
+   E_CHECK(h);
+
+   EINA_LIST_FOREACH(mb->objs, l, mo)
+     {
+        if (!mo) continue;
+        *x = mo->geometry.x;
+        *y = mo->geometry.y;
+        *w = mo->geometry.w;
+        *h = mo->geometry.h;
      }
 }
 

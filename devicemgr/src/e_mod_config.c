@@ -5,6 +5,7 @@
 
 /* local variables */
 static E_Config_DD *_devicemgr_conf_edd = NULL;
+static E_Config_DD *_devicemgr_conf_rotation_edd = NULL;
 
 static void _e_mod_devicemgr_config_free(void);
 static void _e_mod_devicemgr_config_new(void);
@@ -18,6 +19,15 @@ e_mod_devicemgr_config_init(void)
    /* create config structure for module */
    _devicemgr_conf_edd = E_CONFIG_DD_NEW("Devicemgr_Config", E_Devicemgr_Config);
 
+   _devicemgr_conf_rotation_edd = E_CONFIG_DD_NEW("E_Devicemgr_Config_Rotation",
+                                                  E_Devicemgr_Config_Rotation);
+#undef T
+#undef D
+#define T E_Devicemgr_Config_Rotation
+#define D _devicemgr_conf_rotation_edd
+   E_CONFIG_VAL(D, T, enable, UCHAR);
+   E_CONFIG_VAL(D, T, angle, INT);
+
 #undef T
 #undef D
 #define T E_Devicemgr_Config
@@ -25,6 +35,7 @@ e_mod_devicemgr_config_init(void)
    E_CONFIG_VAL(D, T, ScrnConf.enable, UCHAR);
    E_CONFIG_VAL(D, T, ScrnConf.default_dispmode, INT);
    E_CONFIG_VAL(D, T, ScrnConf.isPopUpEnabled, UCHAR);
+   E_CONFIG_LIST(D, T, rotation, _devicemgr_conf_rotation_edd);
 
    /* attempt to load existing configuration */
    _e_devicemgr_cfg = e_config_domain_load(E_DEVICEMGR_CFG, _devicemgr_conf_edd);
@@ -70,6 +81,7 @@ _e_mod_devicemgr_config_free(void)
    if (!_e_devicemgr_cfg) return;
 
    /* free config structure */
+   E_CONFIG_DD_FREE(_devicemgr_conf_rotation_edd);
    E_FREE(_e_devicemgr_cfg);
 }
 

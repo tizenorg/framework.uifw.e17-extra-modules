@@ -84,13 +84,19 @@ e_mod_move_flick_state_get(E_Move_Border *mb,
    double             speed = 0.0;
    int                dx, dy;
    double             dt;
+   double             tand = 0.0;
+   double             flick_angle = 0.0;
+   double             distance = 0.0;
+   double             flick_distance = 0.0;
    Eina_Bool          state = EINA_FALSE;
 
    E_CHECK_RETURN(mb, EINA_FALSE);
    E_CHECK_RETURN(mb->m, EINA_FALSE);
    E_CHECK_RETURN(mb->flick_data, EINA_FALSE);
    flick = mb->flick_data;
-   flick_speed = mb->m->flick_speed_limit;
+   flick_speed = mb->m->flick_limit.speed;
+   flick_angle = mb->m->flick_limit.angle;
+   flick_distance = mb->m->flick_limit.distance;
 
    dx = flick->ex - flick->sx;
    dy = flick->ey - flick->sy;
@@ -104,19 +110,74 @@ e_mod_move_flick_state_get(E_Move_Border *mb,
           {
            case  90:
            case 270:
-              if ((abs(dy)*3) > abs(dx)) return EINA_FALSE;
+              tand = 1.0 * abs(dx) / abs(dy);
+              if (tand < flick_angle) return EINA_FALSE;
               break;
            case   0:
            case 180:
            default :
-              if ((abs(dx)*3) > abs(dy)) return EINA_FALSE;
+              tand = 1.0 * abs(dy) / abs(dx);
+              if (tand < flick_angle) return EINA_FALSE;
               break;
           }
      }
 
-   speed = sqrt((dx * dx) + (dy * dy)) / dt;
+   distance = sqrt((dx * dx) + (dy * dy));
+   if (distance < flick_distance) return EINA_FALSE;
 
+   speed = distance / dt;
    if (speed > flick_speed) state = EINA_TRUE;
+
+   return state;
+}
+
+EINTERN Eina_Bool
+e_mod_move_flick_state_get2(E_Move_Border *mb)
+{
+   E_Move_Flick_Data *flick;
+   Eina_Bool          state = EINA_FALSE;
+   E_Zone            *zone = NULL;
+   double             flick_distance_rate = 0.0;
+   double             check_distance = 0.0;
+   int x = 0, y = 0;
+   int zone_w = 0, zone_h = 0;
+
+   E_CHECK_RETURN(mb, EINA_FALSE);
+   E_CHECK_RETURN(mb->m, EINA_FALSE);
+   E_CHECK_RETURN(mb->bd, EINA_FALSE);
+   E_CHECK_RETURN(mb->bd->zone, EINA_FALSE);
+   E_CHECK_RETURN(mb->flick_data, EINA_FALSE);
+
+   flick = mb->flick_data;
+   x = flick->ex;
+   y = flick->ey;
+
+   zone = mb->bd->zone;
+   zone_w = zone->w;
+   zone_h = zone->h;
+
+   flick_distance_rate = mb->m->flick_limit.distance_rate;
+
+   switch(mb->angle)
+     {
+      case  90:
+         check_distance = zone_w * ( 1.0 - flick_distance_rate);
+         if (check_distance > x ) state = EINA_TRUE;
+         break;
+      case 180:
+         check_distance = zone_h * flick_distance_rate;
+         if (check_distance < y ) state = EINA_TRUE;
+         break;
+      case 270:
+         check_distance = zone_w * flick_distance_rate;
+         if (check_distance < x ) state = EINA_TRUE;
+         break;
+      case   0:
+      default :
+         check_distance = zone_h * ( 1.0 - flick_distance_rate);
+         if (check_distance > y ) state = EINA_TRUE;
+         break;
+     }
 
    return state;
 }

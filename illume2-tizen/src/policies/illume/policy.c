@@ -514,6 +514,8 @@ _policy_zone_layout_dialog(E_Border *bd, E_Illume_Config_Zone *cz)
 {
    E_Border *parent;
    int mw, mh, nx, ny;
+   Eina_Bool resize = EINA_FALSE;
+   Eina_Bool move = EINA_FALSE;
 
    //   printf("\tLayout Dialog: %s\n", bd->client.icccm.name);
 
@@ -564,13 +566,18 @@ _policy_zone_layout_dialog(E_Border *bd, E_Illume_Config_Zone *cz)
 
    /* make sure it's the required width & height */
    if ((bd->w != mw) || (bd->h != mh))
-     {
-        _policy_border_resize(bd, mw, mh);
-     }
+     resize = EINA_TRUE;
 
    /* make sure it's in the correct position */
    if ((bd->x != nx) || (bd->y != ny))
-      _policy_border_move(bd, nx, ny);
+     move = EINA_TRUE;
+
+   if (resize && move)
+     e_border_move_resize(bd, nx, ny, mw, mh);
+   else if (resize)
+     _policy_border_resize(bd, mw, mh);
+   else if (move)
+     _policy_border_move(bd, nx, ny);
 
    /* set layer if needed */
    if (bd->layer != POL_DIALOG_LAYER) e_border_layer_set(bd, POL_DIALOG_LAYER);
@@ -580,6 +587,8 @@ static void
 _policy_zone_layout_splash(E_Border *bd, E_Illume_Config_Zone *cz)
 {
    int mw, mh, nx, ny;
+   Eina_Bool resize = EINA_FALSE;
+   Eina_Bool move = EINA_FALSE;
 
    if ((!bd) || (!cz)) return;
 
@@ -600,9 +609,16 @@ _policy_zone_layout_splash(E_Border *bd, E_Illume_Config_Zone *cz)
    ny = (bd->zone->y + ((bd->zone->h - mh) / 2));
 
    if ((bd->w != mw) || (bd->h != mh))
-     _policy_border_resize(bd, mw, mh);
+     resize = EINA_TRUE;
 
    if ((bd->x != nx) || (bd->y != ny))
+     move = EINA_TRUE;
+
+   if (resize && move)
+     e_border_move_resize(bd, nx, ny, mw, mh);
+   else if (resize)
+     _policy_border_resize(bd, mw, mh);
+   else if (move)
      _policy_border_move(bd, nx, ny);
 }
 
@@ -627,6 +643,10 @@ _policy_zone_layout_apptray(E_Border *bd)
         if ((bd->w != bd->zone->w) || (bd->h != bd->zone->h))
           _policy_border_resize(bd, bd->zone->w, bd->zone->h);
      }
+
+   /* set layer if needed */
+   if (bd->layer != POL_APPTRAY_LAYER)
+      e_border_layer_set(bd, POL_APPTRAY_LAYER);
 }
 
 static void
@@ -639,6 +659,10 @@ _policy_zone_layout_miniapptray(E_Border *bd)
         if ((bd->w != bd->zone->w) || (bd->h != bd->zone->h))
           _policy_border_resize(bd, bd->zone->w, bd->zone->h);
      }
+
+   /* set layer if needed */
+   if (bd->layer != POL_APPTRAY_LAYER)
+      e_border_layer_set(bd, POL_APPTRAY_LAYER);
 }
 
 /* policy functions */
@@ -804,7 +828,28 @@ _policy_border_del(E_Border *bd)
           }
         xwin_info->bd_info = NULL;
         xwin_info->attr.visible = 0;
+        xwin_info->viewable = EINA_FALSE;
         xwin_info->is_drawed = EINA_FALSE;
+     }
+
+   E_Illume_Border_Info* bd_info = _policy_get_border_info(bd);
+   if (bd_info)
+     {
+        if (bd_info->resize_req.mouse.down)
+          {
+             e_grabinput_release(bd->event_win, bd->event_win);
+
+             if (bd_info->resize_req.mouse.resize)
+               {
+                  Evas_Object *o = (Evas_Object *)e_object_data_get(E_OBJECT(bd));
+                  if (o) evas_object_del(o);
+               }
+
+             /* set property on zone window that a drag is finished */
+             ecore_x_e_illume_drag_set(bd->zone->black_win, 0);
+
+             _policy_border_illume_handlers_remove(bd_info);
+          }
      }
 
    _policy_delete_border_info_list (bd);
@@ -985,6 +1030,10 @@ _check_parent_in_transient_for_tree(E_Border *bd, E_Border *parent_bd)
 void
 _policy_border_pre_fetch(E_Border *bd)
 {
+#ifdef _F_DEICONIFY_APPROVE_
+   Eina_Bool change_parent = EINA_TRUE;
+#endif
+
    if (!bd) return;
 
    if (bd->new_client)
@@ -1015,6 +1064,9 @@ _policy_border_pre_fetch(E_Border *bd)
         /* If we already have a parent, remove it */
         if (bd->parent)
           {
+#ifdef _F_DEICONIFY_APPROVE_
+             if (bd_parent == bd->parent) change_parent = EINA_FALSE;
+#endif
              bd->parent->transients = eina_list_remove(bd->parent->transients, bd);
              if (bd->parent->modal == bd) bd->parent->modal = NULL;
              bd->parent = NULL;
@@ -1029,12 +1081,15 @@ _policy_border_pre_fetch(E_Border *bd)
                   L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. win:0x%07x(iconic:%d, by_wm:%d), parent:0x%07x(iconic:%d)\n", __func__, __LINE__, bd->client.win, bd->iconic, xwin_info ? xwin_info->iconify_by_wm : -100, bd_parent->client.win, bd_parent->iconic);
                   if (_e_illume_cfg->use_force_iconify)
                     {
-                       if (xwin_info && xwin_info->iconify_by_wm)
+                       if (!bd_parent->iconic)
                          {
-                            if (bd->iconic)
+                            if (xwin_info && xwin_info->iconify_by_wm)
                               {
-                                 L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. FORCE UNICONIFY... win:0x%07x\n", __func__, __LINE__, bd->client.win);
-                                 _policy_border_force_uniconify(bd);
+                                 if (bd->iconic)
+                                   {
+                                      L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. FORCE UNICONIFY... win:0x%07x\n", __func__, __LINE__, bd->client.win);
+                                      _policy_border_force_uniconify(bd);
+                                   }
                               }
                          }
                     }
@@ -1054,6 +1109,34 @@ _policy_border_pre_fetch(E_Border *bd)
                     }
                }
           }
+
+#ifdef _F_DEICONIFY_APPROVE_
+        if (change_parent)
+          {
+             E_Border *ancestor_bd;
+             bd->client.e.state.deiconify_approve.render_done = 0;
+
+             ancestor_bd = bd->client.e.state.deiconify_approve.ancestor;
+             if ((ancestor_bd) &&
+                 (!e_object_is_del(E_OBJECT(ancestor_bd))))
+               {
+                  ancestor_bd->client.e.state.deiconify_approve.req_list = eina_list_remove(ancestor_bd->client.e.state.deiconify_approve.req_list, bd);
+                  bd->client.e.state.deiconify_approve.ancestor = NULL;
+
+                  if ((ancestor_bd->client.e.state.deiconify_approve.req_list == NULL) &&
+                      (ancestor_bd->client.e.state.deiconify_approve.render_done))
+                    {
+                       if (ancestor_bd->client.e.state.deiconify_approve.wait_timer)
+                         {
+                            ecore_timer_del(ancestor_bd->client.e.state.deiconify_approve.wait_timer);
+                            ancestor_bd->client.e.state.deiconify_approve.wait_timer = NULL;
+                            e_border_uniconify(ancestor_bd);
+                         }
+                    }
+               }
+          }
+#endif
+
         bd->client.icccm.fetch.transient_for = 0;
      }
 }
@@ -2919,20 +3002,20 @@ _policy_border_list_print (Ecore_X_Window win)
                          {
                             fprintf (out, "%3i  0x%07x  %4i  %4i  %6i  %6i  %5i   %5i     %5i      %5i   %5i  %5i    yes(0x%07x)\n",
                                     i++, xwin_info->id, xwin_info->attr.w, xwin_info->attr.h, xwin_info->attr.x, xwin_info->attr.y, xwin_info->attr.depth,
-                                    xwin_info->attr.visible, xwin_info->visibility, xwin_info->comp_vis, xwin_info->bd_info->border->iconic, xwin_info->iconify_by_wm, xwin_info->bd_info->border->client.win);
+                                    xwin_info->viewable, xwin_info->visibility, xwin_info->comp_vis, xwin_info->bd_info->border->iconic, xwin_info->iconify_by_wm, xwin_info->bd_info->border->client.win);
                          }
                        else
                          {
                             fprintf (out, "%3i  0x%07x  %4i  %4i  %6i  %6i  %5i   %5i     %5i      %5i       0    %3i        no(NULL)\n",
                                     i++, xwin_info->id, xwin_info->attr.w, xwin_info->attr.h, xwin_info->attr.x, xwin_info->attr.y, xwin_info->attr.depth,
-                                    xwin_info->attr.visible, xwin_info->visibility, xwin_info->comp_vis, xwin_info->iconify_by_wm);
+                                    xwin_info->viewable, xwin_info->visibility, xwin_info->comp_vis, xwin_info->iconify_by_wm);
                          }
                     }
                   else
                     {
                        fprintf (out, "%3i  0x%07x  %4i  %4i  %6i  %6i  %5i   %5i      %5i     %5i       0    %3i        no(NULL)\n",
                                i++, xwin_info->id, xwin_info->attr.w, xwin_info->attr.h, xwin_info->attr.x, xwin_info->attr.y, xwin_info->attr.depth,
-                               xwin_info->attr.visible, xwin_info->visibility, xwin_info->comp_vis, xwin_info->iconify_by_wm);
+                               xwin_info->viewable, xwin_info->visibility, xwin_info->comp_vis, xwin_info->iconify_by_wm);
                     }
                }
              fprintf (out, "---------------------------------------------------------------------------------------------\n" );
@@ -3426,6 +3509,8 @@ _policy_zone_layout_app_single_new (E_Illume_Border_Info* bd_info, E_Illume_Conf
 {
    E_Border* bd;
    int layer;
+   Eina_Bool resize = EINA_FALSE;
+   Eina_Bool move = EINA_FALSE;
 
    ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... LAYOUT_SINGLE... bd_info's border = %x, client win = 0x%07x\n", __func__, __LINE__, bd_info->border, bd_info->border->client.win);
 
@@ -3455,15 +3540,32 @@ _policy_zone_layout_app_single_new (E_Illume_Border_Info* bd_info, E_Illume_Conf
                {
                   if ((bd->x != bd_info->resize_req.mouse.x) ||
                       (bd->y != bd_info->resize_req.mouse.y))
-                    _policy_border_move(bd,
-                                        bd_info->resize_req.mouse.x,
-                                        bd_info->resize_req.mouse.y);
+                    move = EINA_TRUE;
 
                   if ((bd->w != bd_info->resize_req.mouse.w) ||
                       (bd->h != bd_info->resize_req.mouse.h))
-                    _policy_border_resize(bd,
-                                          bd_info->resize_req.mouse.w,
-                                          bd_info->resize_req.mouse.h);
+                    resize = EINA_TRUE;
+
+                  if (move && resize)
+                    {
+                       e_border_move_resize(bd,
+                                            bd_info->resize_req.mouse.x,
+                                            bd_info->resize_req.mouse.y,
+                                            bd_info->resize_req.mouse.w,
+                                            bd_info->resize_req.mouse.h);
+                    }
+                  else if (move)
+                    {
+                       _policy_border_move(bd,
+                                           bd_info->resize_req.mouse.x,
+                                           bd_info->resize_req.mouse.y);
+                    }
+                  else if (resize)
+                    {
+                       _policy_border_resize(bd,
+                                             bd_info->resize_req.mouse.w,
+                                             bd_info->resize_req.mouse.h);
+                    }
 
                   bd_info->resize_req.need_change = 0;
                   L(LT_AIA, "[ILLUME2][AIA] %s(%d)... bd move resize... (%d, %d, %d, %d)\n", __func__, __LINE__, bd->x, bd->y, bd->w, bd->h);
@@ -3492,15 +3594,33 @@ _policy_zone_layout_app_single_new (E_Illume_Border_Info* bd_info, E_Illume_Conf
           {
              if ((bd->x != bd_info->resize_req.mouse.x) ||
                  (bd->y != bd_info->resize_req.mouse.y))
-               _policy_border_move(bd,
-                                   bd_info->resize_req.mouse.x,
-                                   bd_info->resize_req.mouse.y);
+               move = EINA_TRUE;
 
              if ((bd->w != bd_info->resize_req.mouse.w) ||
                  (bd->h != bd_info->resize_req.mouse.h))
-               _policy_border_resize(bd,
-                                     bd_info->resize_req.mouse.w,
-                                     bd_info->resize_req.mouse.h);
+               resize = EINA_TRUE;
+
+             if (move && resize)
+               {
+                  e_border_move_resize(bd,
+                                       bd_info->resize_req.mouse.x,
+                                       bd_info->resize_req.mouse.y,
+                                       bd_info->resize_req.mouse.w,
+                                       bd_info->resize_req.mouse.h);
+               }
+             else if (move)
+               {
+                  _policy_border_move(bd,
+                                      bd_info->resize_req.mouse.x,
+                                      bd_info->resize_req.mouse.y);
+               }
+             else if (resize)
+               {
+                  _policy_border_resize(bd,
+                                        bd_info->resize_req.mouse.w,
+                                        bd_info->resize_req.mouse.h);
+               }
+
              L(LT_AIA, "[ILLUME2][AIA] %s(%d)... bd move resize... (%d, %d, %d, %d)\n", __func__, __LINE__, bd->x, bd->y, bd->w, bd->h);
              bd_info->resize_req.need_change = 0;
           }
@@ -3519,9 +3639,16 @@ _policy_zone_layout_app_single_new (E_Illume_Border_Info* bd_info, E_Illume_Conf
    else
      {
         if ((bd->w != bd->zone->w) || (bd->h != bd->zone->h))
-          _policy_border_resize(bd, bd->zone->w, bd->zone->h);
+          resize = EINA_TRUE;
 
         if ((bd->x != bd->zone->x) || (bd->y != bd->zone->y))
+          move = EINA_TRUE;
+
+        if (resize && move)
+          e_border_move_resize(bd, bd->zone->x, bd->zone->y, bd->zone->w, bd->zone->h);
+        else if (resize)
+          _policy_border_resize(bd, bd->zone->w, bd->zone->h);
+        else if (move)
           _policy_border_move(bd, bd->zone->x, bd->zone->y);
      }
 
@@ -3537,6 +3664,8 @@ _policy_zone_layout_app_dual_top_new (E_Illume_Border_Info* bd_info, E_Illume_Co
    E_Border* temp_bd;
    int ny, nh;
    int layer;
+   Eina_Bool resize = EINA_FALSE;
+   Eina_Bool move = EINA_FALSE;
 
    ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... LAYOUT_DUAL_TOP... bd_info's border = %x, client win = 0x%07x\n", __func__, __LINE__, bd_info->border, bd_info->border->client.win);
 
@@ -3565,11 +3694,18 @@ _policy_zone_layout_app_dual_top_new (E_Illume_Border_Info* bd_info, E_Illume_Co
 
    /* resize if needed */
    if ((bd->w != bd->zone->w) || (bd->h != nh))
-      _policy_border_resize(bd, bd->zone->w, nh);
+     resize = EINA_TRUE;
 
    /* move to correct position (relative to zone) if needed */
    if ((bd->x != bd->zone->x) || (bd->y != ny))
-      _policy_border_move(bd, bd->zone->x, ny);
+     move = EINA_TRUE;
+
+   if (resize && move)
+     e_border_move_resize(bd, bd->zone->x, ny, bd->zone->w, nh);
+   else if (resize)
+     _policy_border_resize(bd, bd->zone->w, nh);
+   else if (move)
+     _policy_border_move(bd, bd->zone->x, ny);
 
    /* set layer if needed */
    _policy_zone_layout_app_layer_set (bd, layer);
@@ -3582,6 +3718,8 @@ _policy_zone_layout_app_dual_left_new (E_Illume_Border_Info* bd_info, E_Illume_C
    E_Border* temp_bd;
    int ky, kh, nx, nw;
    int layer;
+   Eina_Bool resize = EINA_FALSE;
+   Eina_Bool move = EINA_FALSE;
 
    ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... LAYOUT_DUAL_LEFT... bd_info's border = %x, client win = 0x%07x\n", __func__, __LINE__, bd_info->border, bd_info->border->client.win);
 
@@ -3612,10 +3750,17 @@ _policy_zone_layout_app_dual_left_new (E_Illume_Border_Info* bd_info, E_Illume_C
 
    /* resize if needed */
    if ((bd->w != nw) || (bd->h != kh))
-      _policy_border_resize(bd, nw, kh);
+     resize = EINA_TRUE;
 
    /* move to correct position (relative to zone) if needed */
    if ((bd->x != nx) || (bd->y != ky))
+     move = EINA_TRUE;
+
+   if (resize && move)
+     e_border_move_resize(bd, nx, ky, nw, kh);
+   else if (resize)
+     _policy_border_resize(bd, nw, kh);
+   else if (move)
      _policy_border_move(bd, nx, ky);
 
    /* set layer if needed */
@@ -3629,6 +3774,8 @@ _policy_zone_layout_app_dual_custom_new (E_Illume_Border_Info* bd_info, E_Illume
    E_Border* bd;
    E_Border *app;
    int iy, ny, nh;
+   Eina_Bool resize = EINA_FALSE;
+   Eina_Bool move = EINA_FALSE;
 
    ILLUME2_TRACE ("[ILLUME2-NEW] %s(%d)... LAYOUT_DUAL_CUSTOM... bd_info's border = %x, client win = 0x%07x\n", __func__, __LINE__, bd_info->border, bd_info->border->client.win);
 
@@ -3660,11 +3807,18 @@ _policy_zone_layout_app_dual_custom_new (E_Illume_Border_Info* bd_info, E_Illume
 
    /* make sure it's the required width & height */
    if ((bd->w != bd->zone->w) || (bd->h != nh))
-      _policy_border_resize(bd, bd->zone->w, nh);
+     resize = EINA_TRUE;
 
    /* move to correct position (relative to zone) if needed */
    if ((bd->x != bd->zone->x) || (bd->y != ny))
-      _policy_border_move(bd, bd->zone->x, ny);
+     move = EINA_TRUE;
+
+   if (resize && move)
+     e_border_move_resize(bd, bd->zone->x, ny, bd->zone->w, nh);
+   else if (resize)
+     _policy_border_resize(bd, bd->zone->w, nh);
+   else if (move)
+     _policy_border_move(bd, bd->zone->x, ny);
 
    /* set layer if needed */
    if (bd->layer != POL_APP_LAYER)
@@ -4052,7 +4206,6 @@ _policy_border_indicator_control(E_Border *indi_bd)
                        if (indi_bd->zone != bd->zone) continue;
                        if (e_illume_border_is_indicator(bd)) continue;
                        if (e_illume_border_is_keyboard(bd)) continue;
-                       if (e_illume_border_is_keyboard_sub(bd)) continue;
                        if (bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING) continue;
 
                        if (!_policy_border_indicator_state_change(indi_bd, bd))
@@ -4095,7 +4248,8 @@ _policy_check_transient_child_visible(E_Border *bd)
 {
    Eina_Bool ret = EINA_FALSE;
    E_Illume_XWin_Info *child_xwin_info = NULL;
-   E_Border *l, *child = NULL;
+   Eina_List *l;
+   E_Border *child = NULL;
 
    EINA_LIST_FOREACH(bd->transients, l, child)
      {
@@ -4167,7 +4321,7 @@ _policy_calculate_visibility(void)
         if (xwin_info->attr.input_only) continue;
 
         // skip "unmap" window
-        if ((xwin_info->attr.visible == 0) &&
+        if ((xwin_info->viewable == 0) &&
             (xwin_info->iconify_by_wm == 0)) continue;
 
         if (!xwin_info->is_drawed) continue;
@@ -4272,6 +4426,7 @@ _policy_calculate_visibility(void)
 #ifdef USE_DLOG
              LOGD("[WM] SEND VISIBILITY. win:0x%07x (old:%d -> new:%d)", xwin_info->bd_info->border->client.win, old_vis, xwin_info->visibility);
 #endif
+             L(LT_VISIBILITY, "[ILLUME2][VISIBILITY] SEND VISIBILITY NOTIFY (Line:%d)... win:0x%07x (old:%d -> new:%d)\n", __LINE__, bd->client.win, old_vis, xwin_info->visibility);
              _policy_send_visibility_notify(bd->client.win, xwin_info->visibility);
 
              if (xwin_info->visibility == E_ILLUME_VISIBILITY_UNOBSCURED)
@@ -4408,6 +4563,8 @@ _policy_xwin_info_add (Ecore_X_Window win)
         return EINA_FALSE;
      }
 
+   xwin_info->viewable = xwin_info->attr.viewable;
+
    bd = e_border_find_by_window (win);
    xwin_info->bd_info = _policy_get_border_info(bd);
    xwin_info->argb = ecore_x_window_argb_get (win);
@@ -4485,7 +4642,7 @@ void _policy_window_show (Ecore_X_Event_Window_Show *event)
         return ;
      }
 
-   xwin_info->attr.visible = 1;
+   xwin_info->viewable = EINA_TRUE;
 
    if (xwin_info->comp_vis)
      {
@@ -4506,7 +4663,7 @@ void _policy_window_hide (Ecore_X_Event_Window_Hide *event)
         return;
      }
 
-   xwin_info->attr.visible = 0;
+   xwin_info->viewable = EINA_FALSE;
 
    L(LT_VISIBILITY, "[ILLUME2][VISIBILITY] %s(%d).. visibility is changed... win:0x%07x\n",  __func__, __LINE__, event->win);
    _g_visibility_changed = EINA_TRUE;
@@ -4522,6 +4679,7 @@ void _policy_window_configure (Ecore_X_Event_Window_Configure *event)
    E_Illume_XWin_Info* temp_xwin_info;
    E_Illume_XWin_Info* target_xwin_info;
    int check_visibility;
+   int changed_size;
    Ecore_X_Window target_win;
 
    L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:0x%07x...\n", __func__, __LINE__, event->win);
@@ -4530,6 +4688,7 @@ void _policy_window_configure (Ecore_X_Event_Window_Configure *event)
    old_above_xwin_info = NULL;
    new_above_xwin_info = NULL;
    check_visibility = 0;
+   changed_size = 0;
    target_win = event->win;
 
    xwin_info = _policy_xwin_info_find (event->win);
@@ -4541,10 +4700,17 @@ void _policy_window_configure (Ecore_X_Event_Window_Configure *event)
    target_xwin_info = xwin_info;
 
    if ((xwin_info->attr.x != event->x) ||
-       (xwin_info->attr.y != event->y) ||
-       (xwin_info->attr.w != event->w) ||
+       (xwin_info->attr.y != event->y))
+     {
+        check_visibility = 1;
+     }
+
+   if ((xwin_info->attr.w != event->w) ||
        (xwin_info->attr.h != event->h))
-      check_visibility = 1;
+     {
+        changed_size = 1;
+        check_visibility = 1;
+     }
 
    xwin_info->attr.x = event->x;
    xwin_info->attr.y = event->y;
@@ -4579,15 +4745,27 @@ void _policy_window_configure (Ecore_X_Event_Window_Configure *event)
 
    _e_illume_xwin_info_list = eina_inlist_remove (_e_illume_xwin_info_list, EINA_INLIST_GET(xwin_info));
    if (new_above_xwin_info)
-      _e_illume_xwin_info_list = eina_inlist_append_relative (_e_illume_xwin_info_list, EINA_INLIST_GET(xwin_info), EINA_INLIST_GET(new_above_xwin_info));
+     _e_illume_xwin_info_list = eina_inlist_append_relative (_e_illume_xwin_info_list, EINA_INLIST_GET(xwin_info), EINA_INLIST_GET(new_above_xwin_info));
    else
-      _e_illume_xwin_info_list = eina_inlist_prepend (_e_illume_xwin_info_list, EINA_INLIST_GET(xwin_info));
+     _e_illume_xwin_info_list = eina_inlist_prepend (_e_illume_xwin_info_list, EINA_INLIST_GET(xwin_info));
 
    if (check_visibility == 1)
      {
-        if (target_xwin_info->attr.visible)
+        if (target_xwin_info->viewable)
           {
              if (target_xwin_info->comp_vis)
+               {
+                  if (changed_size)
+                    {
+                       L(LT_VISIBILITY, "[ILLUME2][VISIBILITY] %s(%d).. SIZE is changed... target win:0x%07x\n",  __func__, __LINE__, target_xwin_info->id);
+                       target_xwin_info->is_drawed = EINA_FALSE;
+                       return;
+                    }
+
+                  L(LT_VISIBILITY, "[ILLUME2][VISIBILITY] %s(%d).. visibility is changed... win:0x%07x\n",  __func__, __LINE__, event->win);
+                  _g_visibility_changed = EINA_TRUE;
+               }
+             else if (target_xwin_info->iconify_by_wm)
                {
                   L(LT_VISIBILITY, "[ILLUME2][VISIBILITY] %s(%d).. visibility is changed... win:0x%07x\n",  __func__, __LINE__, event->win);
                   _g_visibility_changed = EINA_TRUE;
@@ -4642,9 +4820,34 @@ void _policy_window_configure_request (Ecore_X_Event_Window_Configure_Request *e
      }
 }
 
-void _policy_window_sync_draw_done (Ecore_X_Event_Client_Message* event)
+void _policy_window_sync_draw_done(Ecore_X_Event_Client_Message* event)
 {
    E_Border* bd;
+   E_Illume_XWin_Info *xwin_info;
+   Ecore_X_Window win;
+
+   win = event->data.l[0];
+   bd = e_border_find_by_client_window(win);
+   if (!bd) return;
+
+   xwin_info = _policy_xwin_info_find(bd->win);
+   if (!xwin_info) return;
+
+   if (!xwin_info->is_drawed)
+     {
+        if (xwin_info->comp_vis)
+          {
+             xwin_info->is_drawed = EINA_TRUE;
+             L(LT_VISIBILITY, "[ILLUME2][VISIBILITY] %s(%d).. visibility is changed... win:0x%07x\n",  __func__, __LINE__, event->win);
+             _g_visibility_changed = EINA_TRUE;
+          }
+        else if (xwin_info->iconify_by_wm)
+          {
+             xwin_info->is_drawed = EINA_TRUE;
+             L(LT_VISIBILITY, "[ILLUME2][VISIBILITY] %s(%d).. visibility is changed... win:0x%07x\n",  __func__, __LINE__, event->win);
+             _g_visibility_changed = EINA_TRUE;
+          }
+     }
 }
 
 /* Setting window mode requires window stack change and window geometry
@@ -4685,7 +4888,7 @@ void _policy_illume_win_state_change_request (Ecore_X_Event_Client_Message *even
 
    ELBF(ELBT_ILLUME, 0, event->win,
         "GET WIN_STATE_CHANGE_REQ bd:0x%08x(%d->%d) counter:0x%08x val:%d",
-        bd ? bd->client.win : NULL,
+        bd ? bd->client.win : (unsigned int)NULL,
         bd ? bd->client.illume.win_state.state : 0,
         state,
         counter, val);
@@ -4767,7 +4970,6 @@ _policy_change_root_angle_by_border_angle (E_Border* bd)
    // ignore the angle of special borders - like indicator, keyboard, quickpanel, etc.
    if (e_illume_border_is_indicator(bd)) return;
    if (e_illume_border_is_keyboard(bd)) return;
-   if (e_illume_border_is_keyboard_sub(bd)) return;
    if (e_illume_border_is_quickpanel(bd)) return;
    if (e_illume_border_is_quickpanel_popup(bd)) return;
 
@@ -4937,6 +5139,8 @@ _policy_zone_layout_app_single_monitor(E_Illume_Border_Info* bd_info, E_Illume_C
 {
    E_Border* bd;
    int layer;
+   Eina_Bool resize = EINA_FALSE;
+   Eina_Bool move = EINA_FALSE;
 
    bd = bd_info->border;
    if (!bd)
@@ -5009,9 +5213,16 @@ _policy_zone_layout_app_single_monitor(E_Illume_Border_Info* bd_info, E_Illume_C
           }
 
         if ((bd->x != new_x) || (bd->y != new_y))
-          _policy_border_move(bd, new_x, new_y);
+          move = EINA_TRUE;
 
         if ((bd->w != new_w) || (bd->h != new_h))
+          resize = EINA_TRUE;
+
+        if (move && resize)
+          e_border_move_resize(bd, new_x, new_y, new_w, new_h);
+        else if (move)
+          _policy_border_move(bd, new_x, new_y);
+        else if (resize)
           _policy_border_resize(bd, new_w, new_h);
      }
    else
@@ -5025,15 +5236,32 @@ _policy_zone_layout_app_single_monitor(E_Illume_Border_Info* bd_info, E_Illume_C
                     {
                        if ((bd->x != bd_info->resize_req.mouse.x) ||
                            (bd->y != bd_info->resize_req.mouse.y))
-                         _policy_border_move(bd,
-                                             bd_info->resize_req.mouse.x,
-                                             bd_info->resize_req.mouse.y);
+                         move = EINA_TRUE;
 
                        if ((bd->w != bd_info->resize_req.mouse.w) ||
                            (bd->h != bd_info->resize_req.mouse.h))
-                         _policy_border_resize(bd,
-                                               bd_info->resize_req.mouse.w,
-                                               bd_info->resize_req.mouse.h);
+                         resize = EINA_TRUE;
+
+                       if (move && resize)
+                         {
+                            e_border_move_resize(bd,
+                                                 bd_info->resize_req.mouse.x,
+                                                 bd_info->resize_req.mouse.y,
+                                                 bd_info->resize_req.mouse.w,
+                                                 bd_info->resize_req.mouse.h);
+                         }
+                       else if (move)
+                         {
+                            _policy_border_move(bd,
+                                                bd_info->resize_req.mouse.x,
+                                                bd_info->resize_req.mouse.y);
+                         }
+                       else if (resize)
+                         {
+                            _policy_border_resize(bd,
+                                                  bd_info->resize_req.mouse.w,
+                                                  bd_info->resize_req.mouse.h);
+                         }
 
                        bd_info->resize_req.need_change = 0;
                        L(LT_AIA, "[ILLUME2][AIA] %s(%d)... bd move resize... (%d, %d, %d, %d)\n", __func__, __LINE__, bd->x, bd->y, bd->w, bd->h);
@@ -5061,15 +5289,33 @@ _policy_zone_layout_app_single_monitor(E_Illume_Border_Info* bd_info, E_Illume_C
                {
                   if ((bd->x != bd_info->resize_req.mouse.x) ||
                       (bd->y != bd_info->resize_req.mouse.y))
-                    _policy_border_move(bd,
-                                        bd_info->resize_req.mouse.x,
-                                        bd_info->resize_req.mouse.y);
+                    move = EINA_TRUE;
 
                   if ((bd->w != bd_info->resize_req.mouse.w) ||
                       (bd->h != bd_info->resize_req.mouse.h))
-                    _policy_border_resize(bd,
-                                          bd_info->resize_req.mouse.w,
-                                          bd_info->resize_req.mouse.h);
+                    resize = EINA_TRUE;
+
+                  if (move && resize)
+                    {
+                       e_border_move_resize(bd,
+                                            bd_info->resize_req.mouse.x,
+                                            bd_info->resize_req.mouse.y,
+                                            bd_info->resize_req.mouse.w,
+                                            bd_info->resize_req.mouse.h);
+                    }
+                  else if (move)
+                    {
+                       _policy_border_move(bd,
+                                           bd_info->resize_req.mouse.x,
+                                           bd_info->resize_req.mouse.y);
+                    }
+                  else if (resize)
+                    {
+                       _policy_border_resize(bd,
+                                             bd_info->resize_req.mouse.w,
+                                             bd_info->resize_req.mouse.h);
+                    }
+
                   L(LT_AIA, "[ILLUME2][AIA] %s(%d)... bd move resize... (%d, %d, %d, %d)\n", __func__, __LINE__, bd->x, bd->y, bd->w, bd->h);
                   bd_info->resize_req.need_change = 0;
                }
@@ -5199,7 +5445,6 @@ static void _policy_border_root_angle_control(E_Zone *zone)
                        if (bd->zone != zone) continue;
                        if (e_illume_border_is_indicator(bd)) continue;
                        if (e_illume_border_is_keyboard(bd)) continue;
-                       if (e_illume_border_is_keyboard_sub(bd)) continue;
                        if (e_illume_border_is_quickpanel(bd)) continue;
                        if (e_illume_border_is_quickpanel_popup(bd)) continue;
                        if (bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING) continue;
@@ -5448,7 +5693,7 @@ _policy_border_iconify_by_illume(E_Illume_XWin_Info *xwin_info)
    if (e_illume_border_is_clipboard(bd)) return;
    if (e_illume_border_is_app_tray(bd)) return;
    if (e_illume_border_is_miniapp_tray(bd)) return;
-   if (bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING) return;
+//   if (bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING) return;
 
    xwin_info->iconify_by_wm = 1;
 
@@ -5600,7 +5845,7 @@ static E_Border* _policy_border_find_below(E_Border *bd)
                        if ((!xwin_info->argb) ||
                            (xwin_info->argb && xwin_info->bd_info->opaque))
                          {
-                            L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d)... ALREADY FULLY-OBSCURED... by win:0x%07x visible:%d (visibility:%d)\n", __func__, __LINE__, b->client.win, b->visible, xwin_info->visibility);
+                            L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d)... win:0x%07x, ALREADY FULLY-OBSCURED... by win:0x%07x visible:%d (visibility:%d)\n", __func__, __LINE__, bd->client.win, b->client.win, b->visible, xwin_info->visibility);
                             break;
                          }
                     }
