@@ -5041,6 +5041,25 @@ _policy_root_angle_set(E_Border *bd)
    return EINA_TRUE;
 }
 
+static Eina_Bool
+e_illume_border_is_camera(E_Border *bd)
+{
+   const char *name = NULL;
+   const char *clas = NULL;
+
+   if (!bd) return EINA_FALSE;
+
+   name = bd->client.icccm.name;
+   clas = bd->client.icccm.class;
+
+   if (clas == NULL) return EINA_FALSE;
+   if (strncmp(clas,"camera",strlen("camera"))!= 0) return EINA_FALSE;
+   if (name == NULL) return EINA_FALSE;
+   if (strncmp(name,"camera",strlen("camera"))!= 0) return EINA_FALSE;
+
+   return EINA_TRUE;
+}
+
 static void
 _policy_change_root_angle_by_border_angle (E_Border* bd)
 {
@@ -5052,6 +5071,41 @@ _policy_change_root_angle_by_border_angle (E_Border* bd)
    if (e_illume_border_is_keyboard(bd)) return;
    if (e_illume_border_is_quickpanel(bd)) return;
    if (e_illume_border_is_quickpanel_popup(bd)) return;
+
+   if (e_illume_border_is_camera(bd))
+     {
+        if (dep_rot.refer.active_win == bd->client.win)
+          {
+             // make rotation request for the dependent windows such as quickpanel
+             int ang = _policy_window_rotation_angle_get(bd->client.win);
+             if (ang == -1) ang = 0;
+
+             if (dep_rot.ang != ang)
+               {
+                  int prev_ang = dep_rot.ang;
+                  dep_rot.ang = ang;
+
+                  Eina_List *nl = NULL, *l;
+                  E_Border *dep_bd = NULL;
+
+                  EINA_LIST_FOREACH(dep_rot.list, l, dep_bd)
+                    {
+                       dep_bd->client.e.state.rot.prev = bd->client.e.state.rot.curr;
+                       dep_bd->client.e.state.rot.curr = ang;
+                       dep_bd->client.e.state.rot.wait_for_done = 1;
+                       nl = eina_list_append(nl, dep_bd);
+                    }
+
+                  if (nl)
+                    {
+                       ELBF(ELBT_ROT, 0, bd->client.win,
+                            "ADD & REQUEST ROT(dependent) curr:%d != prev:%d", dep_rot.ang, prev_ang);
+                       e_border_rotation_list_add_change_req(bd->zone, nl);
+                       eina_list_free(nl);
+                    }
+               }
+          }
+     }
 
    L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d)... CALL _policy_root_angle_set.. win:0x%07x\n", __func__, __LINE__, bd->client.win);
    _policy_root_angle_set(bd);
