@@ -6331,8 +6331,36 @@ _policy_property_active_indicator_win_change(Ecore_X_Event_Window_Property *even
              ELB(ELBT_ROT, "ERR! NO BD ACTIVE_INDI_WIN", active_win);
              return;
           }
-        dep_rot.refer.active_win = active_win;
-        _policy_border_dependent_rotation(bd);
+
+        /* The normal application window is ok to rotate dependent rotation windows.
+         * But if the notification window which doesn't have accepts_focus such as volume popup
+         * is the active window, then the illume doesn't rotate dependent windows.
+         */
+        Eina_Bool rot = EINA_FALSE;
+        if (e_illume_border_is_notification(bd))
+          {
+            if ((bd->client.icccm.accepts_focus) || (bd->client.icccm.take_focus))
+              {
+                 rot = EINA_TRUE;
+              }
+          }
+        else
+          {
+             rot = EINA_TRUE;
+          }
+
+        ELBF(ELBT_ROT, 0, bd->client.win,
+             "ROT:%d NOTI:%d ACCEPT_FOCUS:%d TAKE_FOCUS:%d",
+             rot,
+             e_illume_border_is_notification(bd),
+             bd->client.icccm.accepts_focus,
+             bd->client.icccm.take_focus);
+
+        if (rot)
+          {
+             dep_rot.refer.active_win = active_win;
+             _policy_border_dependent_rotation(bd);
+          }
      }
 }
 
