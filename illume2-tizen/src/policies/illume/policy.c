@@ -6311,15 +6311,27 @@ _policy_property_indicator_cmd_win_change(Ecore_X_Event_Window_Property *event)
 static void
 _policy_property_active_indicator_win_change(Ecore_X_Event_Window_Property *event)
 {
-   Ecore_X_Window active_win;
-   E_Border *bd;
+   Ecore_X_Window active_win = 0;
+   E_Border *bd = NULL;
+
+   if (!event) return;
 
    active_win = _policy_active_indicator_win_get(event->win);
+   if (!active_win)
+     {
+        ELB(ELBT_ROT, "ERR! NO ACTIVE_INDI_WIN", event->win);
+        return;
+     }
+
    if (dep_rot.refer.active_win != active_win)
      {
-        dep_rot.refer.active_win = active_win;
-
         bd = e_border_find_by_client_window(active_win);
+        if (!bd)
+          {
+             ELB(ELBT_ROT, "ERR! NO BD ACTIVE_INDI_WIN", active_win);
+             return;
+          }
+        dep_rot.refer.active_win = active_win;
         _policy_border_dependent_rotation(bd);
      }
 }
