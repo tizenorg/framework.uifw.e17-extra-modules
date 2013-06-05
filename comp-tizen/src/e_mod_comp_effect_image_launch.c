@@ -17,6 +17,8 @@ struct _E_Comp_Effect_Image_Launch
    int             indicator_show;  // indicator enable / disable flag
    Evas_Object*    indicator_obj;   // plugin indicator object
    Evas_Object*    layer_obj;       // evas_object between normal layer with float layer
+   Evas *evas;                       // pointer for saving evas of canvas
+   Ecore_Evas *ecore_evas;          // pointer for saving ecore_evas of canvas
 };
 
 /* local subsystem functions */
@@ -49,12 +51,12 @@ e_mod_comp_effect_image_launch_new(Evas *e,
    eff->shobj = edje_object_add(e);
    E_CHECK_GOTO(eff->shobj, error);
 
-   //indicator_comp
+   //get ecore_evas and save
    Ecore_Evas *ee;
    ee = ecore_evas_ecore_evas_get(e);
    E_CHECK_GOTO(ee, error);
-   eff->indicator_obj = ecore_evas_extn_plug_new(ee);
-   E_CHECK_GOTO(eff->indicator_obj, error);
+   eff->ecore_evas = ee;
+   eff->evas = e;
 
    ok = edje_object_file_set
           (eff->shobj,
@@ -67,9 +69,6 @@ e_mod_comp_effect_image_launch_new(Evas *e,
 
    evas_object_move(eff->shobj, 0, 0);
    evas_object_resize(eff->shobj, w, h);
-
-   eff->obj = evas_object_image_add(e);
-   E_CHECK_GOTO(eff->obj, error);
 
    edje_object_signal_callback_add
      (eff->shobj, "fake,action,hide,done", "fake",
@@ -162,6 +161,8 @@ e_mod_comp_effect_image_launch_show(E_Comp_Effect_Image_Launch *eff,
    E_Comp_Win *bottom_appinapp_cw = NULL;
 
    E_CHECK_RETURN(eff, 0);
+   E_CHECK_RETURN(eff->evas, 0);
+   E_CHECK_RETURN(eff->ecore_evas, 0);
    E_CHECK_RETURN(file, 0);
    E_CHECK_RETURN(c, 0);
 
@@ -171,6 +172,8 @@ e_mod_comp_effect_image_launch_show(E_Comp_Effect_Image_Launch *eff,
    eff->running = EINA_TRUE;
 
    //fake image part
+   eff->obj = evas_object_image_add(eff->evas);
+   E_CHECK_GOTO(eff->obj, error);
    evas_object_image_file_set(eff->obj, file, NULL);
    err = evas_object_image_load_error_get(eff->obj);
    E_CHECK_GOTO(err == EVAS_LOAD_ERROR_NONE, error);
@@ -184,6 +187,9 @@ e_mod_comp_effect_image_launch_show(E_Comp_Effect_Image_Launch *eff,
    res = edje_object_part_swallow
            (eff->shobj, "fake.swallow.content", eff->obj);
    E_CHECK_GOTO(res, error);
+
+   eff->indicator_obj = ecore_evas_extn_plug_new(eff->ecore_evas);
+   E_CHECK_GOTO(eff->indicator_obj, error);
 
    if ((eff->rot == 0) || (eff->rot == 180))//portrait mode
      {
@@ -416,11 +422,15 @@ e_mod_comp_effect_image_launch_disable(E_Comp_Effect_Image_Launch *eff)
      {
         edje_object_part_unswallow(eff->shobj, eff->indicator_obj);
         evas_object_hide(eff->indicator_obj);
+        evas_object_del(eff->indicator_obj);
+        eff->indicator_obj = NULL;
      }
    edje_object_part_unswallow(eff->shobj, eff->obj);
 
    evas_object_hide(eff->shobj);
    evas_object_hide(eff->obj);
+   evas_object_del(eff->obj);
+   eff->obj = NULL;
 }
 
 static E_Comp_Win *
