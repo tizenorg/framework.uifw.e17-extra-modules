@@ -6289,7 +6289,7 @@ _policy_dependent_rotation_list_make(E_Border *bd)
    ang = bd->client.e.state.rot.curr;
    EINA_LIST_FOREACH(dep_rot.list, l, dep_bd)
      {
-        dep_bd->client.e.state.rot.prev = bd->client.e.state.rot.curr;
+        dep_bd->client.e.state.rot.prev = dep_bd->client.e.state.rot.curr;
         dep_bd->client.e.state.rot.curr = ang;
         dep_bd->client.e.state.rot.wait_for_done = 1;
         nl = eina_list_append(nl, dep_bd);
@@ -6304,8 +6304,20 @@ _policy_property_indicator_cmd_win_change(Ecore_X_Event_Window_Property *event)
    Ecore_X_Window cmd_win;
 
    cmd_win = _policy_indicator_cmd_win_get(event->win);
+
+   if (!cmd_win)
+     {
+        ELB(ELBT_ROT, "ERR! NO INDI_CMD_WIN", event->win);
+        return;
+     }
+
    if (dep_rot.refer.cmd_win != cmd_win)
-     dep_rot.refer.cmd_win = cmd_win;
+     {
+        ELBF(ELBT_ROT, 0, cmd_win,
+             "INDICATOR COMMAND WIN: [0x%08x -> 0x%08x]",
+             dep_rot.refer.cmd_win, cmd_win);
+        dep_rot.refer.cmd_win = cmd_win;
+     }
 }
 
 static void
@@ -6358,6 +6370,13 @@ _policy_property_active_indicator_win_change(Ecore_X_Event_Window_Property *even
 
         if (rot)
           {
+             E_Border *prev_bd = e_border_find_by_client_window(dep_rot.refer.active_win);
+             ELBF(ELBT_ROT, 0, active_win,
+                  "INDICATOR ACTIVE WIN: [%s(0x%08x) -> %s(0x%08x)]",
+                  prev_bd ? (prev_bd->client.icccm.name ? prev_bd->client.icccm.name : "") : "",
+                  dep_rot.refer.active_win,
+                  bd->client.icccm.name ? bd->client.icccm.name : "",
+                  active_win);
              dep_rot.refer.active_win = active_win;
              _policy_border_dependent_rotation(bd);
           }
