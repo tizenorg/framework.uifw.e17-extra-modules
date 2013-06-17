@@ -3189,6 +3189,9 @@ static void _policy_layout_quickpanel_rotate (E_Illume_Quickpanel* qp, int angle
 
    int diff, temp;
 
+   // It caused abnormal size of quickpanel window and abnormal rotation state.
+   // disable it for now.
+#if 0
    // pass 1 - resize window
    EINA_LIST_FOREACH(qp->borders, bd_list, panel)
      {
@@ -3223,6 +3226,7 @@ static void _policy_layout_quickpanel_rotate (E_Illume_Quickpanel* qp, int angle
                 ILLUME2_TRACE ("[ILLUME2-QUICKPANEL] Landscape quick panel...(%d) quick win = 0x%07x..  But size is not change\n", __LINE__, bd->client.win);
           }
      }
+#endif
 
    // pass 2 - send client message
    EINA_LIST_FOREACH(qp->borders, bd_list, panel)
