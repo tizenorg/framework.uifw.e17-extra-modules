@@ -7,6 +7,8 @@ static Eina_Bool      _e_mod_move_indicator_widget_apptray_move_set(E_Move_Indic
 static Eina_Bool      _e_mod_move_indicator_widget_quickpanel_move_set(E_Move_Indicator_Widget *indi_widget, Eina_Bool state);
 static Eina_Bool      _e_mod_move_indicator_widget_apptray_move_get(E_Move_Indicator_Widget *indi_widget);
 static Eina_Bool      _e_mod_move_indicator_widget_quickpanel_move_get(E_Move_Indicator_Widget *indi_widget);
+static Eina_Bool      _e_mod_move_indicator_widget_move_started_set(E_Move_Indicator_Widget *indi_widget, Eina_Bool state);
+static Eina_Bool      _e_mod_move_indicator_widget_move_started_get(E_Move_Indicator_Widget *indi_widget);
 static Eina_Bool      _e_mod_move_indicator_widget_cb_motion_start_internal_apptray_check(E_Move_Border *at_mb);
 static Eina_Bool      _e_mod_move_indicator_widget_cb_motion_start_internal_quickpanel_check(E_Move_Border *qp_mb);
 static Eina_Bool      _e_mod_move_indicator_widget_quickpanel_flick_process(E_Move_Indicator_Widget *indi_widget, E_Move_Border *mb2, int angle, Eina_Bool state);
@@ -16,7 +18,7 @@ static Eina_Bool      _e_mod_move_indicator_widget_cb_motion_start(void *data, v
 static Eina_Bool      _e_mod_move_indicator_widget_cb_motion_move(void *data, void *event_info);
 static Eina_Bool      _e_mod_move_indicator_widget_cb_motion_end(void *data, void *event_info);
 static void           _e_mod_move_indicator_widget_obj_event_setup(E_Move_Indicator_Widget *indicator_widget, E_Move_Widget_Object *mwo);
-static Eina_Bool      _e_mod_move_indicator_widget_scrollable_object_movable_check(E_Move_Border *mb, Evas_Point pos);
+static Eina_Bool      _e_mod_move_indicator_widget_scrollable_object_movable_check(E_Move_Indicator_Widget *indi_widget, E_Move_Border *mb, Evas_Point pos);
 static Eina_Bool      _e_mod_move_indicator_widget_target_window_find_by_pointer(Ecore_X_Window *win, int x, int y);
 static Ecore_X_Window _e_mod_move_indicator_widget_event_win_find(void *event_info);
 static Eina_Bool      _e_mod_move_indicator_widget_target_window_policy_check(E_Move_Border *mb);
@@ -53,6 +55,22 @@ _e_mod_move_indicator_widget_quickpanel_move_get(E_Move_Indicator_Widget *indi_w
 {
    E_CHECK_RETURN(indi_widget, EINA_FALSE);
    return indi_widget->quickpanel_move;
+}
+
+static Eina_Bool
+_e_mod_move_indicator_widget_move_started_set(E_Move_Indicator_Widget *indi_widget,
+                                              Eina_Bool                state)
+{
+   E_CHECK_RETURN(indi_widget, EINA_FALSE);
+   indi_widget->move_started = state;
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_e_mod_move_indicator_widget_move_started_get(E_Move_Indicator_Widget *indi_widget)
+{
+   E_CHECK_RETURN(indi_widget, EINA_FALSE);
+   return indi_widget->move_started;
 }
 
 static Eina_Bool
@@ -602,7 +620,7 @@ _e_mod_move_indicator_widget_cb_motion_move(void *data,
               break;
           }
 
-        if (_e_mod_move_indicator_widget_scrollable_object_movable_check(mb, info->coord))
+        if (_e_mod_move_indicator_widget_scrollable_object_movable_check(indi_widget, mb, info->coord))
           {
              if (m->qp_scroll_with_clipping)
                 e_mod_move_quickpanel_objs_move(qp_mb,
@@ -947,7 +965,7 @@ _e_mod_move_indicator_widget_cb_motion_end(void *data,
    else if (qp_mb)
      {
         e_mod_move_quickpanel_e_border_move(qp_mb, mx, my);
-        if (_e_mod_move_indicator_widget_scrollable_object_movable_check(mb, info->coord))
+        if (_e_mod_move_indicator_widget_scrollable_object_movable_check(indi_widget, mb, info->coord))
           e_mod_move_quickpanel_objs_animation_move(qp_mb, ax, ay);
         else
           e_mod_move_quickpanel_objs_animation_move_with_time(qp_mb, ax, ay, 0.0000001);
@@ -957,6 +975,7 @@ _e_mod_move_indicator_widget_cb_motion_end(void *data,
 
 finish:
    indi_widget->pos = info->coord; // save mouse up position
+   _e_mod_move_indicator_widget_move_started_set(indi_widget, EINA_FALSE);
 
    EINA_LIST_FOREACH(indi_widget->objs, l, mwo)
      {
@@ -1001,43 +1020,51 @@ _e_mod_move_indicator_widget_obj_event_setup(E_Move_Indicator_Widget *indicator_
 }
 
 static Eina_Bool
-_e_mod_move_indicator_widget_scrollable_object_movable_check(E_Move_Border *mb, Evas_Point pos)
+_e_mod_move_indicator_widget_scrollable_object_movable_check(E_Move_Indicator_Widget *indicator_widget,
+                                                             E_Move_Border           *mb,
+                                                             Evas_Point              pos)
 {
    E_Move *m = NULL;
-   int val1 = 0, val2 = 0;
-   double threshold = 0.2; // 20 %
+   int check_val = 0;
    Eina_Bool ret = EINA_FALSE;
-   int sx = 0, sy = 0, ex = 0, ey = 0;
-   double st = 0.0, et = 0.0;
+   Eina_Bool move_started = EINA_FALSE;
+   Eina_Bool position_check = EINA_FALSE;
+
+   E_CHECK_RETURN(indicator_widget, EINA_FALSE);
+   E_CHECK_RETURN(mb, EINA_FALSE);
 
    m = e_mod_move_util_get();
    E_CHECK_RETURN(m, EINA_FALSE);
 
-   if (!e_mod_move_flick_data_get(mb, &sx, &sy, &ex, &ey, &st, &et))
-     return EINA_FALSE;
+   move_started = _e_mod_move_indicator_widget_move_started_get(indicator_widget);
+   if (move_started) return EINA_TRUE;
 
    switch (mb->angle)
      {
       case 90:
-         val1 = pos.x - sx;
-         val2 = m->indicator_widget_geometry[E_MOVE_ANGLE_90].w;
+         check_val = m->indicator_widget_geometry[E_MOVE_ANGLE_90].w;
+         if (pos.x > check_val) position_check = EINA_TRUE;
          break;
       case 180:
-         val1 = sy - pos.y;
-         val2 = m->indicator_widget_geometry[E_MOVE_ANGLE_180].h;
+         check_val = m->indicator_widget_geometry[E_MOVE_ANGLE_180].y;
+         if (pos.y < check_val) position_check = EINA_TRUE;
          break;
       case 270:
-         val1 = sx - pos.x;
-         val2 = m->indicator_widget_geometry[E_MOVE_ANGLE_270].w;
+         check_val = m->indicator_widget_geometry[E_MOVE_ANGLE_270].x;
+         if (pos.x < check_val) position_check = EINA_TRUE;
          break;
       case 0:
       default:
-         val1 = pos.y - sy;
-         val2 = m->indicator_widget_geometry[E_MOVE_ANGLE_0].h;
+         check_val = m->indicator_widget_geometry[E_MOVE_ANGLE_0].h;
+         if (pos.y > check_val) position_check = EINA_TRUE;
          break;
      }
 
-   if ((val1 / val2) > threshold) ret = EINA_TRUE;
+   if (position_check)
+     {
+         _e_mod_move_indicator_widget_move_started_set(indicator_widget, EINA_TRUE);
+         ret = EINA_TRUE;
+     }
 
    return ret;
 }

@@ -9,6 +9,7 @@ struct _E_Move_Indicator_Widget
    Ecore_X_Window  win;
    Eina_Bool       quickpanel_move;
    Eina_Bool       apptray_move;
+   Eina_Bool       move_started;
    Evas_Point      pos; // mouse position
    int             input_region_id;
 };
