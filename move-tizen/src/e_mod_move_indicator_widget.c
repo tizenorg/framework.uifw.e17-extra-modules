@@ -23,6 +23,7 @@ static Eina_Bool      _e_mod_move_indicator_widget_target_window_find_by_pointer
 static Ecore_X_Window _e_mod_move_indicator_widget_event_win_find(void *event_info);
 static Eina_Bool      _e_mod_move_indicator_widget_target_window_policy_check(E_Move_Border *mb);
 static Eina_Bool      _e_mod_move_indicator_widget_event_send_policy_check(E_Move_Indicator_Widget *indi_widget, Evas_Point pos);
+static void           _e_mod_move_indicator_widget_active_indicator_win_find_and_set(void);
 
 /* local subsystem functions */
 static Eina_Bool
@@ -340,9 +341,9 @@ _e_mod_move_indicator_widget_home_region_release_check(E_Move_Indicator_Widget *
          if (pos.x > region_check) ret = EINA_TRUE;
          break;
       default :
-         L(LT_EVENT_OBJ,
-           "[MOVE] ev:%15.15s , invalid angle:%d, (%d,%d)  %s()\n",
-           "EVAS_OBJ", angle, pos.x, pos.y,
+         SL(LT_EVENT_OBJ,
+            "[MOVE] ev:%15.15s , invalid angle:%d, (%d,%d)  %s()\n",
+            "EVAS_OBJ", angle, pos.x, pos.y,
             __func__)
          break;
      }
@@ -400,7 +401,7 @@ _e_mod_move_indicator_widget_cb_motion_start(void *data,
    if (clicked)
      return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
+   SL(LT_EVENT_OBJ,
      "[MOVE] ev:%15.15s w:0x%08x INDI_WIDGET_MOTION_START (%4d,%4d)\n",
      "EVAS_OBJ", mb->bd->win,
      info->coord.x, info->coord.y);
@@ -519,10 +520,10 @@ _e_mod_move_indicator_widget_cb_motion_move(void *data,
 
    if (!m || !mb || !info) return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x INDI_WIDGET_MOTION_MOVE a:%d (%4d,%4d)\n",
-     "EVAS_OBJ", mb->bd->win, mb->angle,
-     info->coord.x, info->coord.y);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x INDI_WIDGET_MOTION_MOVE a:%d (%4d,%4d)\n",
+      "EVAS_OBJ", mb->bd->win, mb->angle,
+      info->coord.x, info->coord.y);
 
    angle = mb->angle;
    zone = mb->bd->zone;
@@ -717,10 +718,10 @@ _e_mod_move_indicator_widget_cb_motion_end(void *data,
    if (mouse_up_event->button != 1)
      return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
-     "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
-     __func__);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
+      "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
+      __func__);
 
    angle = mb->angle;
    zone = mb->bd->zone;
@@ -1146,13 +1147,10 @@ static Ecore_X_Window
 _e_mod_move_indicator_widget_event_win_find(void *event_info)
 {
    E_Move_Event_Motion_Info *info = NULL;
-   E_Border                 *find_bd = NULL;
    Ecore_X_Window            win = 0, res_win = 0;
    info  = (E_Move_Event_Motion_Info *)event_info;
 
    E_CHECK_RETURN(info, 0);
-
-   find_bd = e_mod_move_util_border_find_by_pointer(info->coord.x, info->coord.y);
 
    if (_e_mod_move_indicator_widget_target_window_find_by_pointer(&win,
                                                                   info->coord.x,
@@ -1161,9 +1159,9 @@ _e_mod_move_indicator_widget_event_win_find(void *event_info)
          res_win = win;
      }
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s INDICATOR_WIDGET_EVENT_WIN_FIND w:0x%08x (%4d,%4d)\n",
-     "EVAS_OBJ", res_win, info->coord.x, info->coord.y);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s INDICATOR_WIDGET_EVENT_WIN_FIND w:0x%08x (%4d,%4d)\n",
+      "EVAS_OBJ", res_win, info->coord.x, info->coord.y);
 
    return res_win;
 }
@@ -1209,6 +1207,32 @@ _e_mod_move_indicator_widget_event_send_policy_check(E_Move_Indicator_Widget *in
    if (E_INSIDE(pos.x, pos.y, x, y, w, h)) ret = EINA_TRUE;
 
    return ret;
+}
+
+/* find active indicator window window and set property */
+static void
+_e_mod_move_indicator_widget_active_indicator_win_find_and_set(void)
+{
+   E_Move                  *m = NULL;
+   Ecore_X_Window           target_win;
+   E_Move_Border           *target_mb = NULL;
+
+   m = e_mod_move_util_get();
+   E_CHECK(m);
+
+   if (e_mod_move_indicator_widget_target_window_find(&target_win))
+     {
+        target_mb = e_mod_move_border_client_find(target_win);
+        E_CHECK(target_mb);
+        if (TYPE_NOTIFICATION_CHECK(target_mb)
+            && (target_mb->argb)
+            && (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
+          {
+             ;
+          }
+        else
+           e_mod_move_util_prop_active_indicator_win_set(target_win, m);
+     }
 }
 
 /* externally accessible functions */
@@ -1293,7 +1317,12 @@ e_mod_move_indicator_widget_apply(void)
 
    m = e_mod_move_util_get();
    E_CHECK(m);
-   if (m->screen_reader_state) return;
+   if (m->screen_reader_state)
+     {
+        _e_mod_move_indicator_widget_active_indicator_win_find_and_set();
+        return;
+     }
+   if (m->setup_wizard_state) return;
 
    if (e_mod_move_indicator_widget_target_window_find(&target_win))
      {
@@ -1310,9 +1339,10 @@ e_mod_move_indicator_widget_apply(void)
                   // then del previous indicator_widget and add new indicator widget.
                   e_mod_move_indicator_widget_del(indi_widget);
                   e_mod_move_indicator_widget_set(e_mod_move_indicator_widget_add(target_win));
-                  if (TYPE_NOTIFICATION_CHECK(target_mb)
-                      && (target_mb->argb)
-                      && (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
+                  if ((target_mb) &&
+                      (TYPE_NOTIFICATION_CHECK(target_mb)) &&
+                      (target_mb->argb) &&
+                      (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
                     {
                       ;
                     }
@@ -1406,7 +1436,7 @@ e_mod_move_indicator_widget_add(Ecore_X_Window win)
           }
         e_mod_move_widget_objs_move(indi_widget->objs, x, y);
         e_mod_move_widget_objs_resize(indi_widget->objs, w, h);
-        e_mod_move_widget_objs_layer_set(indi_widget->objs, EVAS_LAYER_MAX);
+        e_mod_move_widget_objs_layer_set(indi_widget->objs, EVAS_LAYER_MAX-2);
         e_mod_move_widget_objs_color_set(indi_widget->objs, 0, 0, 0, 0);
         e_mod_move_widget_objs_show(indi_widget->objs);
         e_mod_move_widget_objs_raise(indi_widget->objs);

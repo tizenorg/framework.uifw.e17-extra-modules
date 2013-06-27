@@ -3,7 +3,7 @@
 #include <X11/Xlib.h>
 #include "virt_mon_set.h"
 
-#define VIRT_MON_CHK(cond) {if (!(cond)) { fprintf (stderr, "[%s] : '%s' failed.\n", __func__, #cond); return; }}
+#define VIRT_MON_CHK(cond) {if (!(cond)) { SLOG(LOG_DEBUG, "DEVICEMGR", "[%s] : '%s' failed.\n", __func__, #cond); return; }}
 
 /* set the virtual monitor to connect */
 void

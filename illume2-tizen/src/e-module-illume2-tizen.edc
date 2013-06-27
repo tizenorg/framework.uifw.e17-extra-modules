@@ -1,18 +1,18 @@
-collections 
+collections
 {
-   group 
+   group
      {
         images.image: "module_icon.png" COMP;
         name: "icon";
         max: 128 128;
-        parts 
+        parts
           {
-             part 
+             part
                {
                   name: "icon";
                   type: IMAGE;
                   mouse_events: 0;
-                  description 
+                  description
                     {
                        state: "default" 0.0;
                        aspect: 1.0 1.0;
@@ -20,6 +20,66 @@ collections
                        image.normal: "module_icon.png";
                     }
                }
+        }
+     }
+
+   group
+     {
+        images.image: "RB0_resize.png" COMP;
+        images.image: "RB0_resize_notAvail.png" COMP;
+        name: "new_shadow";
+        max: 720 720;
+        parts
+          {
+             part
+               {
+                  name: "opacity_rect";
+                  type: RECT;
+                  description
+                    {
+                       state: "default" 0.0;
+                       color: 255 255 255 255;
+                    }
+               }
+             part
+               {
+                  name: "resize_border";
+                  type: IMAGE;
+                  clip_to: "opacity_rect";
+                  description
+                    {
+                       state: "default" 0;
+                       image.normal: "RB0_resize.png";
+                       image.border: 5 5 5 5;
+                       image.middle: NONE;
+                    }
+                  description
+                    {
+                       state: "not_avail" 0;
+                       image.normal: "RB0_resize_notAvail.png";
+                       image.border: 5 5 5 5;
+                    }
+               }
           }
+
+          programs
+           {
+               program
+                 {
+                    source: "illume2";
+                    action: STATE_SET "not_avail" 0;
+                    signal: "resize,notavail";
+                    filter: "resize_border" "default";
+                    target: "resize_border";
+                 }
+               program
+                 {
+                    source: "illume2";
+                    action: STATE_SET "default" 0;
+                    signal: "resize,normal";
+                    filter: "resize_border" "not_avail";
+                    target: "resize_border";
+                 }
+           }
      }
 }

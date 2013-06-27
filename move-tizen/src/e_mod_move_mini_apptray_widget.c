@@ -59,8 +59,9 @@ _e_mod_move_mini_apptray_widget_cb_motion_start_internal_mini_apptray_check(E_Mo
    EINA_INLIST_REVERSE_FOREACH(m->borders, find_mb)
      {
         if (TYPE_INDICATOR_CHECK(find_mb)) continue;
-        if (find_mb->visible
-             && REGION_INTERSECTS_WITH_ZONE(find_mb, mini_apptray_mb->bd->zone))
+        if ((find_mb->visible) &&
+            (mini_apptray_mb->bd) &&
+            (REGION_INTERSECTS_WITH_ZONE(find_mb, mini_apptray_mb->bd->zone)))
           {
               found = EINA_TRUE;
               break;
@@ -195,10 +196,10 @@ _e_mod_move_mini_apptray_widget_cb_motion_start(void *data,
    if (clicked)
      return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x MINI_APPTRAY_WIDGET_MOTION_START (%4d,%4d)\n",
-     "EVAS_OBJ", mb->bd->win,
-     info->coord.x, info->coord.y);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x MINI_APPTRAY_WIDGET_MOTION_START (%4d,%4d)\n",
+      "EVAS_OBJ", mb->bd->win,
+      info->coord.x, info->coord.y);
 
    _e_mod_move_mini_apptray_widget_mini_apptray_move_set(mini_apptray_widget, EINA_FALSE);
 
@@ -283,10 +284,10 @@ _e_mod_move_mini_apptray_widget_cb_motion_move(void *data,
 
    if (!m || !mb || !info) return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x MINI_APPTRAY_WIDGET_MOTION_MOVE a:%d (%4d,%4d)\n",
-     "EVAS_OBJ", mb->bd->win, mb->angle,
-     info->coord.x, info->coord.y);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x MINI_APPTRAY_WIDGET_MOTION_MOVE a:%d (%4d,%4d)\n",
+      "EVAS_OBJ", mb->bd->win, mb->angle,
+      info->coord.x, info->coord.y);
 
    angle = mb->angle;
    zone = mb->bd->zone;
@@ -395,10 +396,10 @@ _e_mod_move_mini_apptray_widget_cb_motion_end(void *data,
    if (mouse_up_event->button != 1)
      return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
-     "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
-     __func__);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
+      "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
+      __func__);
 
    angle = mb->angle;
    zone = mb->bd->zone;
@@ -556,9 +557,9 @@ _e_mod_move_mini_apptray_event_win_find(void *event_info)
    if (find_bd) win = find_bd->client.win;
    else win = 0;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s MINI_APPTRAY_EVENT_WIN_FIND w:0x%08x (%4d,%4d)\n",
-     "EVAS_OBJ", win, info->coord.x, info->coord.y);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s MINI_APPTRAY_EVENT_WIN_FIND w:0x%08x (%4d,%4d)\n",
+      "EVAS_OBJ", win, info->coord.x, info->coord.y);
 
    return win;
 }
@@ -695,7 +696,10 @@ e_mod_move_mini_apptray_widget_apply(void)
    m = e_mod_move_util_get();
    E_CHECK(m);
 
+   E_CHECK(m->apptray_launch_by_flickup);
+
    if (m->screen_reader_state) return;
+   if (m->setup_wizard_state) return;
 
    mini_apptray_mb = e_mod_move_mini_apptray_find();
    if (!mini_apptray_mb)
@@ -801,7 +805,7 @@ e_mod_move_mini_apptray_widget_add(Ecore_X_Window win)
           }
         e_mod_move_widget_objs_move(mini_apptray_widget->objs, x, y);
         e_mod_move_widget_objs_resize(mini_apptray_widget->objs, w, h);
-        e_mod_move_widget_objs_layer_set(mini_apptray_widget->objs, EVAS_LAYER_MAX);
+        e_mod_move_widget_objs_layer_set(mini_apptray_widget->objs, EVAS_LAYER_MAX-2);
         e_mod_move_widget_objs_color_set(mini_apptray_widget->objs, 0, 0, 0, 0);
         e_mod_move_widget_objs_show(mini_apptray_widget->objs);
         e_mod_move_widget_objs_raise(mini_apptray_widget->objs);

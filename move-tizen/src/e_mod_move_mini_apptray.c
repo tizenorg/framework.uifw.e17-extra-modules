@@ -114,10 +114,10 @@ _e_mod_move_mini_apptray_cb_motion_move(void *data,
    info  = (E_Move_Event_Motion_Info *)event_info;
    if (!mb || !info) return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
-     "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
-     __func__);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
+      "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
+      __func__);
 
    angle = mb->angle;
    zone = mb->bd->zone;
@@ -234,10 +234,10 @@ _e_mod_move_mini_apptray_cb_motion_end(void *data,
    if (mouse_up_event->button != 1)
      return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
-     "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
-     __func__);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
+      "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
+      __func__);
 
    angle = mb->angle;
    zone = mb->bd->zone;
@@ -614,15 +614,25 @@ EINTERN Eina_Bool
 e_mod_move_mini_apptray_objs_add(E_Move_Border *mb)
 {
    Eina_Bool mirror = EINA_TRUE;
+   Evas_Object *ly = NULL;
    E_CHECK_RETURN(mb, EINA_FALSE);
    E_CHECK_RETURN(TYPE_MINI_APPTRAY_CHECK(mb), EINA_FALSE);
 
+   ly = e_mod_move_util_comp_layer_get(mb->m, "move");
+   E_CHECK_RETURN(ly, EINA_FALSE);
+
    if (!(mb->objs))
      {
+        // Composite mode set true
+        e_mod_move_util_compositor_composite_mode_set(mb->m, EINA_TRUE);
         mb->objs = e_mod_move_bd_move_objs_add(mb, mirror);
         e_mod_move_bd_move_objs_move(mb, mb->x, mb->y);
         e_mod_move_bd_move_objs_resize(mb, mb->w, mb->h);
         e_mod_move_bd_move_objs_show(mb);
+
+        if (!evas_object_visible_get(ly))
+          evas_object_show(ly);
+
         if (mb->objs) e_mod_move_util_rotation_lock(mb->m);
      }
    return EINA_TRUE;
@@ -651,10 +661,17 @@ e_mod_move_mini_apptray_objs_add_with_pos(E_Move_Border *mb,
 EINTERN Eina_Bool
 e_mod_move_mini_apptray_objs_del(E_Move_Border *mb)
 {
+   Evas_Object *ly = NULL;
    E_CHECK_RETURN(mb, EINA_FALSE);
    E_CHECK_RETURN(TYPE_MINI_APPTRAY_CHECK(mb), EINA_FALSE);
+   ly = e_mod_move_util_comp_layer_get(mb->m, "move");
+   E_CHECK_RETURN(ly, EINA_FALSE);
+   if (evas_object_visible_get(ly))
+     evas_object_hide(ly);
    e_mod_move_bd_move_objs_del(mb, mb->objs);
    e_mod_move_util_rotation_unlock(mb->m);
+   // Composite mode set False
+   e_mod_move_util_compositor_composite_mode_set(mb->m, EINA_FALSE);
    mb->objs = NULL;
    return EINA_TRUE;
 }
@@ -846,6 +863,9 @@ e_mod_move_mini_apptray_e_border_move(E_Move_Border *mb,
         e_border_focus_set(mb->bd, 0, 0);
      }
 
+   ELBF(ELBT_MOVE, 0, mb->bd->win,
+        "MINI APP_TRAY MOVE w:0x%08x c:0x%08x [%d,%d]",
+        mb->bd->win, mb->bd->client.win, x, y);
    e_border_move(mb->bd, x, y);
 
    return EINA_TRUE;
@@ -887,8 +907,6 @@ e_mod_move_mini_apptray_dim_show(E_Move_Border *mb)
      {
         mini_apptray_data = E_NEW(E_Move_Mini_Apptray_Data, 1);
         E_CHECK_RETURN(mini_apptray_data, NULL);
-        // Composite mode set true
-        e_mod_move_util_compositor_composite_mode_set(mb->m, EINA_TRUE);
 
         mini_apptray_data->x = mb->x;
         mini_apptray_data->y = mb->y;
@@ -901,9 +919,6 @@ e_mod_move_mini_apptray_dim_show(E_Move_Border *mb)
      {
         if (!(mini_apptray_data->dim_objs))
           {
-             // Composite mode set true
-             e_mod_move_util_compositor_composite_mode_set(mb->m, EINA_TRUE);
-
              mini_apptray_data->dim_objs = e_mod_move_bd_move_dim_objs_add(mb);
           }
         if (mini_apptray_data->dim_objs)
@@ -936,9 +951,6 @@ e_mod_move_mini_apptray_dim_hide(E_Move_Border *mb)
    e_mod_move_bd_move_dim_objs_del(mini_apptray_data->dim_objs);
    mini_apptray_data->dim_objs = NULL;
    mini_apptray_data->opacity = dim_min;
-
-   // Composite mode set false
-   e_mod_move_util_compositor_composite_mode_set(mb->m, EINA_FALSE);
 
    L(LT_EVENT_OBJ,
      "[MOVE] ev:%15.15s w:0x%08x %s()\n",

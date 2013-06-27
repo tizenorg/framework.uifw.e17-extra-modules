@@ -4,6 +4,9 @@
 
 #include "e.h"
 
+#define LOG_TAG	"DEVICEMGR"
+#include "dlog.h"
+
 #define E_DEVICEMGR_CFG_PATH  "/opt/share/.e/e/config/samsung/"
 #define E_DEVICEMGR_CFG       "module.devicemgr-tizen"
 

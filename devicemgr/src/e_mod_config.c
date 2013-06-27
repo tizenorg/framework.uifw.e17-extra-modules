@@ -45,11 +45,11 @@ e_mod_devicemgr_config_init(void)
      {
         _e_mod_devicemgr_config_new();
         e_mod_devicemgr_config_save();
-        fprintf(stderr, "[e_devicemgr][config] Config file for e_devicemgr was made/stored !\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][config] Config file for e_devicemgr was made/stored !\n");
      }
    else
      {
-        fprintf(stderr, "[e_devicemgr][config] Config file for e_devicemgr was loaded successfully !\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][config] Config file for e_devicemgr was loaded successfully !\n");
      }
 
    return 1;

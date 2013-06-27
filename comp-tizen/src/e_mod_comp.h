@@ -27,12 +27,7 @@ EINTERN Evas_Object *e_mod_comp_win_mirror_add(E_Comp_Win *cw);
 EINTERN void         e_mod_comp_cb_win_mirror_del(void *data, Evas *e, Evas_Object *obj, void *event_info);
 EINTERN void         e_mod_comp_src_hidden_set_func(void *data, E_Manager *man, E_Manager_Comp_Source *src, Eina_Bool hidden);
 EINTERN void         e_mod_comp_x_grab_set(E_Comp *c, Eina_Bool grab);
-EINTERN void         e_mod_comp_explicit_show_done(E_Comp_Win *cw);
-EINTERN void         e_mod_comp_explicit_hide_done(E_Comp_Win *cw);
-EINTERN void         e_mod_comp_explicit_raise_above_show_done(E_Comp_Win *cw);
-EINTERN void         e_mod_comp_explicit_raise_above_hide_done(E_Comp_Win *cw);
-EINTERN void         e_mod_comp_explicit_background_show_done(E_Comp_Win *cw);
-EINTERN void         e_mod_comp_explicit_background_hide_done(E_Comp_Win *cw);
+EINTERN void         e_mod_comp_composite_mode_set(E_Zone *zone, Eina_Bool set);
 
 #endif
 #endif

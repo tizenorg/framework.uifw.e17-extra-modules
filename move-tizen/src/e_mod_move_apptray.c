@@ -118,10 +118,10 @@ _e_mod_move_apptray_cb_motion_move(void *data,
    info  = (E_Move_Event_Motion_Info *)event_info;
    if (!mb || !info) return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
-     "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
-     __func__);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
+      "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
+      __func__);
 
    angle = mb->angle;
    zone = mb->bd->zone;
@@ -181,10 +181,10 @@ _e_mod_move_apptray_cb_motion_end(void *data,
    if (mouse_up_event->button != 1)
      return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
-     "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
-     __func__);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
+      "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
+      __func__);
 
    angle = mb->angle;
    zone = mb->bd->zone;
@@ -338,7 +338,7 @@ _e_mod_move_apptray_objs_animation_frame(void  *data,
           }
 
         // send apptray to "move end message".
-        LOG(LOG_DEBUG, "WM_WINDOW_SHOW", "[e17:X_CLIENT_MESSAGE:Apptray:ANIMATION_END]");
+        SLOG(LOG_DEBUG, "E17_MOVE_MODULE","[e17:X_CLIENT_MESSAGE:Apptray:ANIMATION_END]");
         e_mod_move_apptray_anim_state_send(mb, EINA_FALSE);
 
         e_mod_move_apptray_objs_del(mb);

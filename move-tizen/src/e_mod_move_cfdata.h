@@ -35,12 +35,13 @@ struct _Config
       int h;
    } indicator_widget_geometry[4]; //indicator widget's per angle geometry. [0]: angle 0, [1]: angle 90, [2]: angle 180, [3]: angle 270
 
+   unsigned char apptray_launch_by_flickup; // 1: apptray launch by flick up feature enable. 0: apptray launch by flick up feature disable
+
    struct {
-      int x;
-      int y;
-      int w;
-      int h;
-   } mini_apptray_widget_geometry[4]; //mini_apptray widget's per angle geometry. [0]: angle 0, [1]: angle 90, [2]: angle 180, [3]: angle 270
+      int portrait;
+      int landscape;
+   } apptray_widget_size; // apptray widget's size.
+
 };
 
 EAPI void    e_mod_move_cfdata_edd_init(E_Config_DD **conf_edd);

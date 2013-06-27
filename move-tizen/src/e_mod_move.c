@@ -124,50 +124,31 @@ _e_mod_move_mouse_btn_dn(void    *data,
                          int type __UNUSED__,
                          void    *event)
 {
-   E_Move *m;
    Ecore_Event_Mouse_Button *ev = (Ecore_Event_Mouse_Button *)event;
    E_CHECK_RETURN(ev, ECORE_CALLBACK_PASS_ON);
 
-   m = e_mod_move_util_get();
-   if ((m) && (m->ev_log))
+   if (ev->multi.device == 0) // single mouse down
      {
-        E_Move_Event_Log *log = NULL;
-
-        log = E_NEW(E_Move_Event_Log, 1);
-        if (log)
-          {
-             if (ev->multi.device == 0) // single mouse down
-               {
-                  log->t = E_MOVE_EVENT_LOG_ECORE_SINGLE_MOUSE_DOWN;
-                  log->d.ec_sm.win = ev->window;
-                  log->d.ec_sm.x = ev->x;
-                  log->d.ec_sm.y = ev->y;
-                  log->d.ec_sm.btn = ev->buttons;
-               }
-             else if (ev->multi.device > 0) // multi mouse down
-               {
-                  log->t = E_MOVE_EVENT_LOG_ECORE_MULTI_MOUSE_DOWN;
-                  log->d.ec_mm.win = ev->window;
-                  log->d.ec_mm.x = ev->multi.x;
-                  log->d.ec_mm.y = ev->multi.y;
-                  log->d.ec_mm.btn = ev->buttons;
-                  log->d.ec_mm.dev = ev->multi.device;
-               }
-             else
-               {
-                  log->t = E_MOVE_EVENT_LOG_UNKOWN;
-               }
-             // list check and append
-             if (eina_list_count(m->ev_logs) >= m->ev_log_cnt)
-               {
-                  // if log list is full, delete first log
-                  E_Move_Event_Log *first_log = (E_Move_Event_Log*)eina_list_nth(m->ev_logs, 0);
-                  m->ev_logs = eina_list_remove(m->ev_logs, first_log);
-                  memset(first_log, 0, sizeof(E_Move_Event_Log));
-                  E_FREE(first_log);
-               }
-             m->ev_logs = eina_list_append(m->ev_logs, log);
-          }
+        SECURE_SLOGD("%23s   w:0x%08x (%4d ,%4d )  btn:%d\n",
+                     "ECORE_SINGLE_MOUSE_DOWN",
+                     ev->window,
+                     ev->x,
+                     ev->y,
+                     ev->buttons);
+     }
+   else if (ev->multi.device > 0) // multi mouse down
+     {
+        SECURE_SLOGD("%23s   w:0x%08x (%5.1f,%5.1f)  btn:%d | dev:%d\n",
+                     "ECORE_MULTI_MOUSE_DOWN",
+                     ev->window,
+                     ev->multi.x,
+                     ev->multi.y,
+                     ev->buttons,
+                     ev->multi.device);
+     }
+   else
+     {
+        SECURE_SLOGD("%23s\n","EVENT_LOG_UNKOWN");
      }
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -177,50 +158,31 @@ _e_mod_move_mouse_btn_up(void    *data,
                          int type __UNUSED__,
                          void    *event)
 {
-   E_Move *m;
    Ecore_Event_Mouse_Button *ev = (Ecore_Event_Mouse_Button *)event;
    E_CHECK_RETURN(ev, ECORE_CALLBACK_PASS_ON);
 
-   m = e_mod_move_util_get();
-   if ((m) && (m->ev_log))
+   if (ev->multi.device == 0) // single mouse up
      {
-        E_Move_Event_Log *log = NULL;
-
-        log = E_NEW(E_Move_Event_Log, 1);
-        if (log)
-          {
-             if (ev->multi.device == 0) // single mouse up
-               {
-                  log->t = E_MOVE_EVENT_LOG_ECORE_SINGLE_MOUSE_UP;
-                  log->d.ec_sm.win = ev->window;
-                  log->d.ec_sm.x = ev->x;
-                  log->d.ec_sm.y = ev->y;
-                  log->d.ec_sm.btn = ev->buttons;
-               }
-             else if (ev->multi.device > 0) // multi mouse up
-               {
-                  log->t = E_MOVE_EVENT_LOG_ECORE_MULTI_MOUSE_UP;
-                  log->d.ec_mm.win = ev->window;
-                  log->d.ec_mm.x = ev->multi.x;
-                  log->d.ec_mm.y = ev->multi.y;
-                  log->d.ec_mm.btn = ev->buttons;
-                  log->d.ec_mm.dev = ev->multi.device;
-               }
-             else
-               {
-                  log->t = E_MOVE_EVENT_LOG_UNKOWN;
-               }
-             // list check and append
-             if (eina_list_count(m->ev_logs) >= m->ev_log_cnt)
-               {
-                  // if log list is full, delete first log
-                  E_Move_Event_Log *first_log = (E_Move_Event_Log*)eina_list_nth(m->ev_logs, 0);
-                  m->ev_logs = eina_list_remove(m->ev_logs, first_log);
-                  memset(first_log, 0, sizeof(E_Move_Event_Log));
-                  E_FREE(first_log);
-               }
-             m->ev_logs = eina_list_append(m->ev_logs, log);
-          }
+        SECURE_SLOGD("%23s   w:0x%08x (%4d ,%4d )  btn:%d\n",
+                     "ECORE_SINGLE_MOUSE_UP",
+                     ev->window,
+                     ev->x,
+                     ev->y,
+                     ev->buttons);
+     }
+   else if (ev->multi.device > 0) // multi mouse up
+     {
+        SECURE_SLOGD("%23s   w:0x%08x (%5.1f,%5.1f)  btn:%d | dev:%d\n",
+                     "ECORE_MULTI_MOUSE_UP",
+                     ev->window,
+                     ev->multi.x,
+                     ev->multi.y,
+                     ev->buttons,
+                     ev->multi.device);
+     }
+   else
+     {
+        SECURE_SLOGD("%23s\n","EVENT_LOG_UNKOWN");
      }
    return ECORE_CALLBACK_PASS_ON;
 }
@@ -294,9 +256,9 @@ _e_mod_move_message(void *data __UNUSED__,
 
    if (t == ATOM_WM_WINDOW_SHOW)
      {
-        LOG(LOG_DEBUG,
-            "WM_WINDOW_SHOW", "[e17:X_CLIENT_MESSAGE] w:0x%08x atom:%s",
-            ev->win,e_mod_move_atoms_name_get(t));
+        SLOG(LOG_DEBUG, "E17_MOVE_MODULE",
+             "[e17:X_CLIENT_MESSAGE] w:0x%08x atom:%s",
+             ev->win,e_mod_move_atoms_name_get(t));
         _e_mod_move_msg_window_show(ev);
      }
    else if (t == ECORE_X_ATOM_E_ILLUME_QUICKPANEL_STATE) _e_mod_move_msg_qp_state(ev);
@@ -897,6 +859,20 @@ _e_mod_move_bd_add_intern(E_Move_Border *mb)
         e_mod_move_util_prop_indicator_cmd_win_set(win, m);
         _e_mod_move_prop_indicator_geometry_get(win, m);
      }
+   else if (TYPE_SETUP_WIZARD_CHECK(mb))
+     {
+        E_Move_Mini_Apptray_Widget *mini_apptray_widget = NULL;
+        E_Move_Indicator_Widget *indi_widget = NULL;
+
+        if (!m->setup_wizard_state)
+          {
+             m->setup_wizard_state = EINA_TRUE;
+             indi_widget = e_mod_move_indicator_widget_get();
+             if (indi_widget) e_mod_move_indicator_widget_del(indi_widget);
+             mini_apptray_widget = e_mod_move_mini_apptray_widget_get();
+             if (mini_apptray_widget) e_mod_move_mini_apptray_widget_del(mini_apptray_widget);
+          }
+     }
 }
 
 static void
@@ -929,6 +905,17 @@ _e_mod_move_bd_del_intern(E_Move_Border *mb)
    _e_mod_move_bd_obj_del(mb);
    _e_mod_move_ctl_obj_del(mb);
    m->borders = eina_inlist_remove(m->borders, EINA_INLIST_GET(mb));
+
+   if (TYPE_SETUP_WIZARD_CHECK(mb))
+     {
+        if ((e_mod_move_setup_wizard_find() == NULL))
+          {
+             m->setup_wizard_state = EINA_FALSE;
+             if (m->elm_indicator_mode) e_mod_move_indicator_widget_apply();
+             e_mod_move_mini_apptray_widget_apply();
+          }
+     }
+
    memset(mb, 0, sizeof(E_Move_Border));
    free(mb);
 }
@@ -2208,7 +2195,7 @@ _e_mod_move_msg_window_show(Ecore_X_Event_Client_Message *ev)
                 e_mod_move_mini_apptray_objs_add(mini_at_mb);
 
              // send mini_apptray to "move start message".
-             LOG(LOG_DEBUG, "WM_WINDOW_SHOW", "[e17:X_CLIENT_MESSAGE:ApptrayShow:ANIMATION_START]");
+             SLOG(LOG_DEBUG, "E17_MOVE_MODULE","[e17:X_CLIENT_MESSAGE:ApptrayShow:ANIMATION_START]");
              e_mod_move_mini_apptray_anim_state_send(mini_at_mb, EINA_TRUE);
 
              e_mod_move_mini_apptray_e_border_move(mini_at_mb, x, y);
@@ -2318,7 +2305,7 @@ _e_mod_move_msg_window_show(Ecore_X_Event_Client_Message *ev)
              e_mod_move_apptray_anim_state_send(at_mb, EINA_TRUE);
 
              e_mod_move_apptray_e_border_move(at_mb, x, y);
-             LOG(LOG_DEBUG, "WM_WINDOW_SHOW", "[e17:X_CLIENT_MESSAGE:ApptrayHide:ANIMATION_START]");
+             SLOG(LOG_DEBUG, "E17_MOVE_MODULE","[e17:X_CLIENT_MESSAGE:ApptrayHide:ANIMATION_START]");
              e_mod_move_apptray_objs_animation_move(at_mb, x, y);
              L(LT_EVENT_X,
                "[MOVE] ev:%15.15s Apptray Hide %s():%d\n",
@@ -2361,10 +2348,10 @@ _e_mod_move_msg_window_show(Ecore_X_Event_Client_Message *ev)
      }
    else
      {
-        fprintf(stderr,
-                "[MOVE_MODULE] _NET_WM_WINDOW_SHOW error."
-                " w:0x%07x(state:%d) request:%d\n",
-                win, state, open);
+        SLOG(LOG_DEBUG, "E17_MOVE_MODULE",
+             "[MOVE_MODULE] _NET_WM_WINDOW_SHOW error."
+             " w:0x%07x(state:%d) request:%d\n",
+             win, state, open);
      }
    return EINA_TRUE;
 }
@@ -2657,10 +2644,10 @@ _e_mod_move_msg_qp_state(Ecore_X_Event_Client_Message *ev)
      }
    else
      {
-        fprintf(stderr,
-                "[MOVE_MODULE] _E_ILLUME_QUICKPANEL_STATE error."
-                " w:0x%07x(state:%d) request:%d\n",
-                win, state, open);
+		 SLOG(LOG_DEBUG, "E17_MOVE_MODULE",
+				 "[MOVE_MODULE] _E_ILLUME_QUICKPANEL_STATE error."
+				 " w:0x%07x(state:%d) request:%d\n",
+				 win, state, open);
      }
 
    return EINA_TRUE;
@@ -2703,11 +2690,15 @@ static E_Move *
 _e_mod_move_add(E_Manager *man)
 {
    E_Move *m;
+   E_Zone *zone;
    Ecore_X_Window *wins;
    int i, num;
 
    E_Move_Canvas *canvas;
    E_Border *bd;
+
+   zone = e_util_zone_current_get(man);
+   E_CHECK_RETURN(zone, NULL);
 
    m = E_NEW(E_Move, 1);
    E_CHECK_RETURN(m, NULL);
@@ -2737,8 +2728,6 @@ _e_mod_move_add(E_Manager *man)
    m->animation_duration = _move_mod->conf->animation_duration;
    m->dim_max_opacity = _move_mod->conf->dim_max_opacity;
    m->dim_min_opacity = _move_mod->conf->dim_min_opacity;
-   m->ev_log = _move_mod->conf->event_log;
-   m->ev_log_cnt = _move_mod->conf->event_log_count;
    m->elm_indicator_mode = _move_mod->conf->elm_indicator_mode;
    wins = ecore_x_window_children_get(m->man->root, &num);
 
@@ -2777,38 +2766,43 @@ _e_mod_move_add(E_Manager *man)
       = _move_mod->conf->indicator_widget_geometry[E_MOVE_ANGLE_270].h;
 
    // miniapp_tray widget gemometry setting
+   m->apptray_launch_by_flickup = _move_mod->conf->apptray_launch_by_flickup;
+
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].x
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].x;
+      = zone->x;
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].y
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].y;
+      = zone->h - _move_mod->conf->apptray_widget_size.portrait;
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].w
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].w;
+      = zone->w;
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].h
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].h;
+      = _move_mod->conf->apptray_widget_size.portrait;
+
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].x
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].x;
+      = zone->w - _move_mod->conf->apptray_widget_size.landscape;
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].y
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].y;
+      = zone->y;
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].w
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].w;
+      = _move_mod->conf->apptray_widget_size.landscape;
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].h
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].h;
+      =  zone->h;
+
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].x
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].x;
+      = zone->x;
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].y
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].y;
+      = zone->y;
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].w
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].w;
+      = zone->w;
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].h
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].h;
+      = _move_mod->conf->apptray_widget_size.portrait;
+
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].x
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].x;
+      = zone->x;
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].y
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].y;
+      = zone->y;
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].w
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].w;
+      = _move_mod->conf->apptray_widget_size.landscape;
    m->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].h
-      = _move_mod->conf->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].h;
+      = zone->h;
 
    if (wins)
      {
@@ -2836,10 +2830,8 @@ _e_mod_move_add(E_Manager *man)
 static void
 _e_mod_move_del(E_Move *m)
 {
-   Eina_List *l;
    E_Move_Border *mb;
    E_Move_Canvas *canvas;
-   E_Move_Event_Log *log;
 
    E_CHECK(m);
    while (m->borders)
@@ -2851,13 +2843,6 @@ _e_mod_move_del(E_Move *m)
 
    EINA_LIST_FREE(m->canvases, canvas) e_mod_move_canvas_del(canvas);
    m->canvases = NULL;
-
-   EINA_LIST_FOREACH(m->ev_logs, l, log)
-     {
-        memset(log, 0, sizeof(E_Move_Event_Log));
-        E_FREE(log);
-     }
-   eina_list_free(m->ev_logs);
 
    if (m->borders_list) eina_list_free(m->borders_list);
 

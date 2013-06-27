@@ -61,7 +61,9 @@ EINTERN Eina_Bool
 e_mod_comp_policy_app_launch_check(E_Comp_Win *cw)
 {
    E_CHECK_RETURN(cw, 0);
-   if (TYPE_NORMAL_CHECK(cw) && SIZE_EQUAL_TO_ROOT(cw))
+   E_CHECK_RETURN(cw->bd, 0);
+   E_CHECK_RETURN(cw->bd->zone, 0);
+   if (TYPE_NORMAL_CHECK(cw) && REGION_EQUAL_TO_ZONE(cw, cw->bd->zone))
      return EINA_TRUE;
    return EINA_FALSE;
 }
@@ -70,7 +72,9 @@ EINTERN Eina_Bool
 e_mod_comp_policy_app_close_check(E_Comp_Win *cw)
 {
    E_CHECK_RETURN(cw, 0);
-   if (TYPE_NORMAL_CHECK(cw) && SIZE_EQUAL_TO_ROOT(cw))
+   E_CHECK_RETURN(cw->bd, 0);
+   E_CHECK_RETURN(cw->bd->zone, 0);
+   if (TYPE_NORMAL_CHECK(cw) && REGION_EQUAL_TO_ZONE(cw, cw->bd->zone))
      return EINA_TRUE;
    return EINA_FALSE;
 }

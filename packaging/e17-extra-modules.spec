@@ -35,7 +35,7 @@ The E17 Extra Modules  The E17 extra modules consists of modules made by SAMSUNG
 
 %build
 
-%define DEF_SUBDIRS comp-tizen illume2-tizen keyrouter wmready accessibility move-tizen devicemgr extndialog screen-reader
+%define DEF_SUBDIRS comp-tizen illume2-tizen keyrouter wmready accessibility move-tizen devicemgr extndialog screen-reader devmode-tizen
 
 export CFLAGS+=" -Wall -g -fPIC -rdynamic"
 export LDFLAGS+=" -Wl,--hash-style=both -Wl,--as-needed -Wl,--rpath=/usr/lib"
@@ -86,6 +86,7 @@ find  %{buildroot}/usr/lib/enlightenment/modules -name *.a | xargs rm
 %{_libdir}/enlightenment/modules/move-tizen
 %{_libdir}/enlightenment/modules/e17-extra-module-devicemgr
 %{_libdir}/enlightenment/modules/screen-reader
+%{_libdir}/enlightenment/modules/devmode-tizen
 %{_datadir}/enlightenment/data/*
 %{_bindir}/extndialog
 %{_bindir}/*

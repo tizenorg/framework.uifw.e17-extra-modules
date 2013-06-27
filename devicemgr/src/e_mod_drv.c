@@ -13,7 +13,7 @@
    do {                                               \
         a = ecore_x_atom_get (s);                      \
         if (!a)                                       \
-          fprintf (stderr,                             \
+          SLOG(LOG_DEBUG, "DEVICEMGR",                              \
                    "[E-devmgr] ##s creation failed.\n"); \
    } while (0)
 
@@ -30,7 +30,7 @@ typedef enum
 void
 e_mod_drv_virt_mon_set (int cmd)
 {
-   printf ("[DeviceMgr]: set the virtual output connect/disconnect\n");
+   SLOG(LOG_DEBUG, "DEVICEMGR", "[DeviceMgr]: set the virtual output connect/disconnect\n");
 
    E_Randr_Output_Info *output_info = NULL;
    Eina_List *l_output;
@@ -53,7 +53,7 @@ e_mod_drv_virt_mon_set (int cmd)
 
    if (!found_output)
      {
-        fprintf (stderr, "[DeviceMgr]: fail to initialize the virtual output\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr]: fail to initialize the virtual output\n");
         goto set_fail;
      }
 
@@ -81,7 +81,7 @@ set_fail:
 void
 e_mod_drv_hib_set (int cmd)
 {
-   printf ("[DeviceMgr]: set the hibernation on/off\n");
+   SLOG(LOG_DEBUG, "DEVICEMGR", "[DeviceMgr]: set the hibernation on/off\n");
 
    E_Randr_Output_Info *output_info = NULL;
    Eina_List *l_output;
@@ -104,7 +104,7 @@ e_mod_drv_hib_set (int cmd)
 
    if (!found_output)
      {
-        fprintf (stderr, "[DeviceMgr]: fail to initialize the virtual output\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr]: fail to initialize the virtual output\n");
         goto set_fail;
      }
 

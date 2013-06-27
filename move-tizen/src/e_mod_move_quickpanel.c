@@ -38,6 +38,8 @@ static Eina_Bool          _e_mod_move_quickpanel_objs_check_on_screen(E_Move_Bor
 static Eina_Bool          _e_mod_move_quickpanel_objs_outside_movable_pos_get(E_Move_Border *mb, int *x, int *y);
 static Eina_Bool          _e_mod_move_quickpanel_animation_change_with_angle(E_Move_Border *mb);
 static Eina_Bool          _e_mod_move_quickpanel_fb_move_change_with_angle(E_Move_Border *mb);
+static Eina_Bool          _e_mod_move_quickpanel_comp_layer_obj_move(int x, int y);
+static Eina_Bool          _e_mod_move_quickpanel_comp_layer_obj_move_intern(int x, int y);
 
 /* local subsystem functions */
 static Eina_Bool
@@ -68,8 +70,8 @@ _e_mod_move_quickpanel_cb_motion_start(void *data,
    if (clicked)
      return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x %s()\n", "EVAS_OBJ", mb->bd->win, __func__);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x %s()\n", "EVAS_OBJ", mb->bd->win, __func__);
 
    if (e_mod_move_quickpanel_objs_animation_state_get(mb)) goto error_cleanup;
 
@@ -127,10 +129,10 @@ _e_mod_move_quickpanel_cb_motion_move(void *data,
    info  = (E_Move_Event_Motion_Info *)event_info;
    if (!mb || !info) return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
-     "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
-     __func__);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
+      "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
+      __func__);
 
    m = mb->m;
    angle = mb->angle;
@@ -254,10 +256,10 @@ _e_mod_move_quickpanel_cb_motion_end(void *data,
    if (mouse_up_event->button != 1)
      return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
-     "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
-     __func__);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
+      "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
+      __func__);
 
    m = mb->m;
    angle = mb->angle;
@@ -672,13 +674,8 @@ _e_mod_move_quickpanel_objs_animation_frame(void  *data,
               ecore_x_e_illume_quickpanel_state_set(zone->black_win, ECORE_X_ILLUME_QUICKPANEL_STATE_OFF);
            }
 
-         // if scroll with clipping use case, hold below windows until only animation is working
-         if (m->qp_scroll_with_visible_win &&
-             m->qp_scroll_with_clipping)
-           {
-              _e_mod_move_quickpanel_below_window_objs_del();
-              _e_mod_move_quickpanel_below_window_unset();
-           }
+         // restore comp layer's position
+         _e_mod_move_quickpanel_comp_layer_obj_move_intern(zone->x, zone->y);
 
          memset(anim_data, 0, sizeof(E_Move_Quickpanel_Animation_Data));
          E_FREE(anim_data);
@@ -1511,6 +1508,117 @@ _e_mod_move_quickpanel_fb_move_change_with_angle(E_Move_Border *mb)
    return EINA_TRUE;
 }
 
+static Eina_Bool
+_e_mod_move_quickpanel_comp_layer_obj_move(int x,
+                                           int y)
+{
+   E_Move *m;
+   E_Move_Border *qp_mb;
+   E_Zone *zone;
+   int angle;
+   int cx = 0, cy = 0, cw = 0, ch = 0;
+   int mx = 0, my = 0;
+   m = e_mod_move_util_get();
+   E_CHECK_RETURN(m, EINA_FALSE);
+   qp_mb = e_mod_move_quickpanel_find();
+   E_CHECK_RETURN(qp_mb, EINA_FALSE);
+   if (!m->qp_scroll_with_clipping
+        && !e_mod_move_border_contents_rect_get(qp_mb, &cx, &cy ,&cw, &ch))
+     return EINA_FALSE;
+
+   angle = qp_mb->angle;
+   zone = qp_mb->bd->zone;
+
+   switch (angle)
+     {
+      case   0:
+         mx = zone->x;
+         if (m->qp_scroll_with_clipping)
+            my = y + zone->y;
+         else
+            my = y + ch + zone->y;
+         break;
+      case  90:
+         if (m->qp_scroll_with_clipping)
+            mx = x + zone->x;
+         else
+            mx = x + cw + zone->x;
+         my = zone->y;
+         break;
+      case 180:
+         mx = zone->x;
+         if (m->qp_scroll_with_clipping)
+            my = zone->y - (zone->h - y);
+         else
+            my = y - ch + zone->y;
+         break;
+      case 270:
+         if (m->qp_scroll_with_clipping)
+            mx = zone->x - (zone->w - x);
+         else
+            mx = x - cw + zone->x;
+         my = zone->y;
+         break;
+      default :
+         break;
+     }
+
+   _e_mod_move_quickpanel_comp_layer_obj_move_intern(mx, my);
+
+   // if qp_scroll_with_clipping case, make cw / ch data for e_mod_move_util_fb_move()
+   if (m->qp_scroll_with_clipping)
+     {
+        switch (angle)
+          {
+           case 180:
+              ch = zone->h;
+              break;
+           case 270:
+              cw = zone->w;
+              break;
+           default:
+              break;
+          }
+     }
+
+   e_mod_move_util_fb_move(angle, cw, ch, x, y);
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
+_e_mod_move_quickpanel_comp_layer_obj_move_intern(int x,
+                                                  int y)
+{
+   E_Move *m = NULL;
+   Evas_Object *comp_layer = NULL;
+   Evas_Object *effect_layer = NULL;
+
+   m = e_mod_move_util_get();
+   E_CHECK_RETURN(m, EINA_FALSE);
+
+   comp_layer = e_mod_move_util_comp_layer_get(m, "comp");
+   if (comp_layer)
+     {
+         evas_object_move(comp_layer, x, y);
+         L(LT_EVENT_OBJ,
+           "[MOVE] ev:%15.15s comp_layer_obj:0x%x %s()  (%d,%d)\n",
+           "EVAS_OBJ", comp_layer, __func__, x, y);
+     }
+
+
+   effect_layer = e_mod_move_util_comp_layer_get(m, "effect");
+   if (effect_layer)
+     {
+         evas_object_move(effect_layer, x, y);
+         L(LT_EVENT_OBJ,
+           "[MOVE] ev:%15.15s effect_layer_obj:0x%x %s()  (%d,%d)\n",
+           "EVAS_OBJ", effect_layer, __func__, x, y);
+     }
+
+   return EINA_TRUE;
+}
+
 /* externally accessible functions */
 EINTERN void
 e_mod_move_quickpanel_ctl_obj_event_setup(E_Move_Border         *mb,
@@ -1619,10 +1727,14 @@ e_mod_move_quickpanel_objs_add(E_Move_Border *mb)
 {
    E_Move *m = NULL;
    Eina_Bool mirror = EINA_TRUE;
+   Evas_Object *move_layer = NULL;
    E_CHECK_RETURN(mb, EINA_FALSE);
    E_CHECK_RETURN(TYPE_QUICKPANEL_CHECK(mb), EINA_FALSE);
 
    m = mb->m;
+
+   move_layer = e_mod_move_util_comp_layer_get(m, "move");
+   E_CHECK_RETURN(move_layer, EINA_FALSE);
 
    if (!(mb->objs))
      {
@@ -1631,19 +1743,17 @@ e_mod_move_quickpanel_objs_add(E_Move_Border *mb)
         e_mod_move_bd_move_objs_resize(mb, mb->w, mb->h);
         e_mod_move_bd_move_objs_show(mb);
 
+        e_mod_move_util_screen_input_block(m);
+
+        if (!evas_object_visible_get(move_layer))
+          evas_object_show(move_layer);
+
         if (mb->objs) e_mod_move_util_rotation_lock(mb->m);
 
         if (m->qp_scroll_with_clipping)
           {
              e_mod_move_quickpanel_objs_clipper_add(mb);
              _e_mod_move_quickpanel_handle_objs_add(mb);
-
-             // make below window's mirror object for animation
-             if (m->qp_scroll_with_visible_win)
-               {
-                  _e_mod_move_quickpanel_below_window_set();
-                  _e_mod_move_quickpanel_below_window_objs_add();
-               }
           }
      }
    return EINA_TRUE;
@@ -1653,9 +1763,16 @@ EINTERN Eina_Bool
 e_mod_move_quickpanel_objs_del(E_Move_Border *mb)
 {
    E_Move *m = NULL;
+   Evas_Object *move_layer = NULL;
    E_CHECK_RETURN(mb, EINA_FALSE);
    E_CHECK_RETURN(TYPE_QUICKPANEL_CHECK(mb), EINA_FALSE);
    m = mb->m;
+
+   move_layer = e_mod_move_util_comp_layer_get(m, "move");
+   E_CHECK_RETURN(move_layer, EINA_FALSE);
+
+    if (evas_object_visible_get(move_layer))
+      evas_object_hide(move_layer);
 
    if (m->qp_scroll_with_clipping)
      {
@@ -1665,6 +1782,7 @@ e_mod_move_quickpanel_objs_del(E_Move_Border *mb)
 
    e_mod_move_bd_move_objs_del(mb, mb->objs);
    e_mod_move_util_rotation_unlock(mb->m);
+   e_mod_move_util_screen_input_unblock(mb->m);
 
    mb->objs = NULL;
 
@@ -1703,7 +1821,7 @@ e_mod_move_quickpanel_objs_move(E_Move_Border *mb,
         if (m->qp_scroll_with_visible_win)
           {
              if (POINT_INSIDE_ZONE(x, y, zone))
-               _e_mod_move_quickpanel_below_window_objs_move(x, y);
+               _e_mod_move_quickpanel_comp_layer_obj_move(x, y);
           }
      }
    else
@@ -1716,7 +1834,7 @@ e_mod_move_quickpanel_objs_move(E_Move_Border *mb,
              if (e_mod_move_border_contents_rect_get(mb, &cx, &cy ,&cw, &ch))
                {
                   if (E_INTERSECTS(x+cx, y+cy, cw, ch, zone->x, zone->y, zone->w, zone->h))
-                     _e_mod_move_quickpanel_below_window_objs_move(x, y);
+                    _e_mod_move_quickpanel_comp_layer_obj_move(x, y);
                }
           }
      }
@@ -2019,16 +2137,9 @@ e_mod_move_quickpanel_dim_show(E_Move_Border *mb)
           }
      }
 
-   //qp ux
-   if (m->qp_scroll_with_visible_win)
-     {
-        _e_mod_move_quickpanel_below_window_set();
-        _e_mod_move_quickpanel_below_window_objs_add();
-     }
-
    L(LT_EVENT_OBJ,
      "[MOVE] ev:%15.15s w:0x%08x %s()\n",
-     "EVAS_OBJ", mb->bd->win, __func__);
+     "EVAS_OBJ", mb->bd ? mb->bd->win : 0, __func__);
 
    return qp_data->dim_objs;
 }
@@ -2051,13 +2162,6 @@ e_mod_move_quickpanel_dim_hide(E_Move_Border *mb)
    qp_data->dim_objs = NULL;
    qp_data->opacity = dim_min;
    m = mb->m;
-
-   //qp ux
-   if (m->qp_scroll_with_visible_win)
-     {
-        _e_mod_move_quickpanel_below_window_objs_del();
-        _e_mod_move_quickpanel_below_window_unset();
-     }
 
    L(LT_EVENT_OBJ,
      "[MOVE] ev:%15.15s w:0x%08x %s()\n",
@@ -2169,16 +2273,6 @@ e_mod_move_quickpanel_below_window_reset(void)
 {
    E_Move *m = e_mod_move_util_get();
    E_CHECK_RETURN(m, EINA_FALSE);
-
-   if (m->qp_scroll_with_visible_win)
-     {
-        // remove below window objs & unset
-        _e_mod_move_quickpanel_below_window_objs_del();
-        _e_mod_move_quickpanel_below_window_unset();
-        // add below window set & objs
-        _e_mod_move_quickpanel_below_window_set();
-        _e_mod_move_quickpanel_below_window_objs_add();
-     }
    return EINA_TRUE;
 }
 
@@ -2274,13 +2368,6 @@ e_mod_move_quickpanel_stage_deinit(E_Move_Border *mb)
    E_CHECK_RETURN(TYPE_QUICKPANEL_CHECK(mb), EINA_FALSE);
 
    m = mb->m;
-
-   //qp ux
-   if (m->qp_scroll_with_visible_win)
-     {
-        _e_mod_move_quickpanel_below_window_objs_del();
-        _e_mod_move_quickpanel_below_window_unset();
-     }
 
    // Composite mode set false
    e_mod_move_util_compositor_composite_mode_set(m, EINA_FALSE);

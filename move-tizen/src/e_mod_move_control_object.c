@@ -23,7 +23,7 @@ e_mod_move_ctl_obj_add(E_Move_Border *mb,
    mco->obj = evas_object_rectangle_add(canvas->evas);
    E_CHECK_GOTO(mco->obj, error_cleanup);
    evas_object_color_set(mco->obj, 0,0,0,0); // set color to fully transparency
-   evas_object_layer_set(mco->obj, EVAS_LAYER_MAX); // set layer to top. this object always on top layer.
+   evas_object_layer_set(mco->obj, EVAS_LAYER_MAX-2); // set layer to top. this object always on top layer.
    evas_object_event_callback_add(mco->obj, EVAS_CALLBACK_DEL,
                                   _e_mod_move_cb_control_object_del, mb);
    evas_object_data_set(mco->obj,"move_ctl_obj", mco->obj);

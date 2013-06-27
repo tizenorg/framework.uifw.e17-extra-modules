@@ -17,7 +17,6 @@ static void _e_mod_move_debug_control_objects_info_dump(E_Move *m, E_Move_Canvas
 static void _e_mod_move_debug_canvas_info_dump(E_Move *m, E_Move_Canvas *canvas, FILE *fs);
 static void _e_mod_move_debug_evas_stack_dump(E_Move *m, E_Move_Canvas *canvas, FILE *fs);
 static void _e_mod_move_debug_dim_objects_info_dump(E_Move *m, E_Move_Canvas *canvas, FILE *fs);
-static void _e_mod_move_debug_event_logs_dump(E_Move *m, FILE *fs);
 static void _e_mod_move_debug_control_objects_visible_set(E_Move *m, E_Move_Canvas *canvas, Eina_Bool visi);
 static void _e_mod_move_debug_widget_objects_visible_set(E_Move *m, E_Move_Canvas *canvas, Eina_Bool visi);
 static void _e_mod_move_debug_objects_visible_set(Eina_Bool visi);
@@ -84,6 +83,7 @@ _e_mod_move_debug_borders_info_dump(E_Move *m,
    fprintf(fs, "E------------------------------------------------------------------------------------------------------------------------------------\n");
    fprintf(fs, "\nB-------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n");
    fprintf(fs, "   Screen Reader State: %d\n", m->screen_reader_state);
+   fprintf(fs, "   Setup Wizard  State: %d\n", m->setup_wizard_state);
    fprintf(fs, "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n");
 }
 
@@ -544,136 +544,6 @@ _e_mod_move_debug_dim_objects_info_dump(E_Move        *m,
 }
 
 static void
-_e_mod_move_debug_event_logs_dump(E_Move *m,
-                                  FILE   *fs)
-{
-   Eina_List *l;
-   E_Move_Event_Log *log;
-   int i = 1;
-   char obj_type[20];
-
-   E_CHECK(m);
-   E_CHECK(m->ev_log);
-
-   fprintf(fs, "\n\nB----------------------------------------------------------------------------------------\n");
-   fprintf(fs, "   <MOVE MODULE> EVENT LOG DUMP \n");
-   fprintf(fs, "-----------------------------------------------------------------------------------------\n");
-   fprintf(fs, "-----------------------------------------------------------------------------------------\n");
-   fprintf(fs, " NO         EVENT_TYPE            WID / OBJ    ( x , y )   Button | Additional Data\n");
-   fprintf(fs, "-----------------------------------------------------------------------------------------\n");
-
-   EINA_LIST_FOREACH(m->ev_logs, l, log)
-     {
-        if ((log->t == E_MOVE_EVENT_LOG_EVAS_OBJECT_MOUSE_DOWN)
-             || (log->t == E_MOVE_EVENT_LOG_EVAS_OBJECT_MOUSE_UP))
-          {
-             memset(obj_type, 0, sizeof(obj_type));
-             switch (log->d.eo_m.t)
-               {
-                case E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_QUICKPANEL:
-                   strncpy(obj_type, "QUICKPANEL", sizeof("QUICKPANEL"));
-                   break;
-                case E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_APPTRAY:
-                   strncpy(obj_type, "APPTRAY", sizeof("APPTRAY"));
-                   break;
-                case E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_INDICATOR:
-                   strncpy(obj_type, "INDICATOR", sizeof("INDICATOR"));
-                   break;
-                case E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_UNKNOWN:
-                default:
-                   strncpy(obj_type, "UNKNOWN", sizeof("UNKNOWN"));
-                   break;
-               }
-          }
-
-        switch (log->t)
-          {
-           case E_MOVE_EVENT_LOG_ECORE_SINGLE_MOUSE_DOWN:
-              fprintf(fs,
-                      " %2d   %23s   w:0x%08x (%4d ,%4d )  btn:%d\n",
-                      i,
-                      "ECORE_SINGLE_MOUSE_DOWN",
-                      log->d.ec_sm.win,
-                      log->d.ec_sm.x,
-                      log->d.ec_sm.y,
-                      log->d.ec_sm.btn);
-              break;
-           case E_MOVE_EVENT_LOG_ECORE_SINGLE_MOUSE_UP:
-              fprintf(fs,
-                      " %2d   %23s   w:0x%08x (%4d ,%4d )  btn:%d\n",
-                      i,
-                      "ECORE_SINGLE_MOUSE_UP",
-                      log->d.ec_sm.win,
-                      log->d.ec_sm.x,
-                      log->d.ec_sm.y,
-                      log->d.ec_sm.btn);
-              break;
-           case E_MOVE_EVENT_LOG_ECORE_MULTI_MOUSE_DOWN:
-              fprintf(fs,
-                      " %2d   %23s   w:0x%08x (%5.1f,%5.1f)  btn:%d | dev:%d\n",
-                      i,
-                      "ECORE_MULTI_MOUSE_DOWN",
-                      log->d.ec_mm.win,
-                      log->d.ec_mm.x,
-                      log->d.ec_mm.y,
-                      log->d.ec_mm.btn,
-                      log->d.ec_mm.dev);
-              break;
-           case E_MOVE_EVENT_LOG_ECORE_MULTI_MOUSE_UP:
-              fprintf(fs,
-                      " %2d   %23s   w:0x%08x (%5.1f,%5.1f)  btn:%d | dev:%d\n",
-                      i,
-                      "ECORE_MULTI_MOUSE_UP",
-                      log->d.ec_mm.win,
-                      log->d.ec_mm.x,
-                      log->d.ec_mm.y,
-                      log->d.ec_mm.btn,
-                      log->d.ec_mm.dev);
-              break;
-           case E_MOVE_EVENT_LOG_EVAS_OBJECT_MOUSE_DOWN:
-              fprintf(fs,
-                      " %2d   %23s   obj:%p (%4d ,%4d )  btn:%d | %10s  eo_geo(%d,%d,%d,%d)\n",
-                      i,
-                      "EVAS_OBJECT_MOUSE_DOWN",
-                      log->d.eo_m.obj,
-                      log->d.eo_m.x,
-                      log->d.eo_m.y,
-                      log->d.eo_m.btn,
-                      obj_type,
-                      log->d.eo_m.ox,
-                      log->d.eo_m.oy,
-                      log->d.eo_m.ow,
-                      log->d.eo_m.oh);
-              break;
-           case E_MOVE_EVENT_LOG_EVAS_OBJECT_MOUSE_UP:
-              fprintf(fs,
-                      " %2d   %23s   obj:%p (%4d ,%4d )  btn:%d | %10s  eo_geo(%d,%d,%d,%d)\n",
-                      i,
-                      "EVAS_OBJECT_MOUSE_UP",
-                      log->d.eo_m.obj,
-                      log->d.eo_m.x,
-                      log->d.eo_m.y,
-                      log->d.eo_m.btn,
-                      obj_type,
-                      log->d.eo_m.ox,
-                      log->d.eo_m.oy,
-                      log->d.eo_m.ow,
-                      log->d.eo_m.oh);
-              break;
-           case E_MOVE_EVENT_LOG_UNKOWN:
-           default:
-              fprintf(fs,
-                      " %2d   %23s\n",
-                      i,
-                      "EVENT_LOG_UNKOWN");
-              break;
-          }
-        i++;
-     }
-   fprintf(fs, "E----------------------------------------------------------------------------------------\n");
-}
-
-static void
 _e_mod_move_debug_control_objects_visible_set(E_Move        *m,
                                               E_Move_Canvas *canvas,
                                               Eina_Bool      visi)
@@ -859,8 +729,6 @@ e_mod_move_debug_info_dump(Eina_Bool   to_file,
         _e_mod_move_debug_canvas_info_dump(m, canvas, fs);
         _e_mod_move_debug_dim_objects_info_dump(m, canvas, fs);
      }
-
-   _e_mod_move_debug_event_logs_dump(m, fs);
 
    if (to_file)
      {

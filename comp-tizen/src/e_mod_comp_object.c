@@ -2,7 +2,10 @@
 #include "e_mod_comp_debug.h"
 #include "e_mod_comp.h"
 
-#define _F_BORDER_CLIP_TO_ZONE_ 1
+#ifdef _F_BORDER_CLIP_TO_ZONE_
+#undef _F_BORDER_CLIP_TO_ZONE_
+#endif
+#define _F_BORDER_CLIP_TO_ZONE_ 0
 
 /* externally accessible functions */
 EINTERN E_Comp_Object *
@@ -25,6 +28,24 @@ e_mod_comp_obj_add(E_Comp_Win    *cw,
                   canvas->evas, cw->argb, canvas->num);
           }
 
+        E_Comp_Layer *ly = e_mod_comp_canvas_layer_get(canvas, "comp");
+        if (ly)
+          {
+             e_mod_comp_layer_populate(ly, co->shadow);
+
+             ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+                  "%15.15s|OK!! layer shadow:%p img:%p evas:%p argb:%d canvas_num:%d ly:%p",
+                  "OBJECT_CREATE", co->shadow, co->img,
+                  canvas->evas, cw->argb, canvas->num, ly);
+          }
+        else
+          {
+             ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+                  "%15.15s|ERROR shadow:%p img:%p evas:%p argb:%d canvas_num:%d ly:%p",
+                  "OBJECT_CREATE", co->shadow, co->img,
+                  canvas->evas, cw->argb, canvas->num, ly);
+          }
+
         evas_object_image_colorspace_set(co->img, EVAS_COLORSPACE_ARGB8888);
         if (cw->argb) evas_object_image_alpha_set(co->img, 1);
         else evas_object_image_alpha_set(co->img, 0);
@@ -40,7 +61,12 @@ e_mod_comp_obj_add(E_Comp_Win    *cw,
                   "OBJECT_CREATE", co->shadow, canvas->evas,
                   canvas->num);
           }
-
+        else
+          {
+             E_Comp_Layer *ly = e_mod_comp_canvas_layer_get(canvas, "comp");
+             if (ly)
+               e_mod_comp_layer_populate(ly, co->shadow);
+          }
         evas_object_color_set(co->shadow, 0, 0, 0, 0);
      }
 
@@ -52,6 +78,9 @@ e_mod_comp_obj_add(E_Comp_Win    *cw,
 EINTERN void
 e_mod_comp_obj_del(E_Comp_Object *co)
 {
+   E_Comp_Layer *ly = e_mod_comp_canvas_layer_get(co->canvas, "comp");
+   if (ly) e_layout_unpack(co->shadow);
+
    if (co->img_mirror)
      {
         Evas_Object *o;
@@ -122,6 +151,21 @@ e_mod_comp_win_comp_objs_move(E_Comp_Win *cw,
 {
    Eina_List *l;
    E_Comp_Object *co;
+   E_Comp_Layer *ly;
+
+   E_Comp_Canvas *canvas, *ly_canvas = NULL;
+   E_Comp_Layer *eff_ly;
+   E_Comp_Effect_Object *eff_obj = NULL;
+   Eina_Bool eff_run = EINA_FALSE;
+   canvas = eina_list_nth(cw->c->canvases, 0);
+   eff_ly = e_mod_comp_canvas_layer_get(canvas, "effect");
+   eff_run = e_mod_comp_layer_effect_get(eff_ly);
+   if (eff_run)
+     {
+        eff_obj = e_mod_comp_layer_effect_obj_get(eff_ly, cw->win);
+        if (eff_obj) ly_canvas = eff_ly->canvas;
+     }
+
    EINA_LIST_FOREACH(cw->objs, l, co)
      {
         int zx = 0, zy = 0;
@@ -132,9 +176,21 @@ e_mod_comp_win_comp_objs_move(E_Comp_Win *cw,
              zx = co->zone->x;
              zy = co->zone->y;
           }
-        evas_object_move(co->shadow, x - zx, y - zy);
 
-#ifdef _F_BORDER_CLIP_TO_ZONE_
+        ly = e_mod_comp_canvas_layer_get(co->canvas, "comp");
+        if (ly)
+          e_layout_child_move(co->shadow, x - zx, y - zy);
+        else
+          evas_object_move(co->shadow, x - zx, y - zy);
+
+        /* to show moving window while effect, we should also update effect object */
+        if (eff_obj)
+          {
+             if (ly_canvas == co->canvas)
+               e_layout_child_move(eff_obj->edje, x -zx, y - zy);
+          }
+
+#if _F_BORDER_CLIP_TO_ZONE_
         if ((cw->visible) && (cw->bd) && (co->zone) &&
             (!cw->input_only) && (!cw->invalid) &&
             E_INTERSECTS(co->zone->x, co->zone->y,
@@ -162,8 +218,16 @@ e_mod_comp_win_comp_objs_move(E_Comp_Win *cw,
                        if (cw->bd->zone == co->zone)
                          evas_object_show(co->clipper);
                     }
-                  evas_object_move(co->clipper, _x, _y);
-                  evas_object_resize(co->clipper, _w, _h);
+                  if (ly)
+                    {
+                       e_layout_child_move(co->clipper, _x, _y);
+                       e_layout_child_resize(co->clipper, _w, _h);
+                    }
+                  else
+                    {
+                       evas_object_move(co->clipper, _x, _y);
+                       evas_object_resize(co->clipper, _w, _h);
+                    }
                }
              else
                {
@@ -187,11 +251,17 @@ e_mod_comp_win_comp_objs_resize(E_Comp_Win *cw,
 {
    Eina_List *l;
    E_Comp_Object *co;
+   E_Comp_Layer *ly;
+
    EINA_LIST_FOREACH(cw->objs, l, co)
      {
         if (!co) continue;
         if (!co->shadow) continue;
-        evas_object_resize(co->shadow, w, h);
+        ly = e_mod_comp_canvas_layer_get(co->canvas, "comp");
+        if (ly)
+          e_layout_child_resize(co->shadow, w, h);
+        else
+          evas_object_resize(co->shadow, w, h);
      }
 }
 
@@ -206,7 +276,7 @@ e_mod_comp_win_comp_objs_img_resize(E_Comp_Win *cw,
      {
         if (!co) continue;
         if (!co->img) continue;
-        evas_object_resize(co->img, w, h);
+        evas_object_image_size_set(co->img, w, h);
      }
 }
 
@@ -354,6 +424,20 @@ e_mod_comp_win_comp_objs_img_data_update_add(E_Comp_Win *cw,
    Eina_List *l, *ll;
    E_Comp_Object *co;
    Evas_Object *o;
+
+   E_Comp_Canvas *canvas, *ly_canvas = NULL;
+   E_Comp_Layer *ly;
+   E_Comp_Effect_Object *eff_obj = NULL;
+   Eina_Bool eff_run = EINA_FALSE;
+   canvas = eina_list_nth(cw->c->canvases, 0);
+   ly = e_mod_comp_canvas_layer_get(canvas, "effect");
+   eff_run = e_mod_comp_layer_effect_get(ly);
+   if (eff_run)
+     {
+        eff_obj = e_mod_comp_layer_effect_obj_get(ly, cw->win);
+        if (eff_obj) ly_canvas = ly->canvas;
+     }
+
    EINA_LIST_FOREACH(cw->objs, l, co)
      {
         if (!co) continue;
@@ -372,6 +456,13 @@ e_mod_comp_win_comp_objs_img_data_update_add(E_Comp_Win *cw,
                          cw->x, cw->y, cw->w, cw->h))
           {
              evas_object_image_data_update_add(co->img, x, y, w, h);
+
+             /* to show damaged window while effect, we should also update effect object */
+             if (eff_obj)
+               {
+                  if (ly_canvas == co->canvas)
+                    evas_object_image_data_update_add(eff_obj->img, x, y, w, h);
+               }
           }
 
         EINA_LIST_FOREACH(co->img_mirror, ll, o)
@@ -517,10 +608,13 @@ e_mod_comp_win_comp_objs_raise(E_Comp_Win *cw)
 {
    Eina_List *l;
    E_Comp_Object *co;
+   E_Comp_Layer *ly;
    EINA_LIST_FOREACH(cw->objs, l, co)
      {
         if (!co) continue;
-        evas_object_raise(co->shadow);
+        e_layout_child_raise(co->shadow);
+        ly = e_mod_comp_canvas_layer_get(co->canvas, "comp");
+        if (ly) e_mod_comp_layer_bg_adjust(ly);
      }
 }
 
@@ -529,10 +623,13 @@ e_mod_comp_win_comp_objs_lower(E_Comp_Win *cw)
 {
    Eina_List *l;
    E_Comp_Object *co;
+   E_Comp_Layer *ly;
    EINA_LIST_FOREACH(cw->objs, l, co)
      {
         if (!co) continue;
-        evas_object_lower(co->shadow);
+        e_layout_child_lower(co->shadow);
+        ly = e_mod_comp_canvas_layer_get(co->canvas, "comp");
+        if (ly) e_mod_comp_layer_bg_adjust(ly);
      }
 }
 
@@ -542,14 +639,17 @@ e_mod_comp_win_comp_objs_stack_above(E_Comp_Win *cw,
 {
    Eina_List *l, *ll;
    E_Comp_Object *co, *co2;
+   E_Comp_Layer *ly;
    EINA_LIST_FOREACH(cw->objs, l, co)
      {
         EINA_LIST_FOREACH(cw2->objs, ll, co2)
           {
              if (co->zone == co2->zone)
                {
-                  evas_object_stack_above(co->shadow,
-                                          co2->shadow);
+                  e_layout_child_raise_above(co->shadow,
+                                             co2->shadow);
+                  ly = e_mod_comp_canvas_layer_get(co->canvas, "comp");
+                  if (ly) e_mod_comp_layer_bg_adjust(ly);
                }
           }
      }

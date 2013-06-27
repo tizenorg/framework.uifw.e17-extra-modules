@@ -3,25 +3,9 @@
 #include "e_mod_move.h"
 
 /* local subsystem functions */
-static void _e_mod_move_cb_comp_object_restack(void *data, Evas *e, Evas_Object *obj, void *event_info);
 static void _e_mod_move_cb_comp_object_del(void *data, Evas *e, Evas_Object *obj, void *event_info);
 
 /* local subsystem functions */
-static void
-_e_mod_move_cb_comp_object_restack(void        *data,
-                                   Evas        *e,
-                                   Evas_Object *obj,
-                                   void        *event_info)
-{
-   E_Move_Dim_Object *mdo = (E_Move_Dim_Object *)data;
-   E_CHECK(mdo);
-
-   E_CHECK(mdo->obj);
-   E_CHECK(obj);
-
-   evas_object_stack_below(mdo->obj, obj); // dim object below comp_obj.
-}
-
 static void _e_mod_move_cb_comp_object_del(void        *data,
                                            Evas        *e,
                                            Evas_Object *obj,
@@ -45,11 +29,15 @@ e_mod_move_dim_obj_add(E_Move_Border *mb,
    Evas *evas = NULL;
    Evas_Object *comp_obj = NULL;
    E_Manager_Comp_Source *comp_src = NULL;
+   Evas_Object *ly = NULL;
 
    E_CHECK_RETURN(mb, 0);
    m = mb->m;
    E_CHECK_RETURN(m, 0);
    E_CHECK_RETURN(canvas, 0);
+
+   ly = e_mod_move_util_comp_layer_get(m, "move");
+   E_CHECK_RETURN(ly, 0);
 
    evas = canvas->evas;
    E_CHECK_RETURN(evas, 0);
@@ -69,7 +57,8 @@ e_mod_move_dim_obj_add(E_Move_Border *mb,
         evas_object_move(mdo->obj, canvas->x, canvas->y);
         evas_object_resize(mdo->obj, canvas->w, canvas->h);
 
-        evas_object_stack_below(mdo->obj, comp_obj);
+        e_layout_pack(ly, mdo->obj);
+        e_layout_child_lower(mdo->obj);
 
         mdo->comp_obj = comp_obj;
         mdo->canvas = canvas;
@@ -77,23 +66,20 @@ e_mod_move_dim_obj_add(E_Move_Border *mb,
 
         evas_object_data_set(mdo->obj, "move_dim_obj", mdo->obj);
 
-        evas_object_event_callback_add(comp_obj, EVAS_CALLBACK_RESTACK,
-                                       _e_mod_move_cb_comp_object_restack,
-                                       mdo);
         if (evas_alloc_error() != EVAS_ALLOC_ERROR_NONE)
           {
-             fprintf(stderr,
-                     "[MOVE] ERROR: Callback registering failed! Aborting. %s():%d\n",
-                     __func__, __LINE__ );
+             SLOG(LOG_DEBUG, "E17_MOVE_MODULE",
+                  "[MOVE] ERROR: Callback registering failed! Aborting. %s():%d\n",
+                  __func__, __LINE__ );
           }
 
         evas_object_event_callback_add(comp_obj, EVAS_CALLBACK_DEL,
                                        _e_mod_move_cb_comp_object_del, mdo);
         if (evas_alloc_error() != EVAS_ALLOC_ERROR_NONE)
           {
-             fprintf(stderr,
-                     "[MOVE] ERROR: Callback registering failed! Aborting. %s():%d\n",
-                     __func__, __LINE__ );
+             SLOG(LOG_DEBUG, "E17_MOVE_MODULE",
+                  "[MOVE] ERROR: Callback registering failed! Aborting. %s():%d\n",
+                  __func__, __LINE__ );
           }
 
         return mdo;
@@ -108,20 +94,26 @@ error_cleanup:
 EINTERN void
 e_mod_move_dim_obj_del(E_Move_Dim_Object *mdo)
 {
+   E_Move *m = e_mod_move_util_get();
+   Evas_Object *ly = NULL;
+   E_CHECK(m);
    E_CHECK(mdo);
+
+   ly = e_mod_move_util_comp_layer_get(m, "move");
+   E_CHECK(ly);
 
    if (mdo->comp_obj)
      {
-        evas_object_event_callback_del(mdo->comp_obj,
-                                       EVAS_CALLBACK_RESTACK,
-                                       _e_mod_move_cb_comp_object_restack);
         evas_object_event_callback_del(mdo->comp_obj,
                                        EVAS_CALLBACK_DEL,
                                        _e_mod_move_cb_comp_object_del);
      }
 
    if (mdo->obj)
-     evas_object_del(mdo->obj);
+     {
+        e_layout_unpack(mdo->obj);
+        evas_object_del(mdo->obj);
+     }
    memset(mdo, 0, sizeof(E_Move_Dim_Object));
    E_FREE(mdo);
 }

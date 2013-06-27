@@ -431,4 +431,8 @@ EAPI Eina_Bool e_illume_border_is_quickpanel_popup(E_Border *bd);
 /* app tray functions */
 EAPI Eina_Bool e_illume_border_is_app_tray(E_Border *bd);
 EAPI Eina_Bool e_illume_border_is_miniapp_tray(E_Border *bd);
+
+/* etc */
+EAPI Eina_Bool e_illume_border_is_syspopup(E_Border *bd);
+EAPI Eina_Bool e_illume_border_is_app_selector(E_Border *bd);
 #endif

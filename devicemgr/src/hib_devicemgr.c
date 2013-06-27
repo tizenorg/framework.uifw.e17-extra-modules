@@ -3,7 +3,7 @@
 #include <X11/Xlib.h>
 #include "hib_set.h"
 
-#define HIB_CHK(cond) {if (!(cond)) { fprintf (stderr, "[%s] : '%s' failed.\n", __func__, #cond); return; }}
+#define HIB_CHK(cond) {if (!(cond)) { SLOG(LOG_DEBUG, "DEVICEMGR", "[%s] : '%s' failed.\n", __func__, #cond); return; }}
 
 void
 hibernation_set (Display *dpy)

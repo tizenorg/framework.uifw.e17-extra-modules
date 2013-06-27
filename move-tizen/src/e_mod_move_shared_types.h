@@ -30,13 +30,13 @@ typedef enum _E_Move_Mini_Apptray_State              E_Move_Mini_Apptray_State;
 #include "e_mod_move_lockscreen.h"
 #include "e_mod_move_taskmanager.h"
 #include "e_mod_move_pwlock.h"
+#include "e_mod_move_setup_wizard.h"
 #include "e_mod_move_flick.h"
 #include "e_mod_move_dim_object.h"
 #include "e_mod_move_evas_object.h"
 #include "e_mod_move_widget_object.h"
 #include "e_mod_move_indicator_widget.h"
 #include "e_mod_move_mini_apptray_widget.h"
-#include <dlog.h>
 
 enum _E_Move_Visibility_State
 {
@@ -123,13 +123,12 @@ struct _E_Move
    double                       animation_duration; // apptray / quickpanel move animation duration
    int                          dim_max_opacity; // dim max opacity
    int                          dim_min_opacity; // dim min opacity
-   Eina_Bool                    ev_log : 1; // 1 :ecore & evas_object debug event logging  0: do not log event
-   int                          ev_log_cnt; // ecore & evas_object debug event logging count
-   Eina_List                   *ev_logs; // debug_event_log list
    Eina_Bool                    elm_indicator_mode : 1; // 1: indicator widget mode / 0: indicator window mode
    E_Move_Indicator_Widget     *indicator_widget; // indicator widget data ( it contains widget object, internal data)
    E_Move_Mini_Apptray_Widget  *mini_apptray_widget; // mini_apptray widget data ( it contains widget object, internal data)
    Eina_Bool                    screen_reader_state : 1; // screen reader state  enabled  or disabled
+   Eina_Bool                    setup_wizard_state : 1; // setup wizard state  enabled  or disabled
+   int                          screen_input_block_id; // if id exists, that means screen's input is blocked.
 
    struct {
       int x;
@@ -138,12 +137,14 @@ struct _E_Move
       int h;
    } indicator_widget_geometry[4]; //indicator widget's per angle geometry. [0]: angle 0, [1]: angle 90, [2]: angle 180, [3]: angle 270
 
+   Eina_Bool                    apptray_launch_by_flickup : 1; // 1: apptray launch by flick up feature enable. 0: apptray launch by flick up feature disable
    struct {
       int x;
       int y;
       int w;
       int h;
    } mini_apptray_widget_geometry[4]; //mini_apptray widget's per angle geometry. [0]: angle 0, [1]: angle 90, [2]: angle 180, [3]: angle 270
+
 };
 
 struct _E_Move_Border

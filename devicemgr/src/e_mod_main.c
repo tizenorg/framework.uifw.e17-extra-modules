@@ -5,8 +5,8 @@
 #include "e_mod_config.h"
 #include <string.h>
 
-#define E_MOD_SCRNCONF_CHK_RET(cond, val) {if (!(cond)) { fprintf (stderr, "[%s] : '%s' failed.\n", __func__, #cond); return val; }}
-#define E_MOD_SCRNCONF_CHK_GOTO(cond, dst) {if (!(cond)) { fprintf (stderr, "[%s] : '%s' failed.\n", __func__, #cond); goto dst; }}
+#define E_MOD_SCRNCONF_CHK_RET(cond, val) {if (!(cond)) { SLOG(LOG_DEBUG, "DEVICEMGR", "[%s] : '%s' failed.\n", __func__, #cond); return val; }}
+#define E_MOD_SCRNCONF_CHK_GOTO(cond, dst) {if (!(cond)) { SLOG(LOG_DEBUG, "DEVICEMGR", "[%s] : '%s' failed.\n", __func__, #cond); goto dst; }}
 
 extern char *strcasestr(const char *s, const char *find);
 DeviceMgr e_devicemgr;
@@ -37,7 +37,7 @@ e_modapi_init(E_Module* m)
 {
    if (!_e_devicemgr_init())
      {
-        printf("[e_devicemgr][%s] Failed @ _e_devicemgr_init()..!\n", __FUNCTION__);
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed @ _e_devicemgr_init()..!\n", __FUNCTION__);
         return NULL;
      }
 
@@ -48,10 +48,10 @@ e_modapi_init(E_Module* m)
    e_devicemgr.zone_add_handler = ecore_event_handler_add(E_EVENT_ZONE_ADD, (Ecore_Event_Handler_Cb)_e_devicemgr_cb_zone_add, NULL);
    e_devicemgr.zone_del_handler = ecore_event_handler_add(E_EVENT_ZONE_DEL, (Ecore_Event_Handler_Cb)_e_devicemgr_cb_zone_del, NULL);
 
-   if (!e_devicemgr.window_property_handler) printf("[e_devicemgr][%s] Failed to add ECORE_X_EVENT_WINDOW_PROPERTY handler\n", __FUNCTION__);
-   if (!e_devicemgr.event_generic_handler) printf("[e_devicemgr][%s] Failed to add ECORE_X_EVENT_GENERIC handler\n", __FUNCTION__);
-   if (!e_devicemgr.zone_add_handler) printf("[e_devicemgr][%s] Failed to add E_EVENT_ZONE_ADD handler\n", __FUNCTION__);
-   if (!e_devicemgr.zone_del_handler) printf("[e_devicemgr][%s] Failed to add E_EVENT_ZONE_DEL handler\n", __FUNCTION__);
+   if (!e_devicemgr.window_property_handler) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add ECORE_X_EVENT_WINDOW_PROPERTY handler\n", __FUNCTION__);
+   if (!e_devicemgr.event_generic_handler) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add ECORE_X_EVENT_GENERIC handler\n", __FUNCTION__);
+   if (!e_devicemgr.zone_add_handler) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add E_EVENT_ZONE_ADD handler\n", __FUNCTION__);
+   if (!e_devicemgr.zone_del_handler) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add E_EVENT_ZONE_DEL handler\n", __FUNCTION__);
 
    if (e_devicemgr.scrnconf_enable)
      {
@@ -59,9 +59,9 @@ e_modapi_init(E_Module* m)
         e_devicemgr.randr_output_handler = ecore_event_handler_add (ECORE_X_EVENT_RANDR_OUTPUT_CHANGE, (Ecore_Event_Handler_Cb)_e_devicemgr_cb_output_change, NULL);
         e_devicemgr.randr_output_property_handler = ecore_event_handler_add (ECORE_X_EVENT_RANDR_OUTPUT_PROPERTY_NOTIFY, (Ecore_Event_Handler_Cb)_e_devicemgr_cb_output_property, NULL);
 
-        if (!e_devicemgr.randr_crtc_handler) printf ("[e_devicemgr][%s] Failed to add ECORE_X_EVENT_RANDR_CRTC_CHANGE handler\n", __FUNCTION__);
-        if (!e_devicemgr.randr_output_handler) printf ("[e_devicemgr][%s] Failed to add ECORE_X_EVENT_RANDR_OUTPUT_CHANGE handler\n", __FUNCTION__);
-        if (!e_devicemgr.randr_output_property_handler) printf ("[e_devicemgr][%s] Failed to add ECORE_X_EVENT_RANDR_OUTPUT_PROPERTY_NOTIFY handler\n", __FUNCTION__);
+        if (!e_devicemgr.randr_crtc_handler) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add ECORE_X_EVENT_RANDR_CRTC_CHANGE handler\n", __FUNCTION__);
+        if (!e_devicemgr.randr_output_handler) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add ECORE_X_EVENT_RANDR_OUTPUT_CHANGE handler\n", __FUNCTION__);
+        if (!e_devicemgr.randr_output_property_handler) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add ECORE_X_EVENT_RANDR_OUTPUT_PROPERTY_NOTIFY handler\n", __FUNCTION__);
      }
 
    return m;
@@ -109,7 +109,7 @@ _e_devicemgr_init(void)
 
    if (!e_devicemgr.disp)
      {
-        fprintf(stderr, "[32m[e_devicemgr] Failed to open display..![0m\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[32m[e_devicemgr] Failed to open display..![0m\n");
         ret = 0;
         goto out;
      }
@@ -154,18 +154,18 @@ _e_devicemgr_init(void)
 
    if (!e_devicemgr.input_window)
      {
-        fprintf(stderr, "[e_devicemgr] Failed to create input_window !\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr] Failed to create input_window !\n");
      }
    else
      {
-        fprintf(stderr, "[e_devicemgr] Succeed to create input_window (0x%x)!\n", e_devicemgr.input_window);
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr] Succeed to create input_window (0x%x)!\n", e_devicemgr.input_window);
         ecore_x_window_prop_property_set(e_devicemgr.rootWin, e_devicemgr.atomDeviceMgrInputWindow, ECORE_X_ATOM_WINDOW, 32, &e_devicemgr.input_window, 1);
      }
 
    res = _e_devicemgr_xinput_init();
    if (!res)
      {
-        fprintf(stderr, "[e_devicemgr] Failed to initialize XInput Extension !\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr] Failed to initialize XInput Extension !\n");
         ret =0;
         goto out;
      }
@@ -173,7 +173,7 @@ _e_devicemgr_init(void)
    res = _e_devicemgr_xkb_init();
    if (!res)
      {
-        fprintf(stderr, "[e_devicemgr] Failed to initialize XKB Extension !\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr] Failed to initialize XKB Extension !\n");
         ret = 0;
         goto out;
      }
@@ -187,7 +187,7 @@ _e_devicemgr_init(void)
    res = _e_devicemgr_get_configuration();
    if (!res)
      {
-        fprintf(stderr, "[e_devicemgr] Failed to get configuration from %s.cfg file !\n", E_DEVICEMGR_CFG);
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr] Failed to get configuration from %s.cfg file !\n", E_DEVICEMGR_CFG);
         ret =0;
         goto out;
      }
@@ -195,7 +195,7 @@ _e_devicemgr_init(void)
    e_mod_scrnconf_container_bg_canvas_visible_set(EINA_FALSE);
    if(EINA_FALSE == e_mod_sf_rotation_init())
      {
-        fprintf(stderr, "[e_devicemgr] Failed to init rotation!\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr] Failed to init rotation!\n");
      }
      
 out:
@@ -207,7 +207,7 @@ _e_devicemgr_fini(void)
 {
    if(EINA_FALSE == e_mod_sf_rotation_deinit())
      {
-        fprintf(stderr, "[e_devicemgr] Failed to deinit rotation!\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr] Failed to deinit rotation!\n");
      }
 
    e_mod_devicemgr_config_shutdown();
@@ -239,7 +239,7 @@ _e_devicemgr_cb_crtc_change (void *data, int type, void *ev)
 {
    if (type == ECORE_X_EVENT_RANDR_CRTC_CHANGE)
      {
-        //fprintf (stderr, "[scrn-conf]: Crtc Change!: \n");
+        //SLOG(LOG_DEBUG, "DEVICEMGR", "[scrn-conf]: Crtc Change!: \n");
         //Ecore_X_Event_Randr_Crtc_Change *event = (Ecore_X_Event_Randr_Crtc_Change *)ev;
         /* available information:
            struct _Ecore_X_Event_Randr_Crtc_Change
@@ -269,7 +269,7 @@ _e_devicemgr_cb_output_change (void *data, int type, void *ev)
 
    if (type == ECORE_X_EVENT_RANDR_OUTPUT_CHANGE)
      {
-       //fprintf (stderr, "[scrn-conf]: Output Change!: \n");
+       //SLOG(LOG_DEBUG, "DEVICEMGR", "[scrn-conf]: Output Change!: \n");
        Ecore_X_Event_Randr_Output_Change *event = (Ecore_X_Event_Randr_Output_Change *)ev;
        /* available information:
           struct _Ecore_X_Event_Randr_Output_Change
@@ -283,7 +283,7 @@ _e_devicemgr_cb_output_change (void *data, int type, void *ev)
              Ecore_X_Render_Subpixel_Order   subpixel_order;
           };
        */
-       fprintf (stderr, "[DeviceMgr]: Output Connection!: %d (connected = %d, disconnected = %d, unknown %d)\n",
+       SLOG(LOG_DEBUG, "DEVICEMGR", "[DeviceMgr]: Output Connection!: %d (connected = %d, disconnected = %d, unknown %d)\n",
                 event->connection, ECORE_X_RANDR_CONNECTION_STATUS_CONNECTED, ECORE_X_RANDR_CONNECTION_STATUS_DISCONNECTED, ECORE_X_RANDR_CONNECTION_STATUS_UNKNOWN);
 
        /* check status of a output */
@@ -303,7 +303,7 @@ _e_devicemgr_cb_output_change (void *data, int type, void *ev)
             if (sc_stat == UTILX_SCRNCONF_STATUS_CONNECT ||
                 sc_stat == UTILX_SCRNCONF_STATUS_ACTIVE)
              {
-                fprintf (stderr, "[DeviceMgr] : external monitor status is already connected \n");
+                SLOG(LOG_DEBUG, "DEVICEMGR", "[DeviceMgr] : external monitor status is already connected \n");
                 return 1;
              }
 
@@ -389,7 +389,7 @@ _e_devicemgr_cb_output_property (void *data, int type, void *ev)
 {
    if (type == ECORE_X_EVENT_RANDR_OUTPUT_PROPERTY_NOTIFY)
      {
-       //fprintf (stderr, "[scrn-conf]: Output Property Notify!: \n");
+       //SLOG(LOG_DEBUG, "DEVICEMGR", "[scrn-conf]: Output Property Notify!: \n");
        //Ecore_X_Event_Randr_Output_Property_Notify *event = (Ecore_X_Event_Randr_Output_Property_Notify *)ev;
        /* available information:
           struct _Ecore_X_Event_Randr_Output_Property_Notify
@@ -444,35 +444,35 @@ _e_devicemgr_cb_client_message (void* data, int type, void* event)
              e_devicemgr.virtual_touchpad_area_info[1] = ev->data.l[2];
              e_devicemgr.virtual_touchpad_area_info[2] = ev->data.l[3];
              e_devicemgr.virtual_touchpad_area_info[3] = ev->data.l[4];
-             fprintf(stderr, "[e_devicemgr][cb_client_message] virtual_touchpad_area_info=%d %d %d %d\n",
+             SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][cb_client_message] virtual_touchpad_area_info=%d %d %d %d\n",
 			 	e_devicemgr.virtual_touchpad_area_info[0], e_devicemgr.virtual_touchpad_area_info[1],
 			 	e_devicemgr.virtual_touchpad_area_info[2], e_devicemgr.virtual_touchpad_area_info[3]);
           }
         else if (ev->data.l[0] == E_VIRTUAL_TOUCHPAD_WINDOW)
           {
              e_devicemgr.virtual_touchpad_window = (Ecore_X_Window)ev->data.l[1];
-             fprintf(stderr, "[e_devicemgr][cb_client_message] virtual_touchpad_window=0x%x\n", e_devicemgr.virtual_touchpad_window);
+             SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][cb_client_message] virtual_touchpad_window=0x%x\n", e_devicemgr.virtual_touchpad_window);
           }
         else if (ev->data.l[0] == E_VIRTUAL_TOUCHPAD_CONFINE_SET)
           {
              _e_devicemgr_set_confine_information(e_devicemgr.virtual_touchpad_id, _e_devicemgr_get_nth_zone(2), EINA_TRUE, NULL, EINA_FALSE, EINA_TRUE);
-             fprintf(stderr, "[e_devicemgr][cb_client_message] E_VIRTUAL_TOUCHPAD_CONFINE_SET\n");
+             SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][cb_client_message] E_VIRTUAL_TOUCHPAD_CONFINE_SET\n");
           }
         else if (ev->data.l[0] == E_VIRTUAL_TOUCHPAD_CONFINE_UNSET)
           {
              _e_devicemgr_set_confine_information(e_devicemgr.virtual_touchpad_id, NULL, EINA_FALSE, NULL, EINA_FALSE, EINA_FALSE);
-             fprintf(stderr, "[e_devicemgr][cb_client_message] E_VIRTUAL_TOUCHPAD_CONFINE_UNSET\n");
+             SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][cb_client_message] E_VIRTUAL_TOUCHPAD_CONFINE_UNSET\n");
           }
         else if (ev->data.l[0] == E_VIRTUAL_TOUCHPAD_MT_BEGIN)
           {
-             fprintf(stderr, "[e_devicemgr][cb_client_message] E_VIRTUAL_TOUCHPAD_MT_BEGIN !virtual_multitouch_done=%d\n", e_devicemgr.virtual_multitouch_done);
+             SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][cb_client_message] E_VIRTUAL_TOUCHPAD_MT_BEGIN !virtual_multitouch_done=%d\n", e_devicemgr.virtual_multitouch_done);
 
              if (0 != e_devicemgr.virtual_touchpad_pointed_window)
                {
                   XISetClientPointer(e_devicemgr.disp, e_devicemgr.virtual_touchpad_pointed_window, e_devicemgr.virtual_touchpad_id);
                   XSync(e_devicemgr.disp, 0);
                   ecore_x_pointer_xy_get(e_devicemgr.virtual_touchpad_pointed_window, &pos[0], &pos[1]);
-                  fprintf(stderr, "[e_devicemgr][_cb_client_message] cursor pos x=%d, y=%d\n", pos[0], pos[1]);
+                  SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][_cb_client_message] cursor pos x=%d, y=%d\n", pos[0], pos[1]);
 
                   if (pos[0] < 0 || pos[1] < 0 ) return 1;
 
@@ -490,43 +490,43 @@ _e_devicemgr_cb_client_message (void* data, int type, void* event)
 
                   if (INSIDE(cx, cy, x1, y1, x1+(w/2), y1+(h/2)))
                     {
-                       printf("[_client_message] 1st box (x1=%d, y1=%d, x2=%d, y2=%d)!\n", x1, y1, x1+(w/2), y1+(h/2));
+                       SLOG(LOG_DEBUG, "DEVICEMGR", "[_client_message] 1st box (x1=%d, y1=%d, x2=%d, y2=%d)!\n", x1, y1, x1+(w/2), y1+(h/2));
                        pw = pos[0]*2;
                        ph = pos[1]*2;
                        px = x1;
                        py = y1;
-                       printf("[_client_message] 1st box (effective area = %d, %d, %d, %d)!\n", px, py, pw, ph);
+                       SLOG(LOG_DEBUG, "DEVICEMGR", "[_client_message] 1st box (effective area = %d, %d, %d, %d)!\n", px, py, pw, ph);
                     }
                   else if (INSIDE(cx, cy, x1+(w/2), y1, x2, y1+(h/2)))
                     {
-                       printf("[_client_message] 2nd box (x1=%d, y1=%d, x2=%d, y2=%d)!\n", x1+(w/2), y1, x2, y1+(h/2));
+                       SLOG(LOG_DEBUG, "DEVICEMGR", "[_client_message] 2nd box (x1=%d, y1=%d, x2=%d, y2=%d)!\n", x1+(w/2), y1, x2, y1+(h/2));
                        pw = (w-pos[0])*2;
                        ph = pos[1]*2;
                        px = x2-pw;
                        py = y1;
-                       printf("[_client_message] 2nd box (effective area = %d, %d, %d, %d)!\n", px, py, pw, ph);
+                       SLOG(LOG_DEBUG, "DEVICEMGR", "[_client_message] 2nd box (effective area = %d, %d, %d, %d)!\n", px, py, pw, ph);
                     }
                   else if (INSIDE(cx, cy, x1, y1+(h/2), x1+(w/2), y2))
                     {
-                       printf("[_client_message] 3rd box (x1=%d, y1=%d, x2=%d, y2=%d)!\n", x1, y1+(h/2), x1+(w/2), y2);
+                       SLOG(LOG_DEBUG, "DEVICEMGR", "[_client_message] 3rd box (x1=%d, y1=%d, x2=%d, y2=%d)!\n", x1, y1+(h/2), x1+(w/2), y2);
                        pw = pos[0]*2;
                        ph = (h-pos[1])*2;
                        px = x1;
                        py = y2-ph;
-                       printf("[_client_message] 3rd box (effective area = %d, %d, %d, %d)!\n", px, py, pw, ph);
+                       SLOG(LOG_DEBUG, "DEVICEMGR", "[_client_message] 3rd box (effective area = %d, %d, %d, %d)!\n", px, py, pw, ph);
                     }
                   else if (INSIDE(cx, cy, x1+(w/2), y1+(h/2), x2, y2))
                     {
-                       printf("[_client_message] 4th box (x1=%d, y1=%d, x2=%d, y2=%d)!\n", x1+(w/2), y1+(h/2), x2, y2);
+                       SLOG(LOG_DEBUG, "DEVICEMGR", "[_client_message] 4th box (x1=%d, y1=%d, x2=%d, y2=%d)!\n", x1+(w/2), y1+(h/2), x2, y2);
                        pw = (w-pos[0])*2;
                        ph = (h-pos[1])*2;
                        px = x2-pw;
                        py = y2-ph;
-                       printf("[_client_message] 4th box (effective area = %d, %d, %d, %d)!\n", px, py, pw, ph);
+                       SLOG(LOG_DEBUG, "DEVICEMGR", "[_client_message] 4th box (effective area = %d, %d, %d, %d)!\n", px, py, pw, ph);
                     }
                   else
                     {
-                       printf("[_client_message] !!! pointer is not in 4 boxes !!!\n");
+                       SLOG(LOG_DEBUG, "DEVICEMGR", "[_client_message] !!! pointer is not in 4 boxes !!!\n");
                     }
 
                   vw = e_devicemgr.virtual_touchpad_area_info[2] -e_devicemgr.virtual_touchpad_area_info[0];
@@ -556,7 +556,7 @@ _e_devicemgr_cb_client_message (void* data, int type, void* event)
         else if (ev->data.l[0] == E_VIRTUAL_TOUCHPAD_MT_END)
           {
              e_devicemgr.virtual_multitouch_done = 1;
-             fprintf(stderr, "[e_devicemgr][cb_client_message] E_VIRTUAL_TOUCHPAD_MT_END !virtual_multitouch_done=%d\n", e_devicemgr.virtual_multitouch_done);
+             SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][cb_client_message] E_VIRTUAL_TOUCHPAD_MT_END !virtual_multitouch_done=%d\n", e_devicemgr.virtual_multitouch_done);
              if (0 != e_devicemgr.virtual_touchpad_pointed_window)
                {
                   _e_devicemgr_set_confine_information(e_devicemgr.virtual_touchpad_id, NULL, EINA_FALSE, NULL, EINA_FALSE, EINA_FALSE);
@@ -582,13 +582,13 @@ _e_devicemgr_cb_client_message (void* data, int type, void* event)
         sc_stat = e_mod_scrnconf_external_get_status();
         if (sc_stat == UTILX_SCRNCONF_STATUS_NULL)
           {
-             fprintf (stderr, "[DeviceMgr] : external monitor is not connected \n");
+             SLOG(LOG_DEBUG, "DEVICEMGR", "[DeviceMgr] : external monitor is not connected \n");
              return 1;
           }
 
         if (sc_dispmode == e_mod_scrnconf_external_get_dispmode())
           {
-             fprintf (stderr, "[DeviceMgr] : the same dispmode is already set \n");
+             SLOG(LOG_DEBUG, "DEVICEMGR", "[DeviceMgr] : the same dispmode is already set \n");
              return 1;
           }
 
@@ -601,7 +601,7 @@ _e_devicemgr_cb_client_message (void* data, int type, void* event)
 
         if (!e_mod_scrnconf_external_set_dispmode (sc_output, sc_dispmode, sc_res))
           {
-             fprintf (stderr, "[DeviceMgr] : fail to get external output \n");
+             SLOG(LOG_DEBUG, "DEVICEMGR", "[DeviceMgr] : fail to get external output \n");
              return 1;
           }
 
@@ -666,13 +666,13 @@ _e_devicemgr_xinput_init(void)
 
    if (!XQueryExtension(e_devicemgr.disp, "XInputExtension", &e_devicemgr.xi2_opcode, &event, &error))
      {
-        printf("[e_devicemgr][%s] XInput Extension isn't supported.\n", __FUNCTION__);
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] XInput Extension isn't supported.\n", __FUNCTION__);
         goto fail;
      }
 
    if (XIQueryVersion(e_devicemgr.disp, &major, &minor) == BadRequest)
      {
-        printf("[e_devicemgr][%s] Failed to query XI version.\n", __FUNCTION__);
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to query XI version.\n", __FUNCTION__);
         goto fail;
      }
 
@@ -703,7 +703,7 @@ _e_devicemgr_xkb_init(void)
    if (!(XkbLibraryVersion(&xkb_lmaj, &xkb_lmin)
 	 && XkbQueryExtension(e_devicemgr.disp, &xkb_opcode, &xkb_event, &xkb_error, &xkb_lmaj, &xkb_lmin)))
      {
-        fprintf(stderr, "[e_devicemgr][xkb_init] Failed to initialize XKB extension !\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][xkb_init] Failed to initialize XKB extension !\n");
         e_devicemgr.xkb_available = EINA_FALSE;
         return 0;
      }
@@ -751,13 +751,13 @@ _e_devicemgr_cb_event_generic(void *data, int ev_type, void *event)
 
    if (e->extension != e_devicemgr.xi2_opcode)
      {
-        fprintf(stderr, "[e_devicemgr][%s] Invalid event !(extension:%d, evtype:%d)\n", __FUNCTION__, e->extension, e->evtype);
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Invalid event !(extension:%d, evtype:%d)\n", __FUNCTION__, e->extension, e->evtype);
         return 1;
      }
 
    if (!evData || evData->send_event)
    {
-      fprintf(stderr, "[e_devicemgr][%s] Generic event data is not available or the event was sent via XSendEvent (and will be ignored) !\n", __FUNCTION__);
+      SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Generic event data is not available or the event was sent via XSendEvent (and will be ignored) !\n", __FUNCTION__);
       return 1;
    }
 
@@ -789,19 +789,19 @@ _e_devicemgr_cb_zone_add(void *data, int ev_type, void *event)
    l = eina_list_data_find_list(e_devicemgr.zones, zone);
    if (l)
      {
-        fprintf(stderr, "[e_devicemgr][zone_add] zone exists already in zone list !\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][zone_add] zone exists already in zone list !\n");
         return 1;
      }
 
-   fprintf(stderr, "[e_devicemgr][zone_add] z->name=%s, z->w=%d, z->h=%d, z->x=%d, z->y=%d\n",
+   SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][zone_add] z->name=%s, z->w=%d, z->h=%d, z->x=%d, z->y=%d\n",
        zone->name, zone->w, zone->h, zone->x, zone->y);
-   fprintf(stderr, "[e_devicemgr][zone_add] z->useful_geometry.w=%d, z->useful_geometry.h=%d, z->useful_geometry.x=%d, z->useful_geometry.y=%d\n",
+   SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][zone_add] z->useful_geometry.w=%d, z->useful_geometry.h=%d, z->useful_geometry.x=%d, z->useful_geometry.y=%d\n",
        zone->useful_geometry.w, zone->useful_geometry.h, zone->useful_geometry.x, zone->useful_geometry.y);
 
    e_devicemgr.zones = eina_list_append(e_devicemgr.zones, zone);
    e_devicemgr.num_zones++;
 
-   fprintf(stderr, "[e_devicemgr][zone_add] num_zones=%d\n", e_devicemgr.num_zones);
+   SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][zone_add] num_zones=%d\n", e_devicemgr.num_zones);
 
    return 1;
 }
@@ -817,21 +817,21 @@ _e_devicemgr_cb_zone_del(void *data, int ev_type, void *event)
    zone = ev->zone;
    if (!zone || !zone->name) return 1;
 
-   fprintf(stderr, "[e_devicemgr][zone_del] z->name=%s, z->w=%d, z->h=%d, z->x=%d, z->y=%d\n",
+   SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][zone_del] z->name=%s, z->w=%d, z->h=%d, z->x=%d, z->y=%d\n",
        zone->name, zone->w, zone->h, zone->x, zone->y);
-   fprintf(stderr, "[e_devicemgr][zone_del] z->useful_geometry.w=%d, z->useful_geometry.h=%d, z->useful_geometry.x=%d, z->useful_geometry.y=%d\n",
+   SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][zone_del] z->useful_geometry.w=%d, z->useful_geometry.h=%d, z->useful_geometry.x=%d, z->useful_geometry.y=%d\n",
        zone->useful_geometry.w, zone->useful_geometry.h, zone->useful_geometry.x, zone->useful_geometry.y);
 
    if (e_devicemgr.num_zones < 2)//basic zone + additional zone(s)
      {
-        fprintf(stderr, "[e_devicemgr][zone_del] Zone list needs to be checked into !\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][zone_del] Zone list needs to be checked into !\n");
         return 1;
      }
 
    l = eina_list_data_find_list(e_devicemgr.zones, zone);
    if (!l)
      {
-        fprintf(stderr, "[e_devicemgr][zone_del] zone doesn't exist in zone list !\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][zone_del] zone doesn't exist in zone list !\n");
         return 1;
      }
 
@@ -844,7 +844,7 @@ _e_devicemgr_cb_zone_del(void *data, int ev_type, void *event)
    e_devicemgr.zones = eina_list_remove(e_devicemgr.zones, zone);
    e_devicemgr.num_zones--;
 
-   fprintf(stderr, "[e_devicemgr][zone_del] num_zones=%d\n", e_devicemgr.num_zones);
+   SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][zone_del] num_zones=%d\n", e_devicemgr.num_zones);
 
    return 1;
 }
@@ -860,7 +860,7 @@ _e_devicemgr_hook_border_resize_end(void *data, void *border)
    e_devicemgr.virtual_touchpad_pointed_window_info[2] = bd->client.w;
    e_devicemgr.virtual_touchpad_pointed_window_info[3] = bd->client.h;
 
-   fprintf(stderr, "[e_devicemgr][hook_border_resize_end] application win=0x%x, px=%d, py=%d, pw=%d, ph=%d\n", bd->client.win,
+   SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][hook_border_resize_end] application win=0x%x, px=%d, py=%d, pw=%d, ph=%d\n", bd->client.win,
               e_devicemgr.virtual_touchpad_pointed_window_info[0], e_devicemgr.virtual_touchpad_pointed_window_info[1],
               e_devicemgr.virtual_touchpad_pointed_window_info[2], e_devicemgr.virtual_touchpad_pointed_window_info[3]);
 }
@@ -876,7 +876,7 @@ _e_devicemgr_hook_border_move_end(void *data, void *border)
    e_devicemgr.virtual_touchpad_pointed_window_info[2] = bd->client.w;
    e_devicemgr.virtual_touchpad_pointed_window_info[3] = bd->client.h;
 
-   fprintf(stderr, "[e_devicemgr][hook_border_move_end] application win=0x%x, px=%d, py=%d, pw=%d, ph=%d\n", bd->client.win,
+   SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][hook_border_move_end] application win=0x%x, px=%d, py=%d, pw=%d, ph=%d\n", bd->client.win,
               e_devicemgr.virtual_touchpad_pointed_window_info[0], e_devicemgr.virtual_touchpad_pointed_window_info[1],
               e_devicemgr.virtual_touchpad_pointed_window_info[2], e_devicemgr.virtual_touchpad_pointed_window_info[3]);
 }
@@ -902,7 +902,6 @@ _e_devicemgr_cb_mouse_in(void *data, int type, void *event)
              if (!e_devicemgr.virtual_multitouch_done && e_devicemgr.virtual_touchpad_pointed_window != 0)
                return ECORE_CALLBACK_PASS_ON;
 
-             //fprintf(stderr, "[e_devicemgr][cb_mouse_in] bd is null but enlightenment window ! (ev->event_win=0x%x)\n", ev->event_win);
              e_devicemgr.virtual_touchpad_pointed_window = 0;
              ecore_x_client_message32_send(e_devicemgr.virtual_touchpad_window, e_devicemgr.atomVirtualTouchpadInt,
                                                                      ECORE_X_EVENT_MASK_NONE, E_VIRTUAL_TOUCHPAD_POINTED_WINDOW, 0, 0, 0, 0);
@@ -910,18 +909,13 @@ _e_devicemgr_cb_mouse_in(void *data, int type, void *event)
              return ECORE_CALLBACK_PASS_ON;
           }
 
-        //fprintf(stderr, "[e_devicemgr][cb_mouse_in] bd is null ! (ev->event_win=0x%x)\n", ev->event_win);
         return ECORE_CALLBACK_PASS_ON;
      }
 
    if (bd->zone->id == 0)
      {
-        //fprintf(stderr, "[e_devicemgr][cb_mouse_in] zone->id=%d (ev->event_win=0x%x)\n", bd->zone->id, ev->event_win);
         return ECORE_CALLBACK_PASS_ON;
      }
-
-   //fprintf(stderr, "[e_devicemgr][cb_mouse_in] bd zone->id=%d, win=0x%x, x=%d, y=%d, w=%d, h=%d\n", bd->zone->id, bd->win, bd->x, bd->y, bd->w, bd->h);
-   //fprintf(stderr, "[e_devicemgr][cb_mouse_in] bd->client win=0x%x, x=%d, y=%d, w=%d, h=%d\n", bd->client.win, bd->client.x, bd->client.y, bd->client.w, bd->client.h);
 
    e_devicemgr.virtual_touchpad_pointed_window_info[0] = bd->x + bd->client_inset.l;
    e_devicemgr.virtual_touchpad_pointed_window_info[1] = bd->y + bd->client_inset.t;
@@ -929,7 +923,7 @@ _e_devicemgr_cb_mouse_in(void *data, int type, void *event)
    e_devicemgr.virtual_touchpad_pointed_window_info[3] = bd->client.h;
    e_devicemgr.virtual_touchpad_pointed_window = bd->client.win;
 
-   fprintf(stderr, "[e_devicemgr][cb_mouse_in] application win=0x%x, px=%d, py=%d, pw=%d, ph=%d\n", bd->client.win,
+   SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][cb_mouse_in] application win=0x%x, px=%d, py=%d, pw=%d, ph=%d\n", bd->client.win,
               e_devicemgr.virtual_touchpad_pointed_window_info[0], e_devicemgr.virtual_touchpad_pointed_window_info[1],
               e_devicemgr.virtual_touchpad_pointed_window_info[2], e_devicemgr.virtual_touchpad_pointed_window_info[3]);
    ecore_x_client_message32_send(e_devicemgr.virtual_touchpad_window, e_devicemgr.atomVirtualTouchpadInt,
@@ -966,9 +960,9 @@ _e_devicemgr_get_zones(void)
                          {
                             if (z)
                               {
-                                 fprintf(stderr, "[e_devicemgr][_e_devicemgr_get_zones] z->name=%s, z->w=%d, z->h=%d, z->x=%d, z->y=%d\n",
+                                 SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][_e_devicemgr_get_zones] z->name=%s, z->w=%d, z->h=%d, z->x=%d, z->y=%d\n",
                                           z->name, z->w, z->h, z->x, z->y);
-                                 fprintf(stderr, "[e_devicemgr][_e_devicemgr_get_zones] z->useful_geometry.w=%d, z->useful_geometry.h=%d, z->useful_geometry.x=%d, z->useful_geometry.y=%d\n",
+                                 SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][_e_devicemgr_get_zones] z->useful_geometry.w=%d, z->useful_geometry.h=%d, z->useful_geometry.x=%d, z->useful_geometry.y=%d\n",
                                           z->useful_geometry.w, z->useful_geometry.h, z->useful_geometry.x, z->useful_geometry.y);
                                  e_devicemgr.zones = eina_list_append(e_devicemgr.zones, z);
                                  e_devicemgr.num_zones++;
@@ -1019,14 +1013,14 @@ _e_devicemgr_init_output(void)
              if (output_info && output_info->name && !strncmp(output_info->name, "LVDS1", 5))
                {
                   e_devicemgr.output = res->outputs[i];
-                  fprintf(stderr, "[e_devicemgr][_e_devicemgr_init_output] LVDS1 was found !\n");
+                  SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][_e_devicemgr_init_output] LVDS1 was found !\n");
                   XRRFreeOutputInfo(output_info);
                   break;
                }
              else
                {
                   e_devicemgr.output = res->outputs[i];
-                  fprintf(stderr, "[e_devicemgr][_e_devicemgr_init_output] LVDS1 was not found yet !\n");
+                  SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][_e_devicemgr_init_output] LVDS1 was not found yet !\n");
                }
 
              if (output_info) XRRFreeOutputInfo(output_info);
@@ -1035,7 +1029,7 @@ _e_devicemgr_init_output(void)
 
    if (!e_devicemgr.output)
      {
-        fprintf(stderr, "[e_devicemgr][_e_devicemgr_init_output] Failed to init output !\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][_e_devicemgr_init_output] Failed to init output !\n");
      }
 }
 
@@ -1059,7 +1053,7 @@ _e_devicemgr_init_input(void)
 
    if (e_devicemgr.xi2_opcode < 0)
      {
-        fprintf(stderr, "[e_devicemgr][%s] Failed to initialize input !\n", __FUNCTION__);
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to initialize input !\n", __FUNCTION__);
         return;
      }
 
@@ -1067,7 +1061,7 @@ _e_devicemgr_init_input(void)
 
    if (!info)
      {
-        fprintf(stderr, "[e_devicemgr][%s] There is no queried XI device.\n", __FUNCTION__);
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] There is no queried XI device.\n", __FUNCTION__);
         return;
      }
 
@@ -1090,7 +1084,7 @@ _e_devicemgr_init_input(void)
 
                 if (!data)
                   {
-                     fprintf(stderr, "[e_devicemgr][%s] Failed to allocate memory for device info !\n", __FUNCTION__);
+                     SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to allocate memory for device info !\n", __FUNCTION__);
                      goto out;
                   }
 
@@ -1102,7 +1096,7 @@ _e_devicemgr_init_input(void)
                      data->type = E_DEVICEMGR_TOUCHSCREEN;
                      e_devicemgr.device_list = eina_list_append(e_devicemgr.device_list, data);
                      e_devicemgr.num_touchscreen_devices++;
-                     fprintf(stderr, "[e_devicemgr][%s] Slave touchscreen device (id=%d, name=%s, num_touchscreen_devices=%d) was added/enabled !\n",
+                     SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Slave touchscreen device (id=%d, name=%s, num_touchscreen_devices=%d) was added/enabled !\n",
                                  __FUNCTION__, dev->deviceid, dev->name, e_devicemgr.num_touchscreen_devices);
                   }
                 else
@@ -1113,7 +1107,7 @@ _e_devicemgr_init_input(void)
                      e_devicemgr.num_pointer_devices++;
 
                      if (1==e_devicemgr.num_pointer_devices) _e_devicemgr_set_mouse_exist(1, 1);
-                     fprintf(stderr, "[e_devicemgr][%s] Slave pointer device (id=%d, name=%s, num_pointer_devices=%d) was added/enabled !\n",
+                     SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Slave pointer device (id=%d, name=%s, num_pointer_devices=%d) was added/enabled !\n",
                                  __FUNCTION__, dev->deviceid, dev->name, e_devicemgr.num_pointer_devices);
                   }
                 break;
@@ -1131,7 +1125,7 @@ handle_keyboard:
 
                 if (!data)
                   {
-                     fprintf(stderr, "[e_devicemgr][%s] Failed to allocate memory for device info !\n", __FUNCTION__);
+                     SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to allocate memory for device info !\n", __FUNCTION__);
                      goto out;
                   }
 
@@ -1151,7 +1145,7 @@ handle_keyboard:
                           _e_devicemgr_set_keyboard_exist((unsigned int)e_devicemgr.num_keyboard_devices, 1);
                        }
 
-                     fprintf(stderr, "[e_devicemgr][%s] Slave keyboard device (id=%d, name=%s, num_keyboard_devices=%d) was added/enabled !\n",
+                     SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] Slave keyboard device (id=%d, name=%s, num_keyboard_devices=%d) was added/enabled !\n",
                                  __FUNCTION__, dev->deviceid, dev->name, e_devicemgr.num_keyboard_devices);
                   }
                 else//HW key
@@ -1169,12 +1163,12 @@ handle_keyboard:
                 break;
 
              case XIMasterPointer:
-                fprintf(stderr, "[e_devicemgr][%s] XIMasterPointer (VCP) (id=%d, name=%s)\n", __FUNCTION__, dev->deviceid, dev->name);
+                SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] XIMasterPointer (VCP) (id=%d, name=%s)\n", __FUNCTION__, dev->deviceid, dev->name);
                 e_devicemgr.vcp_id = dev->deviceid;
                 break;
 
              case XIMasterKeyboard:
-                fprintf(stderr, "[e_devicemgr][%s] XIMasterKeyboard (VCK) (id=%d, name=%s)\n", __FUNCTION__, dev->deviceid, dev->name);
+                SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] XIMasterKeyboard (VCK) (id=%d, name=%s)\n", __FUNCTION__, dev->deviceid, dev->name);
                 e_devicemgr.vck_id = dev->deviceid;
                 break;
           }
@@ -1189,12 +1183,10 @@ _e_devicemgr_xi2_device_changed_handler(XIDeviceChangedEvent *event)
 {
    if (event->reason == XISlaveSwitch)
      {
-        //fprintf(stderr, "[e_devicemgr][device_change_handler] XISlaveSwitch (deviceid:%d, sourceid:%d) !\n", event->deviceid, event->sourceid);
         _e_devicemgr_slave_switched(event->deviceid, event->sourceid);
      }
    else if (event->reason == XIDeviceChange)
      {
-        //fprintf(stderr, "[e_devicemgr][device_change_handler] XIDeviceChange (deviceid:%d, sourceid:%d) !\n", event->deviceid, event->sourceid);
         _e_devicemgr_device_changed(event->deviceid, event->sourceid);
      }
 }
@@ -1206,17 +1198,14 @@ _e_devicemgr_xi2_device_hierarchy_handler(XIHierarchyEvent *event)
 
    if (event->flags & XIMasterAdded || event->flags & XIMasterRemoved)
      {
-        //fprintf(stderr, "[e_devicemgr][hierarchy_handler] XIMasterAdded or XIMasterRemoved !\n");
         for( i = 0 ; i < event->num_info ; i++ )
           {
              if (event->info[i].flags & XIMasterAdded)
                {
-                  //fprintf(stderr, "[e_devicemgr][hierarchy_handler] XIMasterAdded ! (id=%d, use=%d)\n", event->info[i].deviceid, event->info[i].use);
                   _e_devicemgr_master_pointer_added(event->info[i].deviceid);
                }
              else if (event->info[i].flags & XIMasterRemoved)
                {
-                  //fprintf(stderr, "[e_devicemgr][hierarchy_handler] XIMasterRemoved ! (id=%d, use=%d)\n", event->info[i].deviceid, event->info[i].use);
                   _e_devicemgr_master_pointer_removed(event->info[i].deviceid);
                }
           }
@@ -1224,17 +1213,14 @@ _e_devicemgr_xi2_device_hierarchy_handler(XIHierarchyEvent *event)
 
    if (event->flags & XIDeviceEnabled || event->flags & XIDeviceDisabled)
      {
-        //fprintf(stderr, "[e_devicemgr][hierarchy_handler] XIDeviceEnabled or XIDeviceDisabled !\n");
         for( i = 0 ; i < event->num_info ; i++ )
           {
              if (event->info[i].flags & XIDeviceEnabled)
                {
-                  //fprintf(stderr, "[e_devicemgr][hierarchy_handler] XIDeviceEnabled ! (id=%d, use=%d)\n", event->info[i].deviceid, event->info[i].use);
                   _e_devicemgr_device_enabled(event->info[i].deviceid, event->info[i].use);
                }
              else if (event->info[i].flags & XIDeviceDisabled)
                {
-                  //fprintf(stderr, "[e_devicemgr][hierarchy_handler] XIDeviceDisabled ! (id=%d, use=%d)\n", event->info[i].deviceid, event->info[i].use);
                   _e_devicemgr_device_disabled(event->info[i].deviceid, event->info[i].use);
                }
           }
@@ -1256,7 +1242,7 @@ _e_devicemgr_check_device_type(int deviceid, DeviceMgrDeviceType type, const cha
                               XA_ATOM, &act_type, &act_format,
                               &nitems, &bytes_after, &data) != Success)
      {
-        fprintf(stderr, "[e_devicemgr][check_device_type] Failed to get XI2 device property !(deviceid=%d)\n", deviceid);
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][check_device_type] Failed to get XI2 device property !(deviceid=%d)\n", deviceid);
         goto out;
      }
 
@@ -1309,7 +1295,7 @@ _e_devicemgr_device_enabled(int id, int type)
 
    if (!info || ndevices <= 0)
      {
-        fprintf(stderr, "[e_devicemgr][%s] There is no queried XI device. (device id=%d, type=%d)\n", __FUNCTION__, id, type);
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] There is no queried XI device. (device id=%d, type=%d)\n", __FUNCTION__, id, type);
         goto out;
      }
 
@@ -1323,7 +1309,7 @@ _e_devicemgr_device_enabled(int id, int type)
 
            if (!data)
              {
-                fprintf(stderr, "[e_devicemgr][%s] Failed to allocate memory for device info !\n", __FUNCTION__);
+                SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] Failed to allocate memory for device info !\n", __FUNCTION__);
                 goto out;
              }
 
@@ -1340,7 +1326,7 @@ _e_devicemgr_device_enabled(int id, int type)
                   }
                 e_devicemgr.device_list = eina_list_append(e_devicemgr.device_list, data);
                 e_devicemgr.num_touchscreen_devices++;
-                fprintf(stderr, "[e_devicemgr][%s] Slave touchscreen device (id=%d, name=%s, num_touchscreen_devices=%d) was added/enabled !\n",
+                SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] Slave touchscreen device (id=%d, name=%s, num_touchscreen_devices=%d) was added/enabled !\n",
                             __FUNCTION__, id, info->name, e_devicemgr.num_touchscreen_devices);
              }
            else
@@ -1350,7 +1336,7 @@ _e_devicemgr_device_enabled(int id, int type)
                 e_devicemgr.device_list = eina_list_append(e_devicemgr.device_list, data);
                 e_devicemgr.num_pointer_devices++;
                 if (1==e_devicemgr.num_pointer_devices) _e_devicemgr_set_mouse_exist(1, 1);
-                fprintf(stderr, "[e_devicemgr][%s] Slave pointer device (id=%d, name=%s, num_pointer_devices=%d) was added/enabled !\n",
+                SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] Slave pointer device (id=%d, name=%s, num_pointer_devices=%d) was added/enabled !\n",
                            __FUNCTION__, id, info->name, e_devicemgr.num_pointer_devices);
                 if (strcasestr(info->name, E_VIRTUAL_TOUCHPAD_NAME))
                   {
@@ -1367,7 +1353,7 @@ handle_keyboard:
 
            if (!data)
              {
-                fprintf(stderr, "[e_devicemgr][%s] Failed to allocate memory for device info !\n", __FUNCTION__);
+                SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] Failed to allocate memory for device info !\n", __FUNCTION__);
                 goto out;
              }
 
@@ -1384,7 +1370,7 @@ handle_keyboard:
                 if (e_devicemgr.num_keyboard_devices >= 1)
                   _e_devicemgr_set_keyboard_exist((unsigned int)e_devicemgr.num_keyboard_devices, 1);
 
-                fprintf(stderr, "[e_devicemgr][%s] Slave keyboard device (id=%d, name=%s, num_keyboard_devices=%d) was added/enabled !\n",
+                SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] Slave keyboard device (id=%d, name=%s, num_keyboard_devices=%d) was added/enabled !\n",
                            __FUNCTION__, id, info->name, e_devicemgr.num_keyboard_devices);
              }
            else//HW key
@@ -1408,7 +1394,7 @@ handle_keyboard:
                   {
                      _e_devicemgr_virtual_multitouch_helper_init(id);
                   }
-                fprintf(stderr, "[e_devicemgr][%s] FloatingSlave touchscreen device (id=%d, name=%s) was added/enabled !\n",
+                SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] FloatingSlave touchscreen device (id=%d, name=%s) was added/enabled !\n",
                             __FUNCTION__, id, info->name);
              }
            break;
@@ -1426,7 +1412,7 @@ _e_devicemgr_device_disabled(int id, int type)
 
    if (!e_devicemgr.device_list)
      {
-        fprintf(stderr, "[e_devicemgr][%s] device list is empty ! something's wrong ! (id=%d, type=%d)\n", __FUNCTION__, id, type);
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] device list is empty ! something's wrong ! (id=%d, type=%d)\n", __FUNCTION__, id, type);
         goto out;
      }
 
@@ -1438,7 +1424,7 @@ _e_devicemgr_device_disabled(int id, int type)
                {
                   case E_DEVICEMGR_HWKEY:
                      e_devicemgr.num_hwkey_devices--;
-                     fprintf(stderr, "[e_devicemgr][%s] Slave H/W key device (id=%d, name=%s, type=%d) was removed/disabled !\n",
+                     SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] Slave H/W key device (id=%d, name=%s, type=%d) was removed/disabled !\n",
                                  __FUNCTION__, id, data->name, type);
 
                      e_devicemgr.device_list = eina_list_remove(e_devicemgr.device_list, data);
@@ -1454,7 +1440,7 @@ _e_devicemgr_device_disabled(int id, int type)
                           _e_devicemgr_set_keyboard_exist(0, 0);
                        }
 
-                     fprintf(stderr, "[e_devicemgr][%s] Slave keyboard device (id=%d, name=%s, type=%d, num_keyboard_devices=%d) was removed/disabled !\n",
+                     SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] Slave keyboard device (id=%d, name=%s, type=%d, num_keyboard_devices=%d) was removed/disabled !\n",
                                 __FUNCTION__, id, data->name, type, e_devicemgr.num_keyboard_devices);
 
                      e_devicemgr.device_list = eina_list_remove(e_devicemgr.device_list, data);
@@ -1470,7 +1456,7 @@ _e_devicemgr_device_disabled(int id, int type)
                           _e_devicemgr_set_mouse_exist(0, 1);
                        }
 
-                     fprintf(stderr, "[e_devicemgr][%s] Slave pointer device (id=%d, name=%s, type=%d, num_pointer_devices=%d) was removed/disabled !\n",
+                     SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] Slave pointer device (id=%d, name=%s, type=%d, num_pointer_devices=%d) was removed/disabled !\n",
                                 __FUNCTION__, id, data->name, type, e_devicemgr.num_pointer_devices);
                      if (e_devicemgr.virtual_touchpad_id == id)
                        {
@@ -1485,7 +1471,7 @@ _e_devicemgr_device_disabled(int id, int type)
                      if (strcasestr(data->name, "virtual") && strcasestr(data->name, "multitouch"))
                        _e_devicemgr_virtual_multitouch_helper_fini();
                      e_devicemgr.num_touchscreen_devices--;
-                     fprintf(stderr, "[e_devicemgr][%s] Slave touchscreen device (id=%d, name=%s, type=%d, num_touchscreen_devices=%d) was removed/disabled !\n",
+                     SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] Slave touchscreen device (id=%d, name=%s, type=%d, num_touchscreen_devices=%d) was removed/disabled !\n",
                                 __FUNCTION__, id, data->name, type, e_devicemgr.num_touchscreen_devices);
 
                      e_devicemgr.device_list = eina_list_remove(e_devicemgr.device_list, data);
@@ -1493,7 +1479,7 @@ _e_devicemgr_device_disabled(int id, int type)
                      goto out;
 
                   default:
-                     fprintf(stderr, "[e_devicemgr][%s] Unknown type of device ! (id=%d, type=%d, name=%s, device type=%d)\n",
+                     SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] Unknown type of device ! (id=%d, type=%d, name=%s, device type=%d)\n",
                                 __FUNCTION__, data->id, type, data->name, data->type);
                      e_devicemgr.device_list = eina_list_remove(e_devicemgr.device_list, data);
                      free(data);
@@ -1516,7 +1502,7 @@ _e_devicemgr_master_pointer_added(int id)
 
    if (!info || ndevices <= 0)
      {
-        fprintf(stderr, "[e_devicemgr][master_pointer_added] There is no queried XI device. (device id=%d)\n", id);
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][master_pointer_added] There is no queried XI device. (device id=%d)\n", id);
         goto out;
      }
 
@@ -1525,7 +1511,7 @@ _e_devicemgr_master_pointer_added(int id)
    //Now we have a MasterPointer.
    if (strcasestr(E_NEW_MASTER_NAME" pointer", info->name))
      {
-        //fprintf(stderr, "[e_devicemgr][master_pointer_added] XIMasterPointer is added !(id=%d, name=%s)\n", info->deviceid, info->name);
+        //SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][master_pointer_added] XIMasterPointer is added !(id=%d, name=%s)\n", info->deviceid, info->name);
         e_devicemgr.new_master_pointer_id = info->deviceid;
 
         Eina_List *l;
@@ -1557,7 +1543,7 @@ _e_devicemgr_master_pointer_removed(int id)
 {
    if (e_devicemgr.new_master_pointer_id == id)
      {
-        //fprintf(stderr, "[e_devicemgr][master_pointer_removed] XIMasterPointer was removed ! (id=%d, name=%s)\n",
+        //SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][master_pointer_removed] XIMasterPointer was removed ! (id=%d, name=%s)\n",
         //           id, E_NEW_MASTER_NAME" pointer");
         e_devicemgr.new_master_pointer_id = -1;
 
@@ -1589,13 +1575,6 @@ _e_devicemgr_slave_switched(int deviceid, int sourceid)
    Eina_List *l;
    DeviceMgr_Device_Info *device_info;
 
-   if ((deviceid == e_devicemgr.vck_id) && (sourceid != e_devicemgr.vck_xtest_keyboard_id))
-     {
-        val = 1;
-        ecore_x_window_prop_card32_set(e_devicemgr.rootWin, e_devicemgr.atomHWKbdInputStarted, &val, 1);
-        return;
-     }
-
    EINA_LIST_FOREACH(e_devicemgr.device_list, l, device_info)
      {
         if (!device_info || device_info->id!=sourceid) continue;
@@ -1615,7 +1594,7 @@ _e_devicemgr_slave_switched(int deviceid, int sourceid)
 static void
 _e_devicemgr_device_changed(int deviceid, int sourceid)
 {
-   //fprintf(stderr, "[e_devicemgr][device_change_handler] deviceid:%d, sourceid:%d\n", deviceid, sourceid);
+   //SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][device_change_handler] deviceid:%d, sourceid:%d\n", deviceid, sourceid);
 }
 
 static void _e_devicemgr_enable_mouse_cursor(unsigned int val)
@@ -1643,7 +1622,7 @@ _e_devicemgr_set_confine_information(int deviceid, E_Zone *zone, Eina_Bool isset
 
    if (isset && !zone && !region)
      {
-        fprintf(stderr, "[e_devicemgr][set_confine_information] zone or region is needed for setting confine information !\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][set_confine_information] zone or region is needed for setting confine information !\n");
         return;
      }
 
@@ -1655,7 +1634,7 @@ _e_devicemgr_set_confine_information(int deviceid, E_Zone *zone, Eina_Bool isset
              confine_region[1] = zone->y;
              confine_region[2] = zone->x + zone->w;
              confine_region[3] = zone->y + zone->h;
-             //fprintf(stderr, "[e_devicemgr][set_confine_information][zone] x=%d, y=%d, w=%d, h=%d\n", confine_region[0], confine_region[1], confine_region[2], confine_region[3]);
+             //SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][set_confine_information][zone] x=%d, y=%d, w=%d, h=%d\n", confine_region[0], confine_region[1], confine_region[2], confine_region[3]);
           }
         else
           {
@@ -1663,7 +1642,7 @@ _e_devicemgr_set_confine_information(int deviceid, E_Zone *zone, Eina_Bool isset
              confine_region[1] = region[1];
              confine_region[2] = region[2];
              confine_region[3] = region[3];
-             //fprintf(stderr, "[e_devicemgr][set_confine_information][region] x=%d, y=%d, w=%d, h=%d\n", confine_region[0], confine_region[1], confine_region[2], confine_region[3]);
+             //SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][set_confine_information][region] x=%d, y=%d, w=%d, h=%d\n", confine_region[0], confine_region[1], confine_region[2], confine_region[3]);
           }
         if (pointer_warp) confine_region[4] = 1;
         else confine_region[4] = 0;
@@ -1709,7 +1688,7 @@ _e_devicemgr_set_mouse_exist(unsigned int val, int propset)
      }
    else
      {
-        fprintf(stderr, "[e_devicemgr][%s] Invalid value for enabling cursor !(val=%d)\n", __FUNCTION__, val);
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][%s] Invalid value for enabling cursor !(val=%d)\n", __FUNCTION__, val);
      }
 }
 
@@ -1749,7 +1728,7 @@ _e_devicemgr_lockmodifier_set(void)
 
    //Get current numlock/capslock status from Xserver
    mask = _e_devicemgr_get_lockmodifier_mask();
-   fprintf(stderr, "[e_devicemgr][lockmodifier_set] NumLock mask=%d, CapsLock mask=%d\n",
+   SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][lockmodifier_set] NumLock mask=%d, CapsLock mask=%d\n",
                NumLockMask & mask, CapsLockMask & mask);
 
    //If one of lockmodiers is set, try to turn it on for all keyboard devices.
@@ -1766,7 +1745,7 @@ _e_devicemgr_create_master_device(char* master_name)
 
    if (!master_name)
      {
-        fprintf(stderr, "[e_devicemgr][create_master_device] name of master device is needed !\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][create_master_device] name of master device is needed !\n");
         return EINA_FALSE;
      }
 
@@ -1781,7 +1760,7 @@ _e_devicemgr_create_master_device(char* master_name)
 
    if (ret!=Success) return EINA_FALSE;
 
-   fprintf(stderr, "[e_devicemgr][create_master_device] new master (%s) was created !\n", E_NEW_MASTER_NAME);
+   SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][create_master_device] new master (%s) was created !\n", E_NEW_MASTER_NAME);
 
    return EINA_TRUE;
 }
@@ -1794,7 +1773,7 @@ _e_devicemgr_remove_master_device(int master_id)
 
    if (master_id < 0)
      {
-        fprintf(stderr, "[e_devicemgr][remove_master_device] master_id(%d) is invalid !\n", master_id);
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][remove_master_device] master_id(%d) is invalid !\n", master_id);
 	 return EINA_FALSE;
      }
 
@@ -1808,7 +1787,7 @@ _e_devicemgr_remove_master_device(int master_id)
 
    if (ret!=Success) return EINA_FALSE;
 
-   fprintf(stderr, "[e_devicemgr][remove_master_device] new master (%s) was removed !\n", E_NEW_MASTER_NAME);
+   SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][remove_master_device] new master (%s) was removed !\n", E_NEW_MASTER_NAME);
 
    return EINA_TRUE;
 }
@@ -1827,7 +1806,7 @@ _e_devicemgr_detach_slave(int slave_id)
 
    if (ret!=Success) return EINA_FALSE;
 
-   fprintf(stderr, "[e_devicemgr][detach_slave] slave (id=%d) was removed !\n", slave_id);
+   SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][detach_slave] slave (id=%d) was removed !\n", slave_id);
 
    return EINA_TRUE;
 }
@@ -1848,7 +1827,7 @@ _e_devicemgr_reattach_slave(int slave_id, int master_id)
 
    if (ret!=Success) return EINA_FALSE;
 
-   fprintf(stderr, "[e_devicemgr][reattach_slave] slave (id=%d) was reattached to master (id:%d) !\n", slave_id, master_id);
+   SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][reattach_slave] slave (id=%d) was reattached to master (id:%d) !\n", slave_id, master_id);
 
    return EINA_TRUE;
 }
@@ -1856,7 +1835,7 @@ _e_devicemgr_reattach_slave(int slave_id, int master_id)
 static void
 _e_devicemgr_show_device_list(unsigned int val)
 {
-   fprintf(stderr, "\n[e_devicemgr] - Device List = Start =====================\n");
+   SLOG(LOG_DEBUG, "DEVICEMGR",  "\n[e_devicemgr] - Device List = Start =====================\n");
 
    if (e_devicemgr.device_list)
      {
@@ -1867,37 +1846,37 @@ _e_devicemgr_show_device_list(unsigned int val)
           {
              if (data)
                {
-                  fprintf(stderr, "Device id : %d Name : %s\n", data->id, data->name);
+                  SLOG(LOG_DEBUG, "DEVICEMGR",  "Device id : %d Name : %s\n", data->id, data->name);
                   switch (data->type)
                     {
                        case E_DEVICEMGR_HWKEY:
-                          fprintf(stderr, " : type : H/W Key\n");
+                          SLOG(LOG_DEBUG, "DEVICEMGR",  " : type : H/W Key\n");
                           break;
 
                        case E_DEVICEMGR_KEYBOARD:
-                          fprintf(stderr, " : type : Keyboard\n");
+                          SLOG(LOG_DEBUG, "DEVICEMGR",  " : type : Keyboard\n");
                           break;
 
                        case E_DEVICEMGR_MOUSE:
-                          fprintf(stderr, " : type : Mouse\n");
+                          SLOG(LOG_DEBUG, "DEVICEMGR",  " : type : Mouse\n");
                           break;
 
                        case E_DEVICEMGR_TOUCHSCREEN:
-                          fprintf(stderr, " : type : Touchscreen\n");
+                          SLOG(LOG_DEBUG, "DEVICEMGR",  " : type : Touchscreen\n");
                           break;
 
                        default:
-                          fprintf(stderr, " : type : Unknown\n");
+                          SLOG(LOG_DEBUG, "DEVICEMGR",  " : type : Unknown\n");
                     }
                }
           }
      }
    else
      {
-        fprintf(stderr, "No input devices...\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "No input devices...\n");
      }
 
-   fprintf(stderr, "\n[e_devicemgr] - Device List = End =====================\n");
+   SLOG(LOG_DEBUG, "DEVICEMGR",  "\n[e_devicemgr] - Device List = End =====================\n");
 }
 
 static Eina_Bool
@@ -1911,7 +1890,7 @@ _e_devicemgr_virtual_touchpad_helper_enable(Eina_Bool is_enable)
         result = _e_devicemgr_create_master_device(E_NEW_MASTER_NAME);
         if (EINA_FALSE==result)
           {
-             fprintf(stderr, "[e_devicemgr][virtual_touchpad_helper_enable] Failed to create master device ! (name=%s)\n",
+             SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][virtual_touchpad_helper_enable] Failed to create master device ! (name=%s)\n",
                         E_NEW_MASTER_NAME);
              return EINA_FALSE;
           }
@@ -1922,7 +1901,7 @@ _e_devicemgr_virtual_touchpad_helper_enable(Eina_Bool is_enable)
         result = _e_devicemgr_remove_master_device(e_devicemgr.new_master_pointer_id);
         if (EINA_FALSE==result)
           {
-             fprintf(stderr, "[e_devicemgr][virtual_touchpad_helper_enable] Failed to remove master device ! (id=%d)\n",
+             SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][virtual_touchpad_helper_enable] Failed to remove master device ! (id=%d)\n",
                         e_devicemgr.new_master_pointer_id);
              return EINA_FALSE;
           }
@@ -1941,7 +1920,7 @@ _e_devicemgr_get_nth_zone(int index)
 
    if (e_devicemgr.num_zones < index)
      {
-        fprintf(stderr, "[e_devicemgr][get_nth_zone] %d th zone doesn't exist ! (num_zones=%d)\n",
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][get_nth_zone] %d th zone doesn't exist ! (num_zones=%d)\n",
                    index, e_devicemgr.num_zones);
         return NULL;
      }
@@ -1963,7 +1942,7 @@ _e_devicemgr_get_configuration (void)
 {
    if (!e_mod_devicemgr_config_init())
      {
-        fprintf(stderr, "[e_devicemgr][get_configuration] Failed @ e_mod_devicemgr_config_init()..!\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][get_configuration] Failed @ e_mod_devicemgr_config_init()..!\n");
         return 0;
      }
 
@@ -1998,21 +1977,21 @@ _e_devicemgr_virtual_multitouch_helper_init(int deviceid)
 
    if (i < MAX_TOUCH-1) return;
 
-   fprintf(stderr, "[e_devicemgr][virtual_multitouch_helper_init] virtual touchscreen device were attached !\n");
+   SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][virtual_multitouch_helper_init] virtual touchscreen device were attached !\n");
 
    e_devicemgr.mouse_in_handler = ecore_event_handler_add(ECORE_X_EVENT_MOUSE_IN, (Ecore_Event_Handler_Cb)_e_devicemgr_cb_mouse_in, NULL);
    e_devicemgr.border_move_end_hook = e_border_hook_add(E_BORDER_HOOK_MOVE_END, _e_devicemgr_hook_border_move_end, NULL);
    e_devicemgr.border_resize_end_hook = e_border_hook_add(E_BORDER_HOOK_RESIZE_END, _e_devicemgr_hook_border_resize_end, NULL);
 
-   if (!e_devicemgr.mouse_in_handler) printf ("[e_devicemgr][%s] Failed to add ECORE_X_EVENT_MOUSE_IN handler\n", __FUNCTION__);
-   if (!e_devicemgr.border_move_end_hook) printf ("[e_devicemgr][%s] Failed to add E_BORDER_HOOK_MOVE_END hook\n", __FUNCTION__);
-   if (!e_devicemgr.border_resize_end_hook) printf ("[e_devicemgr][%s] Failed to add E_BORDER_HOOK_RESIZE_END hook\n", __FUNCTION__);
+   if (!e_devicemgr.mouse_in_handler) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add ECORE_X_EVENT_MOUSE_IN handler\n", __FUNCTION__);
+   if (!e_devicemgr.border_move_end_hook) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add E_BORDER_HOOK_MOVE_END hook\n", __FUNCTION__);
+   if (!e_devicemgr.border_resize_end_hook) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add E_BORDER_HOOK_RESIZE_END hook\n", __FUNCTION__);
 }
 
 static void
 _e_devicemgr_virtual_multitouch_helper_fini(void)
 {
-   fprintf(stderr, "[e_devicemgr][virtual_multitouch_helper_init] virtual touchscreen device(s) were removed !\n");
+   SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][virtual_multitouch_helper_init] virtual touchscreen device(s) were removed !\n");
    memset(&e_devicemgr.virtual_multitouch_id, -1, sizeof(e_devicemgr.virtual_multitouch_id));
 
    if (e_devicemgr.mouse_in_handler) ecore_event_handler_del(e_devicemgr.mouse_in_handler);
@@ -2033,7 +2012,7 @@ _e_devicemgr_update_input_transform_matrix(Eina_Bool reset)
 
    if (0 > e_devicemgr.virtual_multitouch_id[0])
      {
-        fprintf(stderr, "[e_devicemgr][update_input_transform_matrix] e_devicemgr.virtual_multitouch_id is invalid !\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][update_input_transform_matrix] e_devicemgr.virtual_multitouch_id is invalid !\n");
         return;
      }
 
@@ -2050,7 +2029,7 @@ _e_devicemgr_update_input_transform_matrix(Eina_Bool reset)
    XFlush(e_devicemgr.disp);
    XSync(e_devicemgr.disp, False);
 
-   if (reset) fprintf(stderr, "[e_devicemgr][update_input_transform_matrix] transform matrix was reset to identity_matrix !\n");
-   else fprintf(stderr, "[e_devicemgr][update_input_transform_matrix] transform matrix was updated !\n");
+   if (reset) SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][update_input_transform_matrix] transform matrix was reset to identity_matrix !\n");
+   else SLOG(LOG_DEBUG, "DEVICEMGR",  "[e_devicemgr][update_input_transform_matrix] transform matrix was updated !\n");
 }
 

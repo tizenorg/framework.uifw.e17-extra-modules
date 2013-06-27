@@ -708,3 +708,71 @@ e_mod_move_util_prop_active_indicator_win_set(Ecore_X_Window win,
      }
    return ret;
 }
+
+EINTERN Evas_Object*
+e_mod_move_util_comp_layer_get(E_Move *m, const char *name)
+{
+   E_Manager   *man = NULL;
+   E_Zone      *zone = NULL;
+
+   E_CHECK_RETURN(m, NULL);
+   E_CHECK_RETURN(name, NULL);
+
+   man = m->man;
+   E_CHECK_RETURN(man, NULL);
+
+   zone = e_util_zone_current_get(man);
+   E_CHECK_RETURN(zone, NULL);
+
+   return e_manager_comp_layer_get(man, zone, name);
+}
+
+EINTERN Eina_Bool
+e_mod_move_util_screen_input_block(E_Move *m)
+{
+   E_Zone    *zone = NULL;
+   E_Manager *man = NULL;
+   int        input_block_id = 0;
+   Eina_Bool  ret = EINA_FALSE;
+
+   E_CHECK_RETURN(m, EINA_FALSE);
+   if (m->screen_input_block_id) return EINA_FALSE;
+
+   man = m->man;
+   E_CHECK_RETURN(man, EINA_FALSE);
+
+   zone = e_util_zone_current_get(man);
+   E_CHECK_RETURN(zone, EINA_FALSE);
+
+   input_block_id = e_manager_comp_input_region_id_new(man);
+   if (input_block_id)
+     {
+        e_manager_comp_input_region_id_set(man,
+                                           input_block_id,
+                                           zone->x, zone->y, zone->w, zone->h);
+        m->screen_input_block_id = input_block_id;
+        ret = EINA_TRUE;
+     }
+
+   return ret;
+}
+
+EINTERN Eina_Bool
+e_mod_move_util_screen_input_unblock(E_Move *m)
+{
+   E_Manager *man = NULL;
+   Eina_Bool  ret = EINA_FALSE;
+
+   E_CHECK_RETURN(m, EINA_FALSE);
+
+   man = m->man;
+   E_CHECK_RETURN(man, EINA_FALSE);
+
+   if (m->screen_input_block_id)
+     {
+        e_manager_comp_input_region_id_del(man, m->screen_input_block_id);
+        m->screen_input_block_id = 0;
+        ret = EINA_TRUE;
+     }
+   return ret;
+}

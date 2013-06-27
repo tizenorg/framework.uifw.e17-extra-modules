@@ -139,75 +139,50 @@ _ev_cb_mouse_down(void            *data,
                   Evas_Object *obj __UNUSED__,
                   void            *event_info)
 {
-   E_Move *m;
    int ex, ey, ew, eh;
    Evas_Event_Mouse_Down *dn_info = NULL;
    E_Move_Event *ev;
    E_Move_Event_Motion_Info *motion;
+   E_Move_Border *mb = NULL;
+   char obj_name[255];
 
    ev = (E_Move_Event *)data;
    if (!event_info || !ev) return;
 
-   m = e_mod_move_util_get();
-   if ((m) && (m->ev_log))
+   if (ev->data_type == E_MOVE_EVENT_DATA_TYPE_BORDER)
+     mb = (E_Move_Border *)(ev->fn[E_MOVE_EVENT_TYPE_MOTION_START].data);
+
+   memset(obj_name, '\0', sizeof(obj_name));
+   if (ev->data_type == E_MOVE_EVENT_DATA_TYPE_BORDER)
      {
-        E_Move_Event_Log *log = NULL;
-        E_Move_Border *mb = NULL;
-        if (ev->data_type == E_MOVE_EVENT_DATA_TYPE_BORDER)
-          mb = (E_Move_Border *)(ev->fn[E_MOVE_EVENT_TYPE_MOTION_START].data);
-
-        dn_info = (Evas_Event_Mouse_Down*)event_info;
-        ex = 0; ey = 0; ew = 0; eh = 0;
-        evas_object_geometry_get(obj, &ex, &ey, &ew, &eh);
-        log = E_NEW(E_Move_Event_Log, 1);
-        if (log)
+        if (mb)
           {
-             log->t = E_MOVE_EVENT_LOG_EVAS_OBJECT_MOUSE_DOWN;
-             log->d.eo_m.x = dn_info->canvas.x;
-             log->d.eo_m.y = dn_info->canvas.y;
-             log->d.eo_m.btn = dn_info->button;
-             log->d.eo_m.ox = ex;
-             log->d.eo_m.oy = ey;
-             log->d.eo_m.ow = ew;
-             log->d.eo_m.oh = eh;
-             log->d.eo_m.obj = obj;
-
-             if (ev->data_type == E_MOVE_EVENT_DATA_TYPE_BORDER)
-               {
-                  if (mb)
-                    {
-                       if (TYPE_APPTRAY_CHECK(mb))
-                         log->d.eo_m.t = E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_APPTRAY;
-                       else if (TYPE_INDICATOR_CHECK(mb))
-                         log->d.eo_m.t = E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_INDICATOR;
-                       else if (TYPE_QUICKPANEL_CHECK(mb))
-                         log->d.eo_m.t = E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_QUICKPANEL;
-                       else
-                         log->d.eo_m.t = E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_UNKNOWN;
-                    }
-                  else
-                    log->d.eo_m.t = E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_UNKNOWN;
-               }
-             else if (ev->data_type == E_MOVE_EVENT_DATA_TYPE_WIDGET_INDICATOR)
-               {
-                  log->d.eo_m.t = E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_INDICATOR;
-               }
+             if (TYPE_APPTRAY_CHECK(mb))
+                strncpy(obj_name, "APPTRAY", strlen("APPTRAY"));
+             else if (TYPE_INDICATOR_CHECK(mb))
+                strncpy(obj_name, "INDICATOR", strlen("INDICATOR"));
+             else if (TYPE_QUICKPANEL_CHECK(mb))
+                strncpy(obj_name, "QUICKPANEL", strlen("QUICKPANEL"));
              else
-               {
-                  log->d.eo_m.t = E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_UNKNOWN;
-               }
-             // list check and append
-             if (eina_list_count(m->ev_logs) >= m->ev_log_cnt)
-               {
-                  // if log list is full, delete first log
-                  E_Move_Event_Log *first_log = (E_Move_Event_Log*)eina_list_nth(m->ev_logs, 0);
-                  m->ev_logs = eina_list_remove(m->ev_logs, first_log);
-                  memset(first_log, 0, sizeof(E_Move_Event_Log));
-                  E_FREE(first_log);
-               }
-             m->ev_logs = eina_list_append(m->ev_logs, log);
+                strncpy(obj_name, "UNKNOWN", strlen("UNKNOWN"));
           }
+        else
+           strncpy(obj_name, "UNKNOWN", strlen("UNKNOWN"));
      }
+   else if (ev->data_type == E_MOVE_EVENT_DATA_TYPE_WIDGET_INDICATOR)
+      strncpy(obj_name, "INDICATOR", strlen("INDICATOR"));
+   else
+      strncpy(obj_name, "UNKNOWN", strlen("UNKNOWN"));
+
+   dn_info = (Evas_Event_Mouse_Down*)event_info;
+   ex = 0; ey = 0; ew = 0; eh = 0;
+   evas_object_geometry_get(obj, &ex, &ey, &ew, &eh);
+
+   SECURE_SLOGD(
+      "%23s   obj:%p (%4d ,%4d )  btn:%d | %10s  eo_geo(%d,%d,%d,%d)\n",
+      "EVAS_OBJECT_MOUSE_DOWN", obj, dn_info->canvas.x,
+      dn_info->canvas.y, dn_info->button,
+      obj_name, ex, ey, ew, eh);
 
 #if MOVE_LOG_BUILD_ENABLE
    if (logtype & LT_EVENT_OBJ)
@@ -215,11 +190,11 @@ _ev_cb_mouse_down(void            *data,
         dn_info = (Evas_Event_Mouse_Down*)event_info;
         ex = 0; ey = 0; ew = 0; eh = 0;
         evas_object_geometry_get(obj, &ex, &ey, &ew, &eh);
-        L(LT_EVENT_OBJ,
-          "[MOVE] ev:%15.15s Evas_Object: %p eo_geo (x: %d, y: %d, w: %d, h: %d), \
-          ev_output_pos (%d,%d) ev_canvas_pos (%d,%d) %s()\n",
-          "EVAS_OBJ", obj, ex, ey, ew, eh, dn_info->output.x, dn_info->output.y,
-          dn_info->canvas.x, dn_info->canvas.y, __func__);
+        SECURE_SLOGD(
+           "[MOVE] ev:%15.15s Evas_Object: %p eo_geo (x: %d, y: %d, w: %d, h: %d),\
+           ev_output_pos (%d,%d) ev_canvas_pos (%d,%d) %s()\n",
+           "EVAS_OBJ", obj, ex, ey, ew, eh, dn_info->output.x, dn_info->output.y,
+           dn_info->canvas.x, dn_info->canvas.y, __func__);
      }
 #endif
 
@@ -316,7 +291,7 @@ _ev_cb_mouse_move(void            *data,
         ex = 0; ey = 0; ew = 0; eh = 0;
         evas_object_geometry_get(obj, &ex, &ey, &ew, &eh);
 
-        L(LT_EVENT_OBJ,
+        SECURE_SLOGD(
           "[MOVE] ev:%15.15s Evas_Object: %p eo_geo (x: %d, y: %d, w: %d, h: %d), \
           ev_output_pos (%d,%d) ev_canvas_pos (%d,%d) %s()\n",
           "EVAS_OBJ", obj, ex, ey, ew, eh,
@@ -407,76 +382,50 @@ _ev_cb_mouse_up(void            *data,
                 Evas_Object *obj __UNUSED__,
                 void            *event_info)
 {
-   E_Move *m;
    int ex, ey, ew, eh;
    Evas_Event_Mouse_Up *up_info = NULL;
    E_Move_Event *ev;
    E_Move_Event_Motion_Info *motion = NULL;
+   E_Move_Border *mb = NULL;
+   char obj_name[255];
 
    ev = (E_Move_Event *)data;
    if (!event_info || !ev) return;
 
-   m = e_mod_move_util_get();
-   if ((m) && (m->ev_log))
+   if (ev->data_type == E_MOVE_EVENT_DATA_TYPE_BORDER)
+     mb = (E_Move_Border *)(ev->fn[E_MOVE_EVENT_TYPE_MOTION_END].data);
+
+   memset(obj_name, '\0', sizeof(obj_name));
+   if (ev->data_type == E_MOVE_EVENT_DATA_TYPE_BORDER)
      {
-        E_Move_Event_Log *log = NULL;
-
-        E_Move_Border *mb = NULL;
-        if (ev->data_type == E_MOVE_EVENT_DATA_TYPE_BORDER)
-          mb = (E_Move_Border *)(ev->fn[E_MOVE_EVENT_TYPE_MOTION_END].data);
-
-        up_info = (Evas_Event_Mouse_Up*)event_info;
-        ex = 0; ey = 0; ew = 0; eh = 0;
-        evas_object_geometry_get(obj, &ex, &ey, &ew, &eh);
-        log = E_NEW(E_Move_Event_Log, 1);
-        if (log)
+        if (mb)
           {
-             log->t = E_MOVE_EVENT_LOG_EVAS_OBJECT_MOUSE_UP;
-             log->d.eo_m.x = up_info->canvas.x;
-             log->d.eo_m.y = up_info->canvas.y;
-             log->d.eo_m.btn = up_info->button;
-             log->d.eo_m.ox = ex;
-             log->d.eo_m.oy = ey;
-             log->d.eo_m.ow = ew;
-             log->d.eo_m.oh = eh;
-             log->d.eo_m.obj = obj;
-
-             if (ev->data_type == E_MOVE_EVENT_DATA_TYPE_BORDER)
-               {
-                  if (mb)
-                    {
-                       if (TYPE_APPTRAY_CHECK(mb))
-                         log->d.eo_m.t = E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_APPTRAY;
-                       else if (TYPE_INDICATOR_CHECK(mb))
-                         log->d.eo_m.t = E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_INDICATOR;
-                       else if (TYPE_QUICKPANEL_CHECK(mb))
-                         log->d.eo_m.t = E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_QUICKPANEL;
-                       else
-                         log->d.eo_m.t = E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_UNKNOWN;
-                    }
-                  else
-                    log->d.eo_m.t = E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_UNKNOWN;
-               }
-             else if (ev->data_type == E_MOVE_EVENT_DATA_TYPE_WIDGET_INDICATOR)
-               {
-                  log->d.eo_m.t = E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_INDICATOR;
-               }
+             if (TYPE_APPTRAY_CHECK(mb))
+               strncpy(obj_name, "APPTRAY", strlen("APPTRAY"));
+             else if (TYPE_INDICATOR_CHECK(mb))
+               strncpy(obj_name, "INDICATOR", strlen("INDICATOR"));
+             else if (TYPE_QUICKPANEL_CHECK(mb))
+               strncpy(obj_name, "QUICKPANEL", strlen("QUICKPANEL"));
              else
-               {
-                  log->d.eo_m.t = E_MOVE_EVENT_LOG_EVAS_OBJECT_TYPE_UNKNOWN;
-               }
-             // list check and append
-             if (eina_list_count(m->ev_logs) >= m->ev_log_cnt)
-               {
-                  // if log list is full, delete first log
-                  E_Move_Event_Log *first_log = (E_Move_Event_Log*)eina_list_nth(m->ev_logs, 0);
-                  m->ev_logs = eina_list_remove(m->ev_logs, first_log);
-                  memset(first_log, 0, sizeof(E_Move_Event_Log));
-                  E_FREE(first_log);
-               }
-             m->ev_logs = eina_list_append(m->ev_logs, log);
+               strncpy(obj_name, "UNKNOWN", strlen("UNKNOWN"));
           }
+        else
+          strncpy(obj_name, "UNKNOWN", strlen("UNKNOWN"));
      }
+   else if (ev->data_type == E_MOVE_EVENT_DATA_TYPE_WIDGET_INDICATOR)
+     strncpy(obj_name, "INDICATOR", strlen("INDICATOR"));
+   else
+     strncpy(obj_name, "UNKNOWN", strlen("UNKNOWN"));
+
+   up_info = (Evas_Event_Mouse_Up*)event_info;
+   ex = 0; ey = 0; ew = 0; eh = 0;
+   evas_object_geometry_get(obj, &ex, &ey, &ew, &eh);
+
+   SECURE_SLOGD(
+      "%23s   obj:%p (%4d ,%4d )  btn:%d | %10s  eo_geo(%d,%d,%d,%d)\n",
+      "EVAS_OBJECT_MOUSE_UP", obj, up_info->canvas.x,
+      up_info->canvas.y, up_info->button,
+      obj_name, ex, ey, ew, eh);
 
 #if MOVE_LOG_BUILD_ENABLE
    if (logtype & LT_EVENT_OBJ)
@@ -485,7 +434,7 @@ _ev_cb_mouse_up(void            *data,
         ex = 0; ey = 0; ew = 0; eh = 0;
         evas_object_geometry_get(obj, &ex, &ey, &ew, &eh);
 
-        L(LT_EVENT_OBJ,
+        SECURE_SLOGD(
           "[MOVE] ev:%15.15s Evas_Object: %p eo_geo (x: %d, y: %d, w: %d, h: %d), \
           ev_output_pos (%d,%d) ev_canvas_pos (%d,%d) %s()\n",
           "EVAS_OBJ", obj, ex, ey, ew, eh, up_info->output.x, up_info->output.y,
@@ -685,10 +634,10 @@ e_mod_move_event_new(Ecore_X_Window win,
      (obj, EVAS_CALLBACK_MOUSE_DOWN, _ev_cb_mouse_down, ev);
    if (evas_alloc_error() != EVAS_ALLOC_ERROR_NONE)
      {
-        fprintf(stderr,
-                "[E17-MOVE-ERR] %20.20s(%04d) Callback registering failed! "
-                "w:0x%07x obj:%p EVAS_CALLBACK_MOUSE_DOWN\n",
-                __func__, __LINE__, win, obj);
+        SLOG(LOG_DEBUG, "E17_MOVE_MODULE",
+             "[E17-MOVE-ERR] %20.20s(%04d) Callback registering failed! "
+             "w:0x%07x obj:%p EVAS_CALLBACK_MOUSE_DOWN\n",
+             __func__, __LINE__, win, obj);
         memset(ev, 0, sizeof(E_Move_Event));
         E_FREE(ev);
         ev = NULL;
@@ -701,10 +650,10 @@ e_mod_move_event_new(Ecore_X_Window win,
      {
         evas_object_event_callback_del
           (obj, EVAS_CALLBACK_MOUSE_DOWN, _ev_cb_mouse_down);
-        fprintf(stderr,
-                "[E17-MOVE-ERR] %20.20s(%04d) Callback registering failed! "
-                "w:0x%07x obj:%p EVAS_CALLBACK_MOUSE_MOVE\n",
-                __func__, __LINE__, win, obj);
+        SLOG(LOG_DEBUG, "E17_MOVE_MODULE",
+             "[E17-MOVE-ERR] %20.20s(%04d) Callback registering failed! "
+             "w:0x%07x obj:%p EVAS_CALLBACK_MOUSE_MOVE\n",
+             __func__, __LINE__, win, obj);
         memset(ev, 0, sizeof(E_Move_Event));
         E_FREE(ev);
         ev = NULL;
@@ -719,10 +668,10 @@ e_mod_move_event_new(Ecore_X_Window win,
           (obj, EVAS_CALLBACK_MOUSE_DOWN, _ev_cb_mouse_down);
         evas_object_event_callback_del
           (obj, EVAS_CALLBACK_MOUSE_MOVE, _ev_cb_mouse_move);
-        fprintf(stderr,
-                "[E17-MOVE-ERR] %20.20s(%04d) Callback registering failed! "
-                "w:0x%07x obj:%p EVAS_CALLBACK_MOUSE_UP\n",
-                __func__, __LINE__, win, obj);
+        SLOG(LOG_DEBUG, "E17_MOVE_MODULE",
+             "[E17-MOVE-ERR] %20.20s(%04d) Callback registering failed! "
+             "w:0x%07x obj:%p EVAS_CALLBACK_MOUSE_UP\n",
+             __func__, __LINE__, win, obj);
         memset(ev, 0, sizeof(E_Move_Event));
         E_FREE(ev);
         ev = NULL;

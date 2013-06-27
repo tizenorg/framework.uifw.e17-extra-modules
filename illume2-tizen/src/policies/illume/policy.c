@@ -35,6 +35,8 @@ typedef struct _E_Illume_Print_Info
 
 
 #define COMP_MODULE_CONTROL
+#define BACKKEY_MODULE_CONTROL
+#define DEVMODE_MODULE_CONTROL
 
 
 /*****************************/
@@ -112,6 +114,12 @@ void _policy_border_list_print (Ecore_X_Window win);
 
 #ifdef COMP_MODULE_CONTROL
 static void _policy_property_composite_module_change (Ecore_X_Event_Window_Property *ev);
+#endif
+#ifdef BACKKEY_MODULE_CONTROL
+static void _policy_property_backkey_module_change (Ecore_X_Event_Window_Property *ev);
+#endif
+#ifdef DEVMODE_MODULE_CONTROL
+static void _policy_property_devmode_module_change (Ecore_X_Event_Window_Property *ev);
 #endif
 
 #if 1 // for visibility
@@ -206,6 +214,12 @@ static Ecore_X_Window g_indi_control_win;
  #ifdef COMP_MODULE_CONTROL
 static Ecore_X_Atom E_ILLUME_ATOM_COMP_MODULE_ENABLED;
 #endif
+#ifdef BACKKEY_MODULE_CONTROL
+static Ecore_X_Atom E_ILLUME_ATOM_BACKKEY_MODULE_ENABLED;
+#endif
+#ifdef DEVMODE_MODULE_CONTROL
+static Ecore_X_Atom E_ILLUME_ATOM_DEVMODE_MODULE_ENABLED;
+#endif
 
 /* for supporting rotation */
 static Ecore_X_Atom E_INDICATOR_CMD_WIN;
@@ -248,6 +262,16 @@ static E_Policy_Rotation_Dependent dep_rot =
    {NULL, NULL},
    -1
 };
+
+typedef struct _E_Resizable_Area_Info
+{
+   int x_dist;
+   int y_dist;
+   int min_width;
+   int min_height;
+   int max_width;
+   int max_height;
+} E_Resizable_Area_Info;
 
 /* local functions */
 static void
@@ -920,7 +944,8 @@ _policy_border_del(E_Border *bd)
    // for supporting rotation such as quickpanel
    if (e_illume_border_is_quickpanel(bd) ||
        e_illume_border_is_miniapp_tray(bd) ||
-       (bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING))
+       (bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING) ||
+       e_illume_border_is_syspopup(bd))
      dep_rot.list = eina_list_remove(dep_rot.list, bd);
 }
 
@@ -1021,7 +1046,8 @@ _policy_border_post_fetch(E_Border *bd)
    // for supporting rotation such as quickpanel
    if (e_illume_border_is_quickpanel(bd) ||
        e_illume_border_is_miniapp_tray(bd) ||
-       (bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING))
+       (bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING) ||
+       e_illume_border_is_syspopup(bd))
      {
         bd->client.e.state.rot.type = E_BORDER_ROTATION_TYPE_DEPENDENT;
         if (!eina_list_data_find(dep_rot.list, bd))
@@ -1081,7 +1107,7 @@ _check_parent_in_transient_for_tree(E_Border *bd, E_Border *parent_bd)
           {
              // This is very bad. bd and parent_bd are transient_for each other
 #ifdef USE_DLOG
-             LOGD("[WM] Transient_for Error!!! Win:0x%07x and Parent:0x%07x are transient_for each other.", bd->client.win, parent_bd->client.win);
+             SECURE_SLOGD("[WM] Transient_for Error!!! Win:0x%07x and Parent:0x%07x are transient_for each other.", bd->client.win, parent_bd->client.win);
 #endif
              ELBF(ELBT_ILLUME, 0, bd->client.win, "BAD. Transient_for Error. Parent:0x%07x is descendant", parent_bd->client.win);
              return EINA_TRUE;
@@ -1116,11 +1142,19 @@ _policy_border_pre_fetch(E_Border *bd)
         E_Border *bd_parent = NULL;
         E_Illume_XWin_Info *xwin_info = NULL;
         Eina_Bool transient_each_other;
+        Ecore_X_Window transient_for_win;
 
         if (_e_illume_cfg->use_force_iconify)
           xwin_info = _policy_xwin_info_find(bd->win);
 
-        bd->client.icccm.transient_for = ecore_x_icccm_transient_for_get(bd->client.win);
+        transient_for_win = ecore_x_icccm_transient_for_get(bd->client.win);
+        if (bd->client.icccm.transient_for == transient_for_win)
+          {
+             ELBF(ELBT_ILLUME, 0, bd->client.win, "Same transient_for:0x%07x. SKIP...", transient_for_win);
+             goto transient_fetch_done;
+          }
+
+        bd->client.icccm.transient_for = transient_for_win;
         if (bd->client.icccm.transient_for)
           {
              bd_parent = e_border_find_by_client_window(bd->client.icccm.transient_for);
@@ -1202,6 +1236,7 @@ _policy_border_pre_fetch(E_Border *bd)
           }
 #endif
 
+transient_fetch_done:
         bd->client.icccm.fetch.transient_for = 0;
      }
 }
@@ -1585,6 +1620,7 @@ _policy_resize_start(E_Illume_Border_Info *bd_info)
    Evas_Object *o;
    E_Border *bd;
    int nx, ny;
+   const char buf[PATH_MAX];
 
    bd = bd_info->border;
 
@@ -1605,8 +1641,15 @@ _policy_resize_start(E_Illume_Border_Info *bd_info)
    canvas = e_manager_comp_evas_get(m);
    if (!canvas) return;
 
-   o = evas_object_rectangle_add(canvas);
-   evas_object_color_set(o, 100, 100, 100, 100);
+   o = edje_object_add(canvas);
+   snprintf(buf, sizeof(buf), "%s/e-module-illume2-tizen.edj", _e_illume_mod_dir);
+   evas_object_image_border_center_fill_set(o, EVAS_BORDER_FILL_NONE);
+   if(!(edje_object_file_set(o, buf, "new_shadow"))
+      || !(bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING))
+     {
+         o = evas_object_rectangle_add(canvas);                                 
+         evas_object_color_set(o, 100, 100, 100, 100);
+     }
 
    nx = bd->x - bd->zone->x;
    ny = bd->y - bd->zone->y;
@@ -1778,6 +1821,113 @@ _policy_property_composite_module_change(Ecore_X_Event_Window_Property *ev)
 }
 #endif
 
+/* enable/disable backkey module - 130610 seongwon1.cho */
+#ifdef BACKKEY_MODULE_CONTROL
+static void
+_policy_property_backkey_module_change(Ecore_X_Event_Window_Property *ev)
+{
+   int ret, count;
+   int enable = 0;
+   int current_enabled = 0;
+   unsigned char* prop_data = NULL;
+   E_Module* backkey = NULL;
+
+   ret = ecore_x_window_prop_property_get (ev->win, E_ILLUME_ATOM_BACKKEY_MODULE_ENABLED, ECORE_X_ATOM_CARDINAL, 32, &prop_data, &count);
+   if( ret && prop_data )
+     {
+        memcpy (&enable, prop_data, sizeof (int));
+        fprintf( stdout, "[E17-illume2-tizen] %s(%d) enable: %s ", __func__, __LINE__, enable ? "true" : "false" );
+
+        backkey = e_module_find ("backkey-tizen");
+        if( backkey )
+          {
+             current_enabled = e_module_enabled_get(backkey);
+             fprintf( stdout, "current: %s ", current_enabled ? "true" : "false" );
+
+             if( current_enabled && !enable )
+               {
+                  fprintf( stdout, "e_module_disable(backkey-tizen) " );
+                  e_module_disable(backkey);
+               }
+             else if( !current_enabled && enable )
+               {
+                  fprintf( stdout, "e_module_enable(backkey-tizen) " );
+                  e_module_enable(backkey);
+               }
+             else
+               {
+                  fprintf( stdout, "skip... " );
+               }
+
+             fprintf( stdout, "\n" );
+          }
+        else
+          {
+             fprintf( stderr, "\n[E17-illume2-tizen] %s(%d) can't find backkey module.\n", __func__, __LINE__ );
+             backkey = e_module_new("backkey-tizen");
+             if (backkey) e_module_enable(backkey);
+          }
+     }
+
+   if (prop_data) free (prop_data);
+
+}
+#endif
+
+
+/* enable/disable devmode module - 130610 seongwon1.cho */
+#ifdef DEVMODE_MODULE_CONTROL
+static void
+_policy_property_devmode_module_change(Ecore_X_Event_Window_Property *ev)
+{
+   int ret, count;
+   int enable = 0;
+   int current_enabled = 0;
+   unsigned char* prop_data = NULL;
+   E_Module* devmode = NULL;
+
+   ret = ecore_x_window_prop_property_get (ev->win, E_ILLUME_ATOM_DEVMODE_MODULE_ENABLED, ECORE_X_ATOM_CARDINAL, 32, &prop_data, &count);
+   if( ret && prop_data )
+     {
+        memcpy (&enable, prop_data, sizeof (int));
+        fprintf( stdout, "[E17-illume2-tizen] %s(%d) enable: %s ", __func__, __LINE__, enable ? "true" : "false" );
+
+        devmode = e_module_find ("devmode-tizen");
+        if( devmode )
+          {
+             current_enabled = e_module_enabled_get(devmode);
+             fprintf( stdout, "current: %s ", current_enabled ? "true" : "false" );
+
+             if( current_enabled && !enable )
+               {
+                  fprintf( stdout, "e_module_disable(devmode-tizen) " );
+                  e_module_disable(devmode);
+               }
+             else if( !current_enabled && enable )
+               {
+                  fprintf( stdout, "e_module_enable(devmode-tizen) " );
+                  e_module_enable(devmode);
+               }
+             else
+               {
+                  fprintf( stdout, "skip... " );
+               }
+
+             fprintf( stdout, "\n" );
+          }
+        else
+          {
+             fprintf( stderr, "\n[E17-illume2-tizen] %s(%d) can't find devmode module.\n", __func__, __LINE__ );
+             devmode = e_module_new("devmode-tizen");
+             if (devmode) e_module_enable(devmode);
+          }
+     }
+
+   if (prop_data) free (prop_data);
+
+}
+#endif
+
 
 static void _policy_property_window_state_change (Ecore_X_Event_Window_Property *event)
 {
@@ -1885,7 +2035,7 @@ static void _policy_property_clipboard_geometry_change (Ecore_X_Event_Window_Pro
         if (e_illume_border_is_quickpanel_popup(bd)) continue;
 
 #ifdef USE_DLOG
-        LOGD("[WM] Clipboard geometry set. win:0x%07x, geo(%d,%d,%d,%d)", bd->client.win, x, y, w, h);
+        SECURE_SLOGD("[WM] Clipboard geometry set. win:0x%07x, geo(%d,%d,%d,%d)", bd->client.win, x, y, w, h);
 #endif
         ecore_x_e_illume_clipboard_geometry_set(bd->client.win, x, y, w, h);
      }
@@ -1915,7 +2065,7 @@ static void _policy_property_clipboard_state_change (Ecore_X_Event_Window_Proper
         if (e_illume_border_is_quickpanel_popup(bd)) continue;
 
 #ifdef USE_DLOG
-        LOGD("[WM] Clipboard state set. win:0x%07x, state:%d", bd->client.win, state);
+        SECURE_SLOGD("[WM] Clipboard state set. win:0x%07x, state:%d", bd->client.win, state);
 #endif
         ecore_x_e_illume_clipboard_state_set(bd->client.win, state);
      }
@@ -2027,12 +2177,10 @@ static void _policy_active_win_change(E_Illume_XWin_Info *xwin_info, Ecore_X_Win
                                       ECORE_X_EVENT_MASK_WINDOW_CONFIGURE, active_win, active_pid, g_active_win, g_active_pid, 0);
 
         // for debug...
-        printf ("\n=========================================================================================\n");
         if (active_bd)
           {
-             printf ("[WM] Active window is changed.  OLD(win:0x%07x,pid:%d) --> NEW(win:0x%07x,pid:%d,name:%s)\n", g_active_win, g_active_pid, active_win, active_pid, active_bd->client.netwm.name);
 #ifdef USE_DLOG
-             LOGD("[WM] Active window is changed. OLD(win:0x%07x,pid:%d) --> NEW(win:0x%07x,pid:%d,name:%s)", g_active_win, g_active_pid, active_win, active_pid, active_bd->client.netwm.name);
+             SECURE_SLOGD("[WM] ACT WIN 0x%07x(%d) -> 0x%07x(%d)", g_active_win, g_active_pid, active_win, active_pid);
 #endif
              if ((E_ILLUME_BORDER_IS_IN_DESKTOP(active_bd)) ||
                  (active_bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING))
@@ -2042,12 +2190,10 @@ static void _policy_active_win_change(E_Illume_XWin_Info *xwin_info, Ecore_X_Win
           }
         else
           {
-             printf ("[WM] Active window is changed.  OLD(win:0x%07x,pid:%d) --> NEW(win:0x%07x,pid:%d,name:NULL)\n", g_active_win, g_active_pid, active_win, active_pid);
 #ifdef USE_DLOG
-             LOGD("[WM] Active window is changed. OLD(win:0x%07x,pid:%d) --> NEW(win:0x%07x,pid:%d,name:NULL)", g_active_win, g_active_pid, active_win, active_pid);
+             SECURE_SLOGD("[WM] ACT WIN 0x%07x(%d) -> 0x%07x(%d)", g_active_win, g_active_pid, active_win, active_pid);
 #endif
           }
-        printf ("=========================================================================================\n\n");
         g_active_win = active_win;
         g_active_pid = active_pid;
      }
@@ -2497,17 +2643,22 @@ _resize_rect_geometry_get(E_Illume_Border_Info *bd_info,
                           Evas_Coord_Rectangle *r,
                           int                   ev_x,
                           int                   ev_y,
-                          int                   direction)
+                          int                   direction,
+                          E_Resizable_Area_Info *area)
 {
    E_Border *bd;
    int x = 0, y = 0, w = 0, h = 0;
    int mw = 0, mh = 0;
    int cx = 0, cy = 0;
    int max_size = 0;
+   int min_size = 200;
 
    bd = bd_info->border;
 
    e_illume_border_min_get(bd, &mw, &mh);
+   // min_size is workaround adjustement due to some window's wrong w h after rotation is changed.
+   if(mw < min_size) mw = min_size;
+   if(mh < min_size) mh = min_size;
 
    if (direction == ECORE_X_NETWM_DIRECTION_SIZE_BR)
      {
@@ -2745,6 +2896,16 @@ _resize_rect_geometry_get(E_Illume_Border_Info *bd_info,
    else
      max_size = bd->zone->w;
 
+   if(area)
+     {
+        area->x_dist = w;
+        area->y_dist = h;
+        area->min_width = mw;
+        area->min_height = mh;
+        area->max_width = max_size;
+        area->max_height = max_size;
+    }
+
    if (w < mw) w = mw;
    if (h < mh) h = mh;
    if (w > max_size) w = max_size;
@@ -2795,7 +2956,7 @@ _policy_border_cb_mouse_up(void *data,
      {
         L(LT_AIA, "[ILLUME2][AIA] %s(%d)... \n", __func__, __LINE__);
         Evas_Coord_Rectangle r;
-        _resize_rect_geometry_get(bd_info, &r, ev->root.x, ev->root.y, bd_info->resize_req.direction);
+        _resize_rect_geometry_get(bd_info, &r, ev->root.x, ev->root.y, bd_info->resize_req.direction, NULL);
 
         bd_info->resize_req.direction = ECORE_X_NETWM_DIRECTION_CANCEL;
         bd_info->resize_req.mouse.x = r.x + bd->zone->x;
@@ -2844,6 +3005,7 @@ _policy_border_cb_mouse_move(void *data,
    Ecore_Event_Mouse_Move *ev;
    E_Illume_Border_Info *bd_info;
    E_Border *bd;
+   Evas_Object *rect;
 
    L(LT_AIA, "[ILLUME2][AIA] %s(%d)... \n", __func__, __LINE__);
    ev = event;
@@ -2864,9 +3026,49 @@ _policy_border_cb_mouse_move(void *data,
         if (!o) return ECORE_CALLBACK_PASS_ON;
 
         Evas_Coord_Rectangle r;
-        _resize_rect_geometry_get(bd_info, &r, ev->root.x, ev->root.y, bd_info->resize_req.direction);
+        E_Resizable_Area_Info area;
 
+        _resize_rect_geometry_get(bd_info, &r, ev->root.x, ev->root.y, bd_info->resize_req.direction, &area);
         L(LT_AIA, "[ILLUME2][AIA] %s(%d)... x:%d, y:%d, w:%d, h:%d\n", __func__, __LINE__, r.x, r.y, r.w, r.h);
+
+        rect = edje_object_part_object_get(o, "opacity_rect");
+
+        if((r.w <= area.min_width && r.h <= area.min_height)
+           || (r.w >= area.max_width && r.h >= area.max_height))
+          {
+            edje_object_signal_emit(o, "resize,notavail", "illume2");
+            evas_object_color_set(rect, 64, 64, 64, 64);
+          }
+        else
+          {
+            edje_object_signal_emit(o, "resize,normal", "illume2");
+            evas_object_color_set(rect, 255, 255, 255, 255);
+          }
+        if(area.x_dist < area.min_width && area.y_dist < area.min_height)
+          {
+            int tmp = 0;
+            tmp = ((area.min_width-area.x_dist)>= (area.min_height-area.y_dist))? area.min_width - area.x_dist : area.min_height - area.y_dist;
+            if( tmp >= 200)
+                tmp = 200;
+            tmp /= 20;
+            tmp %= 11;
+            tmp --;
+            tmp = (int)(128*( (double)tmp/10 + 1));
+            evas_object_color_set(rect, tmp, tmp, tmp, tmp);
+          }
+        if (area.x_dist > area.max_width && area.y_dist > area.max_height)
+          {
+            int tmp = 0;
+            tmp = ((area.x_dist - area.max_width) >= (area.y_dist - area.max_height))? area.x_dist - area.max_width : area.y_dist - area.max_height;
+            if( tmp >= 200)
+               tmp = 200;
+            tmp /= 20;
+            tmp %= 11;
+            tmp --;
+            tmp = (int)(128*( (double)tmp/10 + 1));
+            evas_object_color_set(rect, tmp, tmp, tmp, tmp);
+          }
+
         evas_object_move(o, r.x, r.y);
         evas_object_resize(o, r.w, r.h);
      }
@@ -2958,6 +3160,20 @@ _policy_property_change(Ecore_X_Event_Window_Property *event)
    else if (event->atom == E_ILLUME_ATOM_COMP_MODULE_ENABLED)
      {
         _policy_property_composite_module_change (event);
+     }
+#endif
+/* enable/disable backkey module - 130610 seongwon1.cho */
+#ifdef BACKKEY_MODULE_CONTROL
+   else if (event->atom == E_ILLUME_ATOM_BACKKEY_MODULE_ENABLED)
+     {
+        _policy_property_backkey_module_change (event);
+     }
+#endif
+/* enable/disable devmode module - 130610 seongwon1.cho */
+#ifdef DEVMODE_MODULE_CONTROL
+   else if (event->atom == E_ILLUME_ATOM_DEVMODE_MODULE_ENABLED)
+     {
+        _policy_property_devmode_module_change (event);
      }
 #endif
    else if (event->atom == E_INDICATOR_CMD_WIN)
@@ -3223,10 +3439,10 @@ static void _policy_layout_quickpanel_rotate (E_Illume_Quickpanel* qp, int angle
 
    int diff, temp;
 
+   // pass 1 - resize window
    // It caused abnormal size of quickpanel window and abnormal rotation state.
    // disable it for now.
 #if 0
-   // pass 1 - resize window
    EINA_LIST_FOREACH(qp->borders, bd_list, panel)
      {
         if (!panel) continue;
@@ -3409,6 +3625,24 @@ int _policy_atom_init (void)
    if(!E_ILLUME_ATOM_COMP_MODULE_ENABLED)
      {
         fprintf (stderr, "[ILLUME2] Critical Error!!! Cannot create _E_COMP_ENABLE Atom...\n");
+        return 0;
+     }
+#endif
+
+#ifdef BACKKEY_MODULE_CONTROL
+   E_ILLUME_ATOM_BACKKEY_MODULE_ENABLED = ecore_x_atom_get ("_E_BACKKEY_ENABLE");
+   if(!E_ILLUME_ATOM_BACKKEY_MODULE_ENABLED)
+     {
+        fprintf (stderr, "[ILLUME2] Critical Error!!! Cannot create _E_BACKKEY_ENABLE Atom...\n");
+        return 0;
+     }
+#endif
+
+#ifdef DEVMODE_MODULE_CONTROL
+   E_ILLUME_ATOM_DEVMODE_MODULE_ENABLED = ecore_x_atom_get ("_E_DEVMODE_ENABLE");
+   if(!E_ILLUME_ATOM_DEVMODE_MODULE_ENABLED)
+     {
+        fprintf (stderr, "[ILLUME2] Critical Error!!! Cannot create _E_DEVMODE_ENABLE Atom...\n");
         return 0;
      }
 #endif
@@ -4403,9 +4637,10 @@ _policy_calculate_visibility(void)
    Ecore_X_XRegion *win_region = NULL;
    Ecore_X_Rectangle visible_rect, win_rect;
    Eina_Bool is_fully_obscured = EINA_FALSE;
-   Eina_Bool obscured_by_special_bd = EINA_FALSE;
    Eina_Bool is_opaque_win = EINA_FALSE;
    Eina_Bool do_not_iconify = EINA_FALSE;
+   Eina_Bool alpha_opaque = EINA_FALSE;
+   Eina_Bool obscured_by_alpha_opaque = EINA_FALSE;
    int old_vis = 0;
    int set_root_angle = 0;
    int control_indi = 0;
@@ -4471,21 +4706,28 @@ _policy_calculate_visibility(void)
 
              if (ecore_x_xregion_rect_contain(visible_region, &win_rect))
                {
-                  xwin_info->visibility = obscured_by_special_bd ?
-                     E_ILLUME_VISIBILITY_FULLY_OBSCURED :
-                     E_ILLUME_VISIBILITY_UNOBSCURED;
+                  L(LT_VISIBILITY_DETAIL, "[ILLUME2][VISIBILITY] %s(%d)... win:0x%07x Un-OBSCURED.. \n", __func__, __LINE__, xwin_info->id);
+                  xwin_info->visibility = E_ILLUME_VISIBILITY_UNOBSCURED;
 
                   if (bd)
                     {
-                       if (e_illume_border_is_lock_screen(bd))
+                       if (bd->client.argb)
                          {
-                            obscured_by_special_bd = EINA_TRUE;
+                            if (bd_info && bd_info->opaque)
+                              {
+                                 alpha_opaque = EINA_TRUE;
+                              }
+                            else
+                              {
+                                 is_opaque_win = EINA_FALSE;
+                              }
+                         }
+
+                       if (bd->client.illume.win_state.state ==
+                           ECORE_X_ILLUME_WINDOW_STATE_FLOATING)
+                         {
                             is_opaque_win = EINA_FALSE;
                          }
-                       else if ((bd->client.illume.win_state.state ==
-                                 ECORE_X_ILLUME_WINDOW_STATE_FLOATING) ||
-                                ((bd_info->opaque == 0) && (bd->client.argb)))
-                         is_opaque_win = EINA_FALSE;
                     }
                   else
                     {
@@ -4506,26 +4748,33 @@ _policy_calculate_visibility(void)
                             if (ecore_x_xregion_is_empty(visible_region))
                               {
                                  is_fully_obscured = EINA_TRUE;
+                                 if (alpha_opaque)
+                                   {
+                                      L(LT_VISIBILITY_DETAIL, "[ILLUME2][VISIBILITY] %s(%d)... OBSCURED by alpha opaque win:0x%07x\n", __func__, __LINE__, xwin_info->id);
+                                      obscured_by_alpha_opaque = EINA_TRUE;
+                                      alpha_opaque = EINA_FALSE;
+                                   }
                               }
                          }
                     }
                }
              else
                {
+                  L(LT_VISIBILITY_DETAIL, "[ILLUME2][VISIBILITY] %s(%d)... win:0x%07x Fully OBSCURED.. place on OUTSIDE\n", __func__, __LINE__, xwin_info->id);
                   xwin_info->visibility = E_ILLUME_VISIBILITY_FULLY_OBSCURED;
                }
           }
         else
           {
+             L(LT_VISIBILITY_DETAIL, "[ILLUME2][VISIBILITY] %s(%d)... win:0x%07x Fully OBSCURED.. \n", __func__, __LINE__, xwin_info->id);
              xwin_info->visibility = E_ILLUME_VISIBILITY_FULLY_OBSCURED;
-             obscured_by_special_bd = EINA_FALSE;
           }
 
         if (!bd) continue;
         if (!E_ILLUME_BORDER_IS_IN_MOBILE(bd)) continue;
 
         // decide if it's the border that DO NOT iconify.
-        if (obscured_by_special_bd)
+        if (obscured_by_alpha_opaque)
           {
              do_not_iconify = EINA_TRUE;
           }
@@ -4542,14 +4791,14 @@ _policy_calculate_visibility(void)
         if (old_vis != xwin_info->visibility)
           {
 #ifdef USE_DLOG
-             LOGD("[WM] SEND VISIBILITY. win:0x%07x (old:%d -> new:%d)", xwin_info->bd_info->border->client.win, old_vis, xwin_info->visibility);
+             SECURE_SLOGD("[WM] SEND VISIBILITY. win:0x%07x (old:%d -> new:%d)", xwin_info->bd_info->border->client.win, old_vis, xwin_info->visibility);
 #endif
              L(LT_VISIBILITY, "[ILLUME2][VISIBILITY] SEND VISIBILITY NOTIFY (Line:%d)... win:0x%07x (old:%d -> new:%d)\n", __LINE__, bd->client.win, old_vis, xwin_info->visibility);
              _policy_send_visibility_notify(bd->client.win, xwin_info->visibility);
 
              if (xwin_info->visibility == E_ILLUME_VISIBILITY_UNOBSCURED)
                {
-                  L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. CALL _policy_change_root_angle_b     y_border_angle!!! win:0x%07x\n", __func__, __LINE__, xwin_info->bd_info->border->client.win);
+                  L (LT_ANGLE, "[ILLUME2][ANGLE] %s(%d).. CALL _policy_change_root_angle_by_border_angle!!! win:0x%07x\n", __func__, __LINE__, xwin_info->bd_info->border->client.win);
                   set_root_angle = 1;
 
                   if (_e_illume_cfg->use_force_iconify)
@@ -4596,6 +4845,26 @@ _policy_calculate_visibility(void)
                                  _policy_border_iconify_by_illume(xwin_info);
                               }
                          }
+                       else if (bd->iconic && do_not_iconify)
+                         {
+                            L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. Uniconify by illume.. win:0x%07x\n", __func__, __LINE__, xwin_info->bd_info->border->client.win);
+                            _policy_border_force_uniconify(bd);
+                         }
+                    }
+               }
+          }
+
+        // 3. check if opaque window is ocupied the screen.
+        // then we reset the obscured_by_alpha_opaque flag
+        if (xwin_info->visibility == E_ILLUME_VISIBILITY_FULLY_OBSCURED)
+          {
+             if (obscured_by_alpha_opaque && is_opaque_win)
+               {
+                  if (E_CONTAINS(xwin_info->attr.x, xwin_info->attr.y, xwin_info->attr.w, xwin_info->attr.h,
+                                 0, 0, _g_root_width, _g_root_height))
+                    {
+                       L(LT_VISIBILITY_DETAIL, "[ILLUME2][VISIBILITY] %s(%d)... unset obscured_by_alpha_opaque  win:%x\n", __func__, __LINE__, xwin_info->id);
+                       obscured_by_alpha_opaque = EINA_FALSE;
                     }
                }
           }
@@ -5525,7 +5794,10 @@ void _policy_window_move_resize_request(Ecore_X_Event_Window_Move_Resize_Request
 
    _policy_border_illume_handlers_add(bd_info);
    ecore_x_window_raise(bd->event_win);
-   e_grabinput_get(bd->event_win, 0, bd->event_win);
+   if (bd->client.icccm.accepts_focus || bd->client.icccm.take_focus)
+     e_grabinput_get(bd->event_win, 0, bd->event_win);
+   else
+     e_grabinput_get(bd->event_win, 0, 0);
 
    bd_info->resize_req.direction = e->direction;
    _policy_resize_start(bd_info);
@@ -5713,7 +5985,7 @@ void _policy_border_iconify_cb(E_Border *bd)
         xwin_info->visibility = E_ILLUME_VISIBILITY_FULLY_OBSCURED;
         L (LT_VISIBILITY, "[ILLUME2][VISIBILITY] SEND VISIBILITY NOTIFY (Line:%d)... win:0x%07x (old:%d -> new:%d)\n", __LINE__, xwin_info->bd_info->border->client.win, old_vis, xwin_info->visibility);
 #ifdef USE_DLOG
-        LOGD("[WM] SEND VISIBILITY. win:0x%07x (old:%d -> new:%d)", xwin_info->bd_info->border->client.win, old_vis, xwin_info->visibility);
+        SECURE_SLOGD("[WM] SEND VISIBILITY. win:0x%07x (old:%d -> new:%d)", xwin_info->bd_info->border->client.win, old_vis, xwin_info->visibility);
 #endif
         _policy_send_visibility_notify (xwin_info->bd_info->border->client.win, xwin_info->visibility);
      }
@@ -6264,12 +6536,13 @@ _policy_border_dependent_rotation(E_Border *bd)
 {
    Eina_List *l;
    E_Border *dep_bd = NULL;
-   int rotation = bd->client.e.state.rot.curr;
+   int rotation = 0;
 
    if (!bd) return;
    if (!dep_rot.list) return;
    if (dep_rot.refer.active_win != bd->client.win) return;
 
+   rotation = bd->client.e.state.rot.curr;
    EINA_LIST_FOREACH(dep_rot.list, l, dep_bd)
      {
         if (!dep_bd) continue;

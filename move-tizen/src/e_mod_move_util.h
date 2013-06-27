@@ -114,5 +114,8 @@ EINTERN Eina_Bool                      e_mod_move_util_prop_indicator_cmd_win_ge
 EINTERN Eina_Bool                      e_mod_move_util_prop_indicator_cmd_win_set(Ecore_X_Window win, E_Move *m);
 EINTERN Eina_Bool                      e_mod_move_util_prop_active_indicator_win_get(Ecore_X_Window *win, E_Move *m);
 EINTERN Eina_Bool                      e_mod_move_util_prop_active_indicator_win_set(Ecore_X_Window win, E_Move *m);
+EINTERN Evas_Object                   *e_mod_move_util_comp_layer_get(E_Move *m, const char *name);
+EINTERN Eina_Bool                      e_mod_move_util_screen_input_block(E_Move *m);
+EINTERN Eina_Bool                      e_mod_move_util_screen_input_unblock(E_Move *m);
 #endif
 #endif

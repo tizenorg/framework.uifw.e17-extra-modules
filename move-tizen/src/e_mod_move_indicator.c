@@ -111,10 +111,10 @@ _e_mod_move_indicator_cb_motion_start(void *data,
 
    if (!m || !mb || !info) return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x INDI_MOTION_START (%4d,%4d)\n",
-     "EVAS_OBJ", mb->bd->win,
-     info->coord.x, info->coord.y);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x INDI_MOTION_START (%4d,%4d)\n",
+      "EVAS_OBJ", mb->bd->win,
+      info->coord.x, info->coord.y);
 
    E_CHECK_RETURN(e_mod_move_indicator_scrollable_check(), EINA_FALSE);
 
@@ -232,10 +232,10 @@ _e_mod_move_indicator_cb_motion_move(void *data,
 
    if (!m || !mb || !info) return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x INDI_MOTION_MOVE a:%d (%4d,%4d)\n",
-     "EVAS_OBJ", mb->bd->win, mb->angle,
-     info->coord.x, info->coord.y);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x INDI_MOTION_MOVE a:%d (%4d,%4d)\n",
+      "EVAS_OBJ", mb->bd->win, mb->angle,
+      info->coord.x, info->coord.y);
 
    angle = mb->angle;
    zone = mb->bd->zone;
@@ -411,10 +411,10 @@ _e_mod_move_indicator_cb_motion_end(void *data,
 
    if (!m || !mb || !info) return EINA_FALSE;
 
-   L(LT_EVENT_OBJ,
-     "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
-     "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
-     __func__);
+   SL(LT_EVENT_OBJ,
+      "[MOVE] ev:%15.15s w:0x%08x ,angle:%d, (%d,%d)  %s()\n",
+      "EVAS_OBJ", mb->bd->win, mb->angle, info->coord.x, info->coord.y,
+      __func__);
 
    angle = mb->angle;
    zone = mb->bd->zone;
@@ -1035,9 +1035,9 @@ _e_mod_move_indicator_home_region_release_check(E_Move_Border *mb, /* indicator 
          if (pos.x > region_check) ret = EINA_TRUE;
          break;
       default :
-         L(LT_EVENT_OBJ,
-           "[MOVE] ev:%15.15s , invalid angle:%d, (%d,%d)  %s()\n",
-           "EVAS_OBJ", angle, pos.x, pos.y,
+         SL(LT_EVENT_OBJ,
+            "[MOVE] ev:%15.15s , invalid angle:%d, (%d,%d)  %s()\n",
+            "EVAS_OBJ", angle, pos.x, pos.y,
             __func__)
          break;
      }

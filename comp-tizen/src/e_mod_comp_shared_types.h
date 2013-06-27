@@ -3,8 +3,10 @@
 #ifndef E_MOD_COMP_SHARED_TYPES_H
 #define E_MOD_COMP_SHARED_TYPES_H
 
-typedef struct _E_Comp     E_Comp;
-typedef struct _E_Comp_Win E_Comp_Win;
+typedef struct _E_Comp                      E_Comp;
+typedef struct _E_Comp_Win                  E_Comp_Win;
+typedef struct _E_Comp_Effect_Object        E_Comp_Effect_Object;
+typedef struct _E_Comp_Effect_Zone_Rotation E_Comp_Effect_Zone_Rotation;
 
 #include "e.h"
 #include "e_mod_main.h"
@@ -57,10 +59,6 @@ struct _E_Comp
    Eina_Bool                     defer_raise_effect : 1; // True : Compositor defer evas object restack on window effect
    Eina_Bool                     fake_image_launch : 1; // True : Enable Fake Image Launch feature
    E_Comp_Win                   *lower_win; // For saving window on backkey(lower) event
-
-   // home key effect
-   Evas_Object                  *mirror_obj; // image(mirror) object
-   Evas_Object                  *mirror_handler; // shadow(edj) object
 
    // fake image launch
    E_Comp_Effect_Image_Launch   *eff_img;
@@ -139,16 +137,13 @@ struct _E_Comp_Win
 
    Eina_Bool                   animate_hide : 1 ; // if window animation effect is occured, do hide unrelated window. -> use evas_object_hide()
    Eina_Bool                   resize_hide : 1; // if window do resize event received, set this valuse true; and check win_update()
-   Eina_Bool                   first_show_worked : 1 ; // check for first show of shobj
    Eina_Bool                   show_done : 1 ; // check for show is done
    Eina_Bool                   effect_stage: 1; // check for if background window is hided or not.
    Eina_Bool                   defer_raise; // flag to defer to raise
    E_Comp_Effect_Type         *eff_type;
-   E_Comp_Effect_Win_Rotation *eff_winrot; // image launch effect
    E_Comp_Win_Type             win_type;
    E_Comp_Win_Shape_Input     *shape_input;
    E_Comp_BG_Win              *bgwin;
-   Eina_Bool                   move_lock : 1; // lock / unlock evas_object's move. evas_object represents window.
    int                         angle; // window's current angle property
    Eina_Bool                   launched : 1; //flag for checking whether launch or not
 

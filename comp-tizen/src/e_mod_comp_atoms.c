@@ -38,7 +38,6 @@ EINTERN Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_END_DONE      = 0;
 EINTERN Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_REQUEST       = 0;
 EINTERN Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_REQUEST_DONE  = 0;
 EINTERN Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_RESIZE_PIXMAP = 0;
-EINTERN Ecore_X_Atom ATOM_CAPTURE_EFFECT                   = 0;
 EINTERN Ecore_X_Atom ATOM_NET_CM_WINDOW_BACKGROUND         = 0;
 
 /* local subsystem globals */
@@ -80,7 +79,6 @@ static const char *atom_names[] = {
   "_E_COMP_PIXMAP_ROTATION_REQUEST",
   "_E_COMP_PIXMAP_ROTATION_REQUEST_DONE",
   "_E_COMP_PIXMAP_ROTATION_RESIZE_PIXMAP",
-  "_E_COMP_CAPTURE_EFFECT",
   "_NET_CM_WINDOW_BACKGROUND"
 };
 
@@ -145,7 +143,6 @@ e_mod_comp_atoms_init(void)
    ATOM_CM_PIXMAP_ROTATION_REQUEST       = atoms[i++];
    ATOM_CM_PIXMAP_ROTATION_REQUEST_DONE  = atoms[i++];
    ATOM_CM_PIXMAP_ROTATION_RESIZE_PIXMAP = atoms[i++];
-   ATOM_CAPTURE_EFFECT                   = atoms[i++];
    ATOM_NET_CM_WINDOW_BACKGROUND         = atoms[i++];
 
    for (i = 0; i < n; i++)
@@ -159,7 +156,6 @@ e_mod_comp_atoms_init(void)
    i = 0;
    eina_hash_add(atoms_hash, e_util_winid_str_get(ECORE_X_ATOM_E_COMP_SYNC_DRAW_DONE),        external_atom_names[i++]);
    eina_hash_add(atoms_hash, e_util_winid_str_get(ECORE_X_ATOM_E_COMP_SYNC_COUNTER),          external_atom_names[i++]);
-   eina_hash_add(atoms_hash, e_util_winid_str_get(ECORE_X_ATOM_E_ILLUME_ROTATE_WINDOW_ANGLE), external_atom_names[i++]);
    eina_hash_add(atoms_hash, e_util_winid_str_get(ECORE_X_ATOM_E_ILLUME_WINDOW_STATE),        external_atom_names[i++]);
    eina_hash_add(atoms_hash, e_util_winid_str_get(ECORE_X_ATOM_NET_WM_WINDOW_OPACITY),        external_atom_names[i++]);
    eina_hash_add(atoms_hash, e_util_winid_str_get(ECORE_X_ATOM_WM_CLASS),                     external_atom_names[i++]);

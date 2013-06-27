@@ -88,22 +88,84 @@ e_mod_comp_util_screen_input_region_set(Eina_Bool set)
 }
 
 EINTERN E_Comp_Win *
-e_mod_comp_util_win_normal_get(void)
+e_mod_comp_util_win_nocomp_get(E_Comp *c,
+                               E_Zone *zone)
+{
+   Eina_List *l = NULL;
+   E_Comp_Canvas *canvas = NULL;
+   E_Comp_Win *cw = NULL;
+
+   if (_comp_mod->conf->nocomp_fs)
+     {
+        EINA_LIST_FOREACH(c->canvases, l, canvas)
+          {
+             if (!canvas) continue;
+             if (canvas->zone == zone)
+               {
+                  if (canvas->nocomp.mode == E_NOCOMP_MODE_RUN)
+                    {
+                       if (canvas->nocomp.cw)
+                         {
+                            cw = canvas->nocomp.cw;
+
+                            ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+                                 "%15.15s| FOUND NOCOMP WIN", "NOCOMP");
+                         }
+                    }
+                  break;
+               }
+          }
+     }
+
+   return cw;
+}
+
+EINTERN E_Comp_Win *
+e_mod_comp_util_win_normal_get(E_Comp_Win *cw)
 {
    E_Comp *c = e_mod_comp_util_get();
-   E_Comp_Win *cw = NULL;
+   E_Comp_Win *cw2 = NULL, *nocomp_cw = NULL;
+   E_Zone *zone = NULL;
    E_CHECK_RETURN(c, 0);
 
-   EINA_INLIST_REVERSE_FOREACH(c->wins, cw)
+   if ((cw) && (cw->bd))
+     zone = cw->bd->zone;
+
+   if (!zone)
+     zone = e_util_zone_current_get(c->man);
+
+   E_CHECK_RETURN(zone, NULL);
+
+   /* find nocomp window first because nocomp window doesn't have pixmap */
+   nocomp_cw = e_mod_comp_util_win_nocomp_get(c, zone);
+
+   /* look for visible normal window except for given window */
+   EINA_INLIST_REVERSE_FOREACH(c->wins, cw2)
      {
-        if (!cw) continue;
-        if ((cw->visible) &&
-            (REGION_EQUAL_TO_ROOT(cw)) &&
-            (!cw->invalid) && (!cw->input_only) &&
-            TYPE_NORMAL_CHECK(cw))
-          {
-             return cw;
-          }
+        if (!cw2) continue;
+        if ((cw2->invalid) || (cw2->input_only)) continue;
+        if ((cw) && (cw == cw2)) continue; /* except for given window */
+        if (TYPE_MINI_APPTRAY_CHECK(cw2)) continue; /* except for apptray window */
+
+        /* return nocomp window */
+        if ((nocomp_cw) && (nocomp_cw == cw2))
+          return cw2;
+
+        /* check pixmap and compare size with zone */
+        if (!cw2->bd) continue;
+        if (!cw2->bd->zone) continue;
+        if (cw2->bd->zone != zone) continue;
+        if (!E_INTERSECTS(zone->x, zone->y, zone->w, zone->h,
+                          cw2->x, cw2->y, cw2->w, cw2->h))
+          continue;
+
+        if (!((cw2->pixmap) &&
+              (cw2->pw > 0) && (cw2->ph > 0) &&
+              (cw2->dmg_updates >= 1)))
+          continue;
+
+        if (REGION_EQUAL_TO_ZONE(cw2, zone))
+          return cw2;
      }
    return NULL;
 }
@@ -162,36 +224,65 @@ e_mod_comp_util_win_below_check(E_Comp_Win *cw,
 EINTERN Eina_Bool
 e_mod_comp_util_win_visible_get(E_Comp_Win *cw)
 {
-   Eina_Bool v = EINA_FALSE;
-   E_Comp_Win *_cw = NULL;
+   E_Comp_Win *cw2 = NULL;
+   E_Zone *zone = NULL;
+   int count = 0;
 
    E_CHECK_RETURN(cw, 0);
    E_CHECK_RETURN(cw->visible, 0);
    E_CHECK_RETURN(!(cw->invalid), 0);
    E_CHECK_RETURN(!(cw->input_only), 0);
-   E_CHECK_RETURN(!(cw->defer_hide), 0);
-   E_CHECK_RETURN(cw->c, 0);
-   E_CHECK_RETURN(cw->c->man, 0);
+   E_CHECK_RETURN(cw->bd, 0);
+   E_CHECK_RETURN(cw->bd->zone, 0);
+
+   if (!((cw->pixmap) && (cw->pw > 0) && (cw->ph > 0) && (cw->dmg_updates >= 1)))
+     {
+        return EINA_FALSE;
+     }
+
+   zone = cw->bd->zone;
 
    if (!E_INTERSECTS
-       (0, 0, cw->c->man->w, cw->c->man->h,
+       (zone->x, zone->y, zone->w, zone->h,
         cw->x, cw->y, cw->w, cw->h))
      {
-        return v;
+        return EINA_FALSE;
      }
 
-   EINA_INLIST_REVERSE_FOREACH(cw->c->wins, _cw)
+   EINA_INLIST_REVERSE_FOREACH(cw->c->wins, cw2)
      {
-        if (!_cw) continue;
-        if ((_cw->visible) && REGION_EQUAL_TO_ROOT(_cw) &&
-            !(_cw->input_only) && !(_cw->invalid))
-          {
-             if (_cw == cw) return EINA_TRUE;
-             else if (!TYPE_HOME_CHECK(_cw) && _cw->argb) continue;
-             else return EINA_FALSE;
-          }
+        if (!cw2) continue;
+        if (cw2->invalid) continue;
+        if (cw2->input_only) continue;
+        if (!cw2->bd) continue;
+
+        ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+             "%15.15s| CHECK | %02d| %p %p 0x%08x pixmap:0x%x %dx%d %d", "EFFECT",
+             count++,
+             cw, cw2,
+             e_mod_comp_util_client_xid_get(cw2),
+             cw2->pixmap, cw2->pw, cw2->ph,
+             cw2->dmg_updates);
+
+        if (!cw2->bd->zone) continue;
+        if (!cw2->visible) continue;
+        if (cw2->bd->zone != zone) continue;
+        if (!E_INTERSECTS(zone->x, zone->y, zone->w, zone->h,
+                          cw2->x, cw2->y, cw2->w, cw2->h))
+          continue;
+
+        if (!((cw2->pixmap) &&
+              (cw2->pw > 0) && (cw2->ph > 0) &&
+              (cw2->dmg_updates >= 1)))
+          continue;
+
+        if (cw2 == cw) return EINA_TRUE;
+
+        if (REGION_EQUAL_TO_ZONE(cw2, zone))
+          return EINA_FALSE;
      }
-   return v;
+
+   return EINA_FALSE;
 }
 
 EINTERN Ecore_X_Window

@@ -46,23 +46,10 @@ e_mod_move_cfdata_edd_init(E_Config_DD **conf_edd)
    E_CONFIG_VAL(D, T, indicator_widget_geometry[E_MOVE_ANGLE_270].y, INT);
    E_CONFIG_VAL(D, T, indicator_widget_geometry[E_MOVE_ANGLE_270].w, INT);
    E_CONFIG_VAL(D, T, indicator_widget_geometry[E_MOVE_ANGLE_270].h, INT);
-   // miniapp_tray widget gemometry setting
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_0].x, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_0].y, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_0].w, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_0].h, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_90].x, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_90].y, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_90].w, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_90].h, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_180].x, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_180].y, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_180].w, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_180].h, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_270].x, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_270].y, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_270].w, INT);
-   E_CONFIG_VAL(D, T, mini_apptray_widget_geometry[E_MOVE_ANGLE_270].h, INT);
+   // app_tray widget feature setting
+   E_CONFIG_VAL(D, T, apptray_launch_by_flickup, UCHAR);
+   E_CONFIG_VAL(D, T, apptray_widget_size.portrait, INT);
+   E_CONFIG_VAL(D, T, apptray_widget_size.landscape, INT);
 }
 
 EAPI Config *
@@ -107,23 +94,10 @@ e_mod_move_cfdata_config_new(void)
    cfg->indicator_widget_geometry[E_MOVE_ANGLE_270].y = 0;
    cfg->indicator_widget_geometry[E_MOVE_ANGLE_270].w = 50;
    cfg->indicator_widget_geometry[E_MOVE_ANGLE_270].h = 1280;
-   // mini_apptray widget gemometry setting
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].x = 0;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].y = 1260;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].w = 720;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_0].h = 20;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].x = 700;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].y = 0;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].w = 20;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_90].h = 1280;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].x = 0;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].y = 0;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].w = 720;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_180].h = 20;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].x = 0;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].y = 0;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].w = 20;
-   cfg->mini_apptray_widget_geometry[E_MOVE_ANGLE_270].h = 1280;
+   // app_tray widget feature setting
+   cfg->apptray_launch_by_flickup = 1;
+   cfg->apptray_widget_size.portrait = 20;
+   cfg->apptray_widget_size.landscape = 20;
 
    return cfg;
 }

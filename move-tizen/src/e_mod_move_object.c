@@ -16,10 +16,14 @@ e_mod_move_obj_add(E_Move_Border *mb,
    E_Move *m;
    E_Move_Object *mo;
    E_Manager_Comp_Source *comp_src = NULL;
+   Evas_Object *ly = NULL;
 
    E_CHECK_RETURN(mb, 0);
    m = mb->m;
    E_CHECK_RETURN(m, 0);
+
+   ly = e_mod_move_util_comp_layer_get(m, "move");
+   E_CHECK_RETURN(ly, 0);
 
    mo = E_NEW(E_Move_Object, 1);
    E_CHECK_RETURN(mo, 0);
@@ -40,6 +44,8 @@ e_mod_move_obj_add(E_Move_Border *mb,
              mo->mirror = mirror;
              evas_object_data_set(mo->obj,"move_mirror_obj", mo->obj);
              e_mod_move_util_border_hidden_set(mb, EINA_TRUE);
+
+             e_layout_pack(ly, mo->obj);
           }
         else
           {
@@ -65,6 +71,10 @@ error_cleanup:
 EINTERN void
 e_mod_move_obj_del(E_Move_Object *mo)
 {
+   E_Move *m = e_mod_move_util_get();
+   E_CHECK(m);
+   Evas_Object *ly = e_mod_move_util_comp_layer_get(m, "move");
+   E_CHECK(ly);
    E_CHECK(mo);
 
    if (mo->obj)
@@ -72,6 +82,7 @@ e_mod_move_obj_del(E_Move_Object *mo)
         if (mo->clipper)
           {
              evas_object_clip_unset(mo->obj);
+             e_layout_unpack(mo->clipper);
              evas_object_del(mo->clipper);
           }
 
@@ -79,6 +90,7 @@ e_mod_move_obj_del(E_Move_Object *mo)
           {
              evas_object_event_callback_del(mo->obj, EVAS_CALLBACK_DEL,
                                             _e_mod_move_cb_comp_mirror_object_del);
+             e_layout_unpack(mo->obj);
              evas_object_del(mo->obj);
           }
         else
@@ -170,7 +182,7 @@ e_mod_move_bd_move_objs_move(E_Move_Border *mb,
              zx = mo->zone->x;
              zy = mo->zone->y;
           }
-        evas_object_move(mo->obj, x - zx, y - zy);
+        e_layout_child_move(mo->obj, x - zx, y - zy);
 
         mo->geometry.x = x;
         mo->geometry.y = y;
@@ -189,7 +201,7 @@ e_mod_move_bd_move_objs_resize(E_Move_Border *mb,
      {
         if (!mo) continue;
         if (!mo->obj) continue;
-        evas_object_resize(mo->obj, w, h);
+        e_layout_child_resize(mo->obj, w, h);
 
         mo->geometry.w = w;
         mo->geometry.h = h;
@@ -265,7 +277,7 @@ e_mod_move_bd_move_objs_raise(E_Move_Border *mb)
    EINA_LIST_FOREACH(mb->objs, l, mo)
      {
         if (!mo) continue;
-        evas_object_raise(mo->obj);
+        e_layout_child_raise(mo->obj);
      }
 }
 
@@ -278,7 +290,7 @@ e_mod_move_bd_move_objs_lower(E_Move_Border *mb)
    EINA_LIST_FOREACH(mb->objs, l, mo)
      {
         if (!mo) continue;
-        evas_object_lower(mo->obj);
+        e_layout_child_lower(mo->obj);
      }
 }
 
@@ -295,7 +307,7 @@ e_mod_move_bd_move_objs_stack_above(E_Move_Border *mb,
         EINA_LIST_FOREACH(mb2->objs, ll, mo2)
           {
              if (mo->zone == mo2->zone)
-               evas_object_stack_above(mo->obj, mo2->obj);
+               e_layout_child_raise_above(mo->obj, mo2->obj);
           }
      }
 }
@@ -313,7 +325,7 @@ e_mod_move_bd_move_objs_stack_below(E_Move_Border *mb,
         EINA_LIST_FOREACH(mb2->objs, ll, mo2)
           {
              if (mo->zone == mo2->zone)
-               evas_object_stack_below(mo->obj, mo2->obj);
+               e_layout_child_lower_below(mo->obj, mo2->obj);
           }
      }
 }
@@ -323,8 +335,12 @@ e_mod_move_bd_move_objs_clipper_add(E_Move_Border *mb)
 {
    Eina_List     *l = NULL;
    E_Move_Object *mo = NULL;
+   Evas_Object *ly = NULL;
 
    E_CHECK(mb);
+
+   ly = e_mod_move_util_comp_layer_get(mb->m, "move");
+   E_CHECK(ly);
 
    EINA_LIST_FOREACH(mb->objs, l, mo)
      {
@@ -337,6 +353,7 @@ e_mod_move_bd_move_objs_clipper_add(E_Move_Border *mb)
         mo->clipper = evas_object_rectangle_add(mo->canvas->evas);
         if (mo->clipper)
           {
+             e_layout_pack(ly, mo->clipper);
              evas_object_color_set(mo->clipper, 255,255,255,255);
              evas_object_data_set(mo->clipper, "move_clipper_obj", mo->clipper);
              evas_object_clip_set(mo->obj, mo->clipper);
@@ -349,8 +366,12 @@ e_mod_move_bd_move_objs_clipper_del(E_Move_Border *mb)
 {
    Eina_List     *l = NULL;
    E_Move_Object *mo = NULL;
+   Evas_Object *ly = NULL;
 
    E_CHECK(mb);
+
+   ly = e_mod_move_util_comp_layer_get(mb->m, "move");
+   E_CHECK(ly);
 
    EINA_LIST_FOREACH(mb->objs, l, mo)
      {
@@ -359,6 +380,7 @@ e_mod_move_bd_move_objs_clipper_del(E_Move_Border *mb)
         if (!mo->clipper) continue;
 
         evas_object_clip_unset(mo->obj);
+        e_layout_unpack(mo->clipper);
         evas_object_del(mo->clipper);
         mo->clipper = NULL;
      }
@@ -413,7 +435,7 @@ e_mod_move_bd_move_objs_clipper_move(E_Move_Border *mb,
         if (!mo) continue;
         if (!mo->clipper) continue;
 
-        evas_object_move(mo->clipper, x, y);
+        e_layout_child_move(mo->clipper, x, y);
      }
 }
 
@@ -432,7 +454,7 @@ e_mod_move_bd_move_objs_clipper_resize(E_Move_Border *mb,
         if (!mo) continue;
         if (!mo->clipper) continue;
 
-        evas_object_resize(mo->clipper, w, h);
+        e_layout_child_resize(mo->clipper, w, h);
      }
 }
 
@@ -472,7 +494,11 @@ _e_mod_move_cb_comp_object_del(void            *data,
    E_Move_Border *mb = (E_Move_Border *)data;
    E_Move_Object *mo;
    Eina_List *l;
+   Evas_Object *ly = NULL;
    E_CHECK(mb);
+
+   ly = e_mod_move_util_comp_layer_get(mb->m, "move");
+   E_CHECK(ly);
 
    L(LT_EVENT_BD,
      "[MOVE] ev:%15.15s w:0x%08x c:0x%08x\n", "COMP_OBJ_DEL",
@@ -482,6 +508,7 @@ _e_mod_move_cb_comp_object_del(void            *data,
      {
         if (mo->obj == obj)
           {
+             e_layout_unpack(mo->obj);
              // remove Move_Object pointer from list;
              mb->objs = eina_list_remove(mb->objs, mo);
              // free data
@@ -503,7 +530,11 @@ _e_mod_move_cb_comp_mirror_object_del(void            *data,
    E_Move_Border *mb = (E_Move_Border *)data;
    E_Move_Object *mo;
    Eina_List *l;
+   Evas_Object *ly = NULL;
    E_CHECK(mb);
+
+   ly = e_mod_move_util_comp_layer_get(mb->m, "move");
+   E_CHECK(ly);
 
    L(LT_EVENT_BD,
      "[MOVE] ev:%15.15s w:0x%08x c:0x%08x\n", "COMP_MIRROR_OBJ_DEL",
@@ -513,8 +544,14 @@ _e_mod_move_cb_comp_mirror_object_del(void            *data,
      {
         if (mo->obj == obj)
           {
+             e_layout_unpack(mo->obj);
+
              // if clipper exist, then delete clipper
-             if (mo->clipper) evas_object_del(mo->clipper);
+             if (mo->clipper)
+               {
+                  e_layout_unpack(mo->clipper);
+                  evas_object_del(mo->clipper);
+               }
              // remove Move_Object pointer from list;
              mb->objs = eina_list_remove(mb->objs, mo);
              // free data

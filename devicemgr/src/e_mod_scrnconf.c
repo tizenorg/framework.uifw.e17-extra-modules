@@ -12,7 +12,7 @@
    do {                                               \
         a = ecore_x_atom_get (s);                      \
         if (!a)                                       \
-          fprintf (stderr,                             \
+          SLOG(LOG_DEBUG, "DEVICEMGR",                              \
                    "[E-devmgr] ##s creation failed.\n"); \
    } while (0)
 
@@ -225,35 +225,35 @@ _debug_possible_crtc (E_Randr_Output_Info *output_info)
         if (crtc_info == NULL)
            continue;
 
-        printf ("[DeviceMgr]: possible crtc = %d\n", crtc_info->xid);
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[DeviceMgr]: possible crtc = %d\n", crtc_info->xid);
 
         EINA_LIST_FOREACH (crtc_info->outputs, t_l, t_o)
         {
-           printf ("    output : %s\n", t_o->name);
+           SLOG(LOG_DEBUG, "DEVICEMGR", "    output : %s\n", t_o->name);
         }
 
         EINA_LIST_FOREACH (crtc_info->possible_outputs, t_l, t_o)
           {
-             printf ("    possible output : %s\n", t_o->name);
+             SLOG(LOG_DEBUG, "DEVICEMGR", "    possible output : %s\n", t_o->name);
           }
 
         EINA_LIST_FOREACH (crtc_info->outputs_common_modes, t_l, t_m)
           {
              if (!t_m->name)
                 break;
-             printf ("    outputs common modes : %s\n", t_m->name);
+             SLOG(LOG_DEBUG, "DEVICEMGR", "    outputs common modes : %s\n", t_m->name);
           }
 
         if (!crtc_info->current_mode)
           {
-             printf ("    no current mode \n");
+             SLOG(LOG_DEBUG, "DEVICEMGR", "    no current mode \n");
              crtc_xid = crtc_info->xid;
-             printf ("    crtc_id : %d\n", crtc_info->xid);
+             SLOG(LOG_DEBUG, "DEVICEMGR", "    crtc_id : %d\n", crtc_info->xid);
           }
         else
           {
-             printf ("    current set mode : %s\n", crtc_info->current_mode->name);
-             printf ("    crtc_id : %d\n", crtc_info->xid);
+             SLOG(LOG_DEBUG, "DEVICEMGR", "    current set mode : %s\n", crtc_info->current_mode->name);
+             SLOG(LOG_DEBUG, "DEVICEMGR", "    crtc_id : %d\n", crtc_info->xid);
           }
      }
 }
@@ -323,7 +323,7 @@ _scrnconf_external_set_modes (int sc_output, int num_res, int *resolutions)
    output_info = _scrnconf_external_get_output_info_from_output (sc_output);
    if (!output_info)
      {
-        fprintf (stderr, "[DeviceMgr] : fail to find output_info from sc_output\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to find output_info from sc_output\n");
         return 0;
      }
 
@@ -333,7 +333,7 @@ _scrnconf_external_set_modes (int sc_output, int num_res, int *resolutions)
            continue;
 
 #if 0 //debug
-        printf("%s(%d): mode_info->name, %s, vrefresh, %f\n"
+        SLOG(LOG_DEBUG, "DEVICEMGR", "%s(%d): mode_info->name, %s, vrefresh, %f\n"
                 , __func__, __LINE__, mode_info->name, _cal_vrefresh(mode_info));
 #endif
         res = _get_resolution_str (mode_info->name);
@@ -362,7 +362,7 @@ _scrnconf_external_set_modes (int sc_output, int num_res, int *resolutions)
 #if 0 // debug
    for (i = 0; i < num_res; i++)
      {
-        printf ("[DeviceMgr]: res info:: (%d): %s, %f, %p\n"
+        SLOG(LOG_DEBUG, "DEVICEMGR", "[DeviceMgr]: res info:: (%d): %s, %f, %p\n"
                 , i, _get_str_resolution(sc_ext_mode[i].sc_res), sc_ext_mode[i].refresh, sc_ext_mode[i].mode_info);
 
      }
@@ -386,7 +386,7 @@ _scrnconf_external_get_setting_info (int output, int resolution, Ecore_X_Randr_O
    output_info = _scrnconf_external_get_output_info_from_output (output);
    if (output_info == NULL)
      {
-       fprintf (stderr, "[DeviceMgr]: fail to get output_info from sc_output\n");
+       SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr]: fail to get output_info from sc_output\n");
        goto finish;
      }
 
@@ -406,7 +406,7 @@ _scrnconf_external_get_setting_info (int output, int resolution, Ecore_X_Randr_O
 
    if (mode_info == NULL)
      {
-        fprintf (stderr, "[DeviceMgr]: fail to get mode_info from sc_output\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr]: fail to get mode_info from sc_output\n");
         goto finish;
      }
 
@@ -483,18 +483,18 @@ _scrnconf_external_set_extended (int output, int resolution)
 
    ecore_x_grab ();
 
-   printf ("[DeviceMgr]: set screen resize (%d,%d)\n", resize_w, resize_h);
+   SLOG(LOG_DEBUG, "DEVICEMGR", "[DeviceMgr]: set screen resize (%d,%d)\n", resize_w, resize_h);
    if (!ecore_x_randr_screen_current_size_set (e_randr_screen_info.root, resize_w, resize_h, 0, 0))
      {
-        fprintf (stderr, "[DeviceMgr]: fail to resize the screen\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr]: fail to resize the screen\n");
         goto set_fail;
      }
 
-   printf ("[DeviceMgr]: set crtc_id, %d output_id, %d mode_id, %d)!\n", crtc_xid, output_xid[0], mode_xid);
+   SLOG(LOG_DEBUG, "DEVICEMGR", "[DeviceMgr]: set crtc_id, %d output_id, %d mode_id, %d)!\n", crtc_xid, output_xid[0], mode_xid);
    if (!ecore_x_randr_crtc_settings_set (e_randr_screen_info.root, crtc_xid, output_xid, 1, output_x,
                                        output_y, mode_xid, ECORE_X_RANDR_ORIENTATION_ROT_0))
    {
-        fprintf (stderr, "[DeviceMgr]: fail to set x=%d, y=%d, w=%d, h=%d mode_id=%d, crtc_id=%d\n",
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr]: fail to set x=%d, y=%d, w=%d, h=%d mode_id=%d, crtc_id=%d\n",
                  output_x, output_y, output_w, output_h, mode_xid, crtc_xid);
         goto set_fail;
    }
@@ -506,7 +506,7 @@ _scrnconf_external_set_extended (int output, int resolution)
    return 1;
 
 set_fail:
-   fprintf (stderr, "[DeviceMgr]: %s fail to set the extended mode\n", _get_str_output(output));
+   SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr]: %s fail to set the extended mode\n", _get_str_output(output));
    ecore_x_ungrab ();
 
    return 0;
@@ -551,10 +551,10 @@ _scrnconf_external_set_clone (int output, int resolution)
 
    ecore_x_grab ();
 
-   printf ("[DeviceMgr]: set screen resize (%d,%d)\n", resize_w, resize_h);
+   SLOG(LOG_DEBUG, "DEVICEMGR", "[DeviceMgr]: set screen resize (%d,%d)\n", resize_w, resize_h);
    if (!ecore_x_randr_screen_current_size_set (e_randr_screen_info.root, resize_w, resize_h, 0, 0))
      {
-        fprintf (stderr, "[DeviceMgr]: fail to resize the screen\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr]: fail to resize the screen\n");
         goto set_fail;
      }
 
@@ -576,7 +576,7 @@ _scrnconf_external_set_clone (int output, int resolution)
    return 1;
 
 set_fail:
-   fprintf (stderr, "[DeviceMgr]: %s fail to set the clone mode\n", _get_str_output(output));
+   SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr]: %s fail to set the clone mode\n", _get_str_output(output));
    ecore_x_ungrab ();
 
    return 0;
@@ -594,7 +594,7 @@ _dialog_extended_btn_cb (void *data, E_Dialog *g_dia)
    sc_output = _scrnconf_external_get_output (output_info);
    if (sc_output == SC_EXT_OUTPUT_NULL)
      {
-        fprintf (stderr, "[DeviceMgr] : fail to find sc_output from output_info\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to find sc_output from output_info\n");
         goto set_fail;
      }
 
@@ -603,13 +603,13 @@ _dialog_extended_btn_cb (void *data, E_Dialog *g_dia)
    resolutions = calloc (num_res, sizeof (int));
    if (!resolutions)
      {
-        fprintf (stderr, "[DeviceMgr] : fail to allocate resolutions\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to allocate resolutions\n");
         goto set_fail;
      }
 
    if (!_scrnconf_external_set_modes (sc_output, num_res, resolutions))
      {
-        fprintf (stderr, "[DeviceMgr] : fail to set modes\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to set modes\n");
         goto set_fail;
      }
 
@@ -617,7 +617,7 @@ _dialog_extended_btn_cb (void *data, E_Dialog *g_dia)
 
    if (!_scrnconf_external_set_extended (sc_output, sc_res))
      {
-        fprintf (stderr, "[DeviceMgr] : fail to set modes\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to set modes\n");
         goto set_fail;
      }
 
@@ -653,7 +653,7 @@ _dialog_clone_btn_cb (void *data, E_Dialog *g_dia)
    sc_output = _scrnconf_external_get_output (output_info);
    if (sc_output == SC_EXT_OUTPUT_NULL)
      {
-        fprintf (stderr, "[DeviceMgr] : fail to find sc_output from output_info\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to find sc_output from output_info\n");
         goto set_fail;
      }
 
@@ -662,13 +662,13 @@ _dialog_clone_btn_cb (void *data, E_Dialog *g_dia)
    resolutions = calloc (num_res, sizeof (int));
    if (!resolutions)
      {
-        fprintf (stderr, "[DeviceMgr] : fail to allocate resolutions\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to allocate resolutions\n");
         goto set_fail;
      }
 
    if (!_scrnconf_external_set_modes (sc_output, num_res, resolutions))
      {
-        fprintf (stderr, "[DeviceMgr] : fail to set modes\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to set modes\n");
         goto set_fail;
      }
 
@@ -676,7 +676,7 @@ _dialog_clone_btn_cb (void *data, E_Dialog *g_dia)
 
    if (!_scrnconf_external_set_clone (sc_output, sc_res))
      {
-        fprintf (stderr, "[DeviceMgr] : fail to set clone\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to set clone\n");
         goto set_fail;
      }
 
@@ -728,14 +728,14 @@ e_mod_scrnconf_external_dialog_new (int output)
 
    if (output == SC_EXT_OUTPUT_NULL)
      {
-        fprintf (stderr, "[DeviceMgr] : Unknown output is not supported \n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : Unknown output is not supported \n");
         return;
      }
 
    output_info = _scrnconf_external_get_output_info_from_output (output);
    if (!output_info)
      {
-        fprintf (stderr, "[DeviceMgr] : fail to get output from xid\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to get output from xid\n");
         return;
      }
 
@@ -791,14 +791,14 @@ e_mod_scrnconf_external_get_output_from_xid (Ecore_X_Randr_Output output_xid)
    output_info = _scrnconf_external_get_output_info_from_output_xid (output_xid);
    if (!output_info)
      {
-        fprintf (stderr, "[DeviceMgr] : fail to get output from xid\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to get output from xid\n");
         return SC_EXT_OUTPUT_NULL;
      }
 
    output = _scrnconf_external_get_output (output_info);
    if (output == SC_EXT_OUTPUT_NULL)
      {
-        fprintf (stderr, "[DeviceMgr] : Unknown output is not supported \n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : Unknown output is not supported \n");
         return SC_EXT_OUTPUT_NULL;
      }
 
@@ -816,7 +816,7 @@ e_mod_scrnconf_external_get_default_res (int sc_output, int preferred_w, int pre
 
    if (sc_output == SC_EXT_OUTPUT_NULL)
      {
-        fprintf (stderr, "[DeviceMgr] : sc_output is unknown\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : sc_output is unknown\n");
         return 0;
      }
 
@@ -825,13 +825,13 @@ e_mod_scrnconf_external_get_default_res (int sc_output, int preferred_w, int pre
    resolutions = calloc (num_res, sizeof (int));
    if (!resolutions)
      {
-        fprintf (stderr, "[DeviceMgr] : fail to allocate resolutions\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to allocate resolutions\n");
         goto get_fail;
      }
 
    if (!_scrnconf_external_set_modes (sc_output, num_res, resolutions))
      {
-        fprintf (stderr, "[DeviceMgr] : fail to set modes\n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to set modes\n");
         goto get_fail;
      }
 
@@ -870,7 +870,7 @@ e_mod_scrnconf_external_get_default_res (int sc_output, int preferred_w, int pre
    free (resolutions);
 
    if (sc_res == SC_EXT_RES_NULL)
-      fprintf (stderr, "[DeviceMgr] : default resolution is NULL\n");
+      SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : default resolution is NULL\n");
 
 
    if (sc_output == SC_EXT_OUTPUT_VIRTUAL)
@@ -950,7 +950,7 @@ e_mod_scrnconf_external_set_dispmode (int sc_output, int sc_dispmode, int sc_res
    return 1;
 
 set_fail:
-   fprintf (stderr, "[DeviceMgr] : fail to set display mode (%d)\n", sc_dispmode);
+   SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to set display mode (%d)\n", sc_dispmode);
    return 0;
 }
 
@@ -970,13 +970,13 @@ e_mod_scrnconf_external_send_current_status (void)
 
    if (!scrnconf_ext_update_get_perperty(ecore_x_display_get (), str_output, str_stat, str_res, str_dispmode))
      {
-        fprintf (stderr, "[DeviceMgr] : fail to update get property \n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to update get property \n");
         return 0;
      }
 
    if (!scrnconf_ext_send_status (ecore_x_display_get (), sc_ext.sc_stat, sc_ext.sc_dispmode))
      {
-        fprintf (stderr, "[DeviceMgr] : fail to send current status \n");
+        SLOG(LOG_DEBUG, "DEVICEMGR",  "[DeviceMgr] : fail to send current status \n");
         return 0;
      }
 

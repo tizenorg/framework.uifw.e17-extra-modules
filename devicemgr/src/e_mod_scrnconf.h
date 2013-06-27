@@ -2,6 +2,9 @@
 #ifndef E_MOD_SCRNCONF_H
 #define E_MOD_SCRNCONF_H
 
+#define LOG_TAG	"DEVICEMGR"
+#include "dlog.h"
+
 void e_mod_scrnconf_external_init ();
 void e_mod_scrnconf_external_deinit ();
 

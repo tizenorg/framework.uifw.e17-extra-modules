@@ -50,6 +50,8 @@ module_la_SOURCES      = e_mod_main.c \
                          e_mod_move_taskmanager.h \
                          e_mod_move_pwlock.c \
                          e_mod_move_pwlock.h \
+                         e_mod_move_setup_wizard.c \
+                         e_mod_move_setup_wizard.h \
                          e_mod_move_flick.c \
                          e_mod_move_flick.h \
                          e_mod_move_widget_object.c \

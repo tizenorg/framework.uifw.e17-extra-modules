@@ -3,10 +3,10 @@
 #ifndef E_MOD_COMP_EFFECT_H
 #define E_MOD_COMP_EFFECT_H
 
-typedef enum   _E_Comp_Effect_Style E_Comp_Effect_Style;
-typedef enum   _E_Comp_Effect_Kind  E_Comp_Effect_Kind;
-typedef struct _E_Comp_Effect_Type  E_Comp_Effect_Type;
-typedef struct _E_Comp_Effect_Job   E_Comp_Effect_Job;
+typedef enum   _E_Comp_Effect_Style  E_Comp_Effect_Style;
+typedef enum   _E_Comp_Effect_Kind   E_Comp_Effect_Kind;
+typedef struct _E_Comp_Effect_Type   E_Comp_Effect_Type;
+typedef struct _E_Comp_Effect_Job    E_Comp_Effect_Job;
 
 enum _E_Comp_Effect_Style
 {
@@ -34,6 +34,15 @@ enum _E_Comp_Effect_Kind
    E_COMP_EFFECT_KIND_FOCUSOUT
 };
 
+struct _E_Comp_Effect_Object
+{
+   Evas_Object   *edje;
+   Evas_Object   *img;
+   Ecore_X_Window win;
+   Ecore_X_Window cwin;
+   Ecore_X_Pixmap pixmap;
+};
+
 /* window effect type functions */
 EINTERN E_Comp_Effect_Type *e_mod_comp_effect_type_new(void);
 EINTERN void                e_mod_comp_effect_type_free(E_Comp_Effect_Type *type);
@@ -46,15 +55,17 @@ EINTERN E_Comp_Effect_Style e_mod_comp_effect_style_get(E_Comp_Effect_Type *type
 /* window effect functions */
 EINTERN void                e_mod_comp_effect_win_show(E_Comp_Win *cw);
 EINTERN Eina_Bool           e_mod_comp_effect_win_hide(E_Comp_Win *cw);
-EINTERN void                e_mod_comp_effect_win_restack(E_Comp_Win *cw, E_Comp_Win *cw2);
-EINTERN void                e_mod_comp_effect_win_lower(E_Comp_Win *cw, E_Comp_Win *cw2);
-EINTERN void                e_mod_comp_effect_mirror_handler_hide(E_Comp_Win *cw, E_Comp_Win *cw2);
-EINTERN void                e_mod_comp_effect_disable_stage(E_Comp *c, E_Comp_Win *cw);
+EINTERN void                e_mod_comp_effect_win_restack(E_Comp_Win *cw, Eina_Bool v1, Eina_Bool v2);
+
 EINTERN Eina_Bool           e_mod_comp_effect_signal_add(E_Comp_Win *cw, Evas_Object *o, const char *emission, const char *src);
 EINTERN Eina_Bool           e_mod_comp_effect_signal_del(E_Comp_Win *cw, Evas_Object *obj, const char *name);
 EINTERN Eina_Bool           e_mod_comp_effect_jobs_clean(E_Comp_Win *cw, Evas_Object *obj, const char *name);
 EINTERN Eina_Bool           e_mod_comp_effect_signal_flush(void);
 EINTERN Eina_Bool           e_mod_comp_effect_animating_set(E_Comp *c, E_Comp_Win *cw, Eina_Bool set);
+
+/* effect object functions */
+EINTERN E_Comp_Effect_Object *e_mod_comp_effect_object_new(E_Comp_Layer *ly, E_Comp_Win *cw);
+EINTERN void                  e_mod_comp_effect_object_free(E_Comp_Effect_Object *o);
 
 #endif
 #endif

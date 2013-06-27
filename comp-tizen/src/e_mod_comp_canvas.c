@@ -13,11 +13,179 @@ static Eina_Bool _nocomp_prepare_timeout(void *data);
 static Eina_Bool _nocomp_end_timeout(void *data);
 
 /* externally accessible functions */
+EINTERN void
+e_mod_comp_layer_eval(E_Comp_Layer *ly)
+{
+   e_layout_freeze(ly->layout);
+
+   if (!ly->bg)
+     {
+        ly->bg = evas_object_rectangle_add(ly->canvas->evas);
+        /* TODO: make it configurable */
+        if (!strncmp(ly->name, "move", strlen("move")))
+          evas_object_color_set(ly->bg, 0, 0, 0, 0);
+        else
+          evas_object_color_set(ly->bg, 0, 0, 0, 255);
+        evas_object_show(ly->bg);
+        e_layout_pack(ly->layout, ly->bg);
+     }
+   e_layout_child_move(ly->bg, ly->x, ly->y);
+   e_layout_child_resize(ly->bg, ly->w, ly->h);
+   e_layout_child_lower(ly->bg);
+
+   evas_object_move(ly->layout, ly->x, ly->y);
+   evas_object_resize(ly->layout, ly->w, ly->h);
+   e_layout_virtual_size_set(ly->layout, ly->w, ly->h);
+
+   e_layout_thaw(ly->layout);
+}
+
+EINTERN void
+e_mod_comp_layer_populate(E_Comp_Layer *ly,
+                          Evas_Object  *o)
+{
+   e_layout_pack(ly->layout, o);
+}
+
+/* adjust the stack position of the background object to the bottom of layer */
+EINTERN void
+e_mod_comp_layer_bg_adjust(E_Comp_Layer *ly)
+{
+   e_layout_freeze(ly->layout);
+
+   if (!ly->bg)
+     {
+        ly->bg = evas_object_rectangle_add(ly->canvas->evas);
+        evas_object_color_set(ly->bg, 0, 0, 0, 255);
+        evas_object_show(ly->bg);
+        e_layout_pack(ly->layout, ly->bg);
+     }
+
+   e_layout_child_lower(ly->bg);
+
+   e_layout_thaw(ly->layout);
+}
+
+EINTERN void
+e_mod_comp_layer_effect_set(E_Comp_Layer *ly,
+                            Eina_Bool     set)
+{
+   if (strcmp(ly->name, "effect"))
+     return;
+
+   if (set)
+     {
+        ly->count++;
+        ly->canvas->animation.run = 1;
+        ly->canvas->animation.num++;
+
+        if (!evas_object_visible_get(ly->layout))
+          {
+             e_mod_comp_composite_mode_set(ly->canvas->zone, EINA_TRUE);
+             evas_object_show(ly->layout);
+          }
+     }
+   else
+     {
+        /* decrease effect count and hide effect layer if it is 0 */
+        ly->count--;
+        ly->canvas->animation.num--;
+
+        if (ly->count <= 0)
+          {
+             E_FREE_LIST(ly->objs, e_mod_comp_effect_object_free);
+             evas_object_hide(ly->layout);
+
+             ly->canvas->animation.run = 0;
+             ly->canvas->animation.num = 0;
+             ly->count = 0;
+
+             e_mod_comp_composite_mode_set(ly->canvas->zone, EINA_FALSE);
+          }
+     }
+}
+
+EINTERN Eina_Bool
+e_mod_comp_layer_effect_get(E_Comp_Layer *ly)
+{
+   E_CHECK_RETURN(ly, EINA_FALSE);
+
+   if (strcmp(ly->name, "effect"))
+     return EINA_FALSE;
+
+   return ly->canvas->animation.run;
+}
+
+EINTERN E_Comp_Effect_Object *
+e_mod_comp_layer_effect_obj_get(E_Comp_Layer   *ly,
+                                Ecore_X_Window win)
+{
+   E_Comp_Effect_Object *obj = NULL;
+   Eina_List *l;
+   E_CHECK_RETURN(ly, NULL);
+
+   if (strcmp(ly->name, "effect"))
+     return NULL;
+
+   EINA_LIST_FOREACH(ly->objs, l, obj)
+     {
+        if (!obj) continue;
+        if (obj->win == win)
+          {
+             return obj;
+          }
+     }
+
+   return NULL;
+}
+
+static void
+_ly_intercept_show(void        *data,
+                   Evas_Object *obj)
+{
+   E_Comp_Layer *ly = (E_Comp_Layer *)data;
+
+   ELBF(ELBT_COMP, 0, 0,
+        "%15.15s|name:%s layout:%p obj:%p",
+        "LY_PRE_SHOW", ly->name, ly->layout, obj);
+
+   /* TODO: an incontrollable effect layer show problem can occasionally occur. */
+   if (!strcmp(ly->name, "effect"))
+     {
+        if (!ly->canvas->animation.run)
+          {
+             ELBF(ELBT_COMP, 0, 0,
+                  "%15.15s|name:%s layout:%p obj:%p SKIP SHOW run:%d",
+                  "LY_PRE_SHOW", ly->name, ly->layout, obj,
+                  ly->canvas->animation.run);
+
+             return;
+          }
+     }
+
+   evas_object_show(obj);
+}
+
+static void
+_ly_intercept_hide(void        *data,
+                   Evas_Object *obj)
+{
+   E_Comp_Layer *ly = (E_Comp_Layer *)data;
+
+   ELBF(ELBT_COMP, 0, 0,
+        "%15.15s|name:%s layout:%p obj:%p",
+        "LY_PRE_HIDE", ly->name, ly->layout, obj);
+
+   evas_object_hide(obj);
+}
+
+/* externally accessible functions */
 EINTERN E_Comp_Canvas *
 e_mod_comp_canvas_add(E_Comp *c,
                       E_Zone *zone)
 {
    E_Comp_Canvas *canvas;
+   E_Comp_Layer *ly;
    int x, y, w, h;
    E_CHECK_RETURN(c, 0);
 
@@ -108,14 +276,50 @@ e_mod_comp_canvas_add(E_Comp *c,
    canvas->bg_img = evas_object_rectangle_add(canvas->evas);
    evas_object_color_set(canvas->bg_img, 0, 0, 0, 255);
    evas_object_stack_below(canvas->bg_img, evas_object_bottom_get(canvas->evas));
-   evas_object_show(canvas->bg_img);
    evas_object_move(canvas->bg_img, 0, 0);
    evas_object_resize(canvas->bg_img, w, h);
+   evas_object_show(canvas->bg_img);
 
    ecore_evas_show(canvas->ee);
 
    canvas->ee_win = ecore_evas_window_get(canvas->ee);
    canvas->zone = zone;
+
+   /* TODO: make a configurable list */
+   int i;
+   const char *names[] = {"comp", "effect", "move"};
+   for (i = 0; i < 3; i++)
+     {
+        ly = E_NEW(E_Comp_Layer, 1);
+        E_CHECK_GOTO(ly, error_cleanup);
+        ly->name = strdup(names[i]);
+        ly->layout = e_layout_add(canvas->evas);
+        if (!ly->layout)
+          {
+             E_FREE(ly);
+             goto error_cleanup;
+          }
+
+        evas_object_color_set(ly->layout, 255, 255, 255, 255);
+
+        ly->x = 0;
+        ly->y = 0;
+        ly->w = w;
+        ly->h = h;
+        ly->canvas = canvas;
+
+        e_mod_comp_layer_eval(ly);
+
+        if (!strcmp(names[i], "comp"))
+          evas_object_show(ly->layout);
+
+        evas_object_intercept_show_callback_add(ly->layout, _ly_intercept_show, ly);
+        evas_object_intercept_hide_callback_add(ly->layout, _ly_intercept_hide, ly);
+
+        canvas->layers = eina_list_append(canvas->layers, ly);
+
+        ELBF(ELBT_COMP, 0, i, "E_Comp_Layer:%s", names[i]);
+     }
 
    // comp can create only one ecore_evas for H/W overlay window
    // this limit will be removed later
@@ -131,11 +335,23 @@ e_mod_comp_canvas_add(E_Comp *c,
           }
      }
 
+   canvas->zr = e_mod_comp_effect_zone_rotation_new(canvas);
+   E_CHECK_GOTO(canvas->zr, error_cleanup);
+
    c->canvases = eina_list_append(c->canvases, canvas);
 
    return canvas;
 
 error_cleanup:
+   if (canvas->zr)
+     e_mod_comp_effect_zone_rotation_free(canvas->zr);
+
+   EINA_LIST_FREE(canvas->layers, ly)
+     {
+        free(ly->name);
+        evas_object_del(ly->layout);
+        E_FREE(ly);
+     }
    if (canvas->ee)
      ecore_evas_free(canvas->ee);
 
@@ -148,6 +364,8 @@ error_cleanup:
 EINTERN void
 e_mod_comp_canvas_del(E_Comp_Canvas *canvas)
 {
+   E_Comp_Layer *ly;
+
    if (canvas->fps.fg)
      {
         evas_object_del(canvas->fps.fg);
@@ -163,6 +381,11 @@ e_mod_comp_canvas_del(E_Comp_Canvas *canvas)
         evas_object_del(canvas->bg_img);
         canvas->bg_img = NULL;
      }
+   if (canvas->zr)
+     {
+        e_mod_comp_effect_zone_rotation_free(canvas->zr);
+        canvas->zr = NULL;
+     }
    if (canvas->ov)
      {
         e_mod_comp_hw_ov_win_free(canvas->ov);
@@ -171,9 +394,36 @@ e_mod_comp_canvas_del(E_Comp_Canvas *canvas)
      }
    ecore_evas_gl_x11_pre_post_swap_callback_set(canvas->ee, NULL, NULL, NULL);
    ecore_evas_manual_render(canvas->ee);
+
+   EINA_LIST_FREE(canvas->layers, ly)
+     {
+        free(ly->name);
+        evas_object_del(ly->layout);
+        E_FREE(ly);
+     }
+
    ecore_evas_free(canvas->ee);
    memset(canvas, 0, sizeof(E_Comp_Canvas));
    E_FREE(canvas);
+}
+
+EINTERN E_Comp_Layer *
+e_mod_comp_canvas_layer_get(E_Comp_Canvas *canvas,
+                            const char    *name)
+{
+   E_Comp_Layer *ly;
+   Eina_List *l;
+
+   E_CHECK_RETURN(canvas, NULL);
+   E_CHECK_RETURN(name, NULL);
+
+   EINA_LIST_FOREACH(canvas->layers, l, ly)
+     {
+        if (!strcmp(ly->name, name))
+          return ly;
+     }
+
+   return NULL;
 }
 
 EINTERN E_Comp_Win *
@@ -193,9 +443,6 @@ e_mod_comp_canvas_fullscreen_check(E_Comp_Canvas *canvas)
 
    EINA_INLIST_REVERSE_FOREACH(c->wins, cw)
      {
-        if (cw->move_lock)
-          return NULL;
-
         if ((!cw->visible)   ||
             (cw->input_only) ||
             (cw->invalid))
@@ -577,9 +824,6 @@ _pre_swap(void *data,
      {
         if (!canvas) continue;
         if (canvas->evas != e) continue;
-
-        L(LT_EVENT_X, "COMP|%31s|canvas:%d\n", "PRE_SWAP",
-          canvas->zone ? canvas->zone->num : -1);
 
         e_mod_comp_hw_ov_win_msg_show
           (E_COMP_LOG_TYPE_SWAP,

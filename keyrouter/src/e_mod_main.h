@@ -14,11 +14,6 @@
 //maximum number of hardkeys
 #define MAX_HARDKEYS	255
 
-#ifdef _F_ENABLE_MOUSE_POPUP
-#define POPUP_MENU_WIDTH	95
-#define POPUP_MENU_HEIGHT	120
-#endif//_F_ENABLE_MOUSE_POPUP
-
 //grab modes
 #define NONE_GRAB_MODE	0
 #define OR_EXCL_GRAB_MODE	1
@@ -117,15 +112,6 @@ typedef struct _ModifierKey
 } ModifierKey;
 typedef struct ModifierKey *ModifierKeyPtr;
 
-#ifdef _F_ENABLE_MOUSE_POPUP
-const char *btns_label[] = {
-	"Volume Up",
-	"Volume Down",
-	"Go Home",
-	"Rotate"
-};
-#endif//_F_ENABLE_MOUSE_POPUP
-
 #define NUM_HWKEYS		33
 const char *HWKeys[] = {
 	KEY_VOLUMEUP,
@@ -203,20 +189,6 @@ typedef struct _tag_keyrouter
 
 	E_Zone *zone;
 
-#ifdef _F_ENABLE_MOUSE_POPUP
-	//mouse rbutton popup related variables
-	int toggle;
-	int rbutton_pressed_on_popup;
-	int popup_angle;
-	int popup_rootx;
-	int popup_rooty;
-
-	E_Popup     *popup;
-	Evas_Object *popup_btns[4];
-	Evas_Object* popup_bg;
-	unsigned int btn_keys[3];
-#endif//_F_ENABLE_MOUSE_POPUP
-
 	//number of connected pointer and keyboard devices
 	int num_hwkey_devices;
 
@@ -241,8 +213,6 @@ typedef struct _tag_keyrouter
 	int resTopVisibleCheck;
 	int prev_sent_keycode;
 
-	struct FILE *fplog;
-
 	//atoms
 	Atom atomHWKeyEmulation;
 	Atom atomGrabKey;
@@ -250,11 +220,6 @@ typedef struct _tag_keyrouter
 	Atom atomDeviceStatus;
 	Atom atomGrabExclWin;
 	Atom atomGrabORExclWin;
-
-#ifdef _F_USE_XI_GRABDEVICE_
-	XEvent *gev;
-	XGenericEventCookie *gcookie;
-#endif
 
 	//event handlers
 	Ecore_Event_Handler *e_client_message_handler;
@@ -265,12 +230,8 @@ typedef struct _tag_keyrouter
 	Ecore_Event_Handler *e_window_destroy_handler;
 	Ecore_Event_Handler *e_window_configure_handler;
 	Ecore_Event_Handler *e_window_stack_handler;
-#ifdef _F_USE_XI_GRABDEVICE_
-	Ecore_Event_Handler *e_event_generic_handler;
-#else//_F_USE_XI_GRABDEVICE_
 	Ecore_Event_Handler *e_event_generic_handler;
 	Ecore_Event_Handler *e_event_any_handler;
-#endif//_F_USE_XI_GRABDEVICE_
 } KeyRouter;
 
 //function prototypes
@@ -289,13 +250,8 @@ static void _e_keyrouter_set_key_repeat(int key, int auto_repeat_mode);
 static void _e_keyrouter_hwkey_event_handler(XEvent *ev);
 
 //event handlers
-#ifdef _F_USE_XI_GRABDEVICE_
-static int _e_keyrouter_cb_event_generic(void *data, int ev_type, void *ev);
-#else//_F_USE_XI_GRABDEVICE_
 static int _e_keyrouter_cb_event_generic(void *data, int ev_type, void *event);
 static int _e_keyrouter_cb_event_any(void *data, int ev_type, void *ev);
-#endif//_F_USE_XI_GRABDEVICE_
-//static int _e_keyrouter_cb_e_border_add(void *data, int ev_type, void *ev);
 static int _e_keyrouter_cb_window_property(void *data, int ev_type, void *ev);
 static int _e_keyrouter_cb_e_border_stack(void *data, int ev_type, void *ev);
 static int _e_keyrouter_cb_e_border_remove(void *data, int ev_type, void *ev);
@@ -315,30 +271,14 @@ static void _e_keyrouter_update_key_delivery_list(Ecore_X_Window win, int keycod
 static int _e_keyrouter_modifiers(E_Binding_Modifier modifiers);
 static void _e_keyrouter_do_bound_key_action(XEvent *xev);
 
-#ifdef _F_USE_XI_GRABDEVICE_
-static void DeliverKeyEvents(XEvent *xev, XGenericEventCookie *cookie);
-#else//_F_USE_XI_GRABDEVICE_
-//static void DeliverDeviceKeyEvents(XEvent *xev);
 static void DeliverDeviceKeyEvents(XEvent *xev, int replace_key);
-#endif//_F_USE_XI_GRABDEVICE_
 
 static void InitGrabKeyDevices();
-#ifdef _F_USE_XI_GRABDEVICE_
-static int GrabXIKeyDevices();
-static void UngrabXIKeyDevices();
-#else//_F_USE_XI_GRABDEVICE_
 static int GrabKeyDevices(Window win);
 static void UngrabKeyDevices();
-#endif//_F_USE_XI_GRABDEVICE_
 
 //functions related to mouse rbutton popup
 static E_Zone* _e_keyrouter_get_zone();
-#ifdef _F_ENABLE_MOUSE_POPUP
-static void InitHardKeyCodes();
-static void popup_update();
-static void popup_show();
-static void popup_destroy();
-#endif//_F_ENABLE_MOUSE_POPUP
 static void _e_keyrouter_do_hardkey_emulation(const char *label, unsigned int key_event, unsigned int on_release, int keycode, int cancel);
 
 //functions related to key composition for screen capture

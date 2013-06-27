@@ -30,6 +30,7 @@ typedef struct
    int             x, y, dx, dy, mx, my;
    int             mouse_history[HISTORY_MAX];
    unsigned int    dt;
+   unsigned int    n_taps;
    Eina_Inarray   *two_finger_move;
    Eina_Inlist    *history;
 
@@ -56,7 +57,8 @@ static Ecore_X_Window unfocused_win = 0;
 static Eina_List *covers = NULL;
 static Eina_List *handlers = NULL;
 static Ecore_Event_Handler *property_handler = NULL;
-static int multi_device[3];
+
+static void _move_module_enable_set(int enable);
 
 static void
 _mouse_in_win_get(Cover *cov, int x, int y)
@@ -114,6 +116,70 @@ _win_angle_get(Ecore_X_Window win)
    if (prop_data) free (prop_data);
 
    return angle;
+}
+
+static void
+_cov_data_reset(Cover *cov)
+{
+   cov->n_taps = 0;
+   cov->longpressed = EINA_FALSE;
+   cov->two_finger_down = EINA_FALSE;
+   cov->two_finger_move = EINA_FALSE;
+   cov->mouse_double_down = EINA_FALSE;
+   cov->three_finger_down = EINA_FALSE;
+   cov->lock_screen = EINA_FALSE;
+
+   if (cov->timer)
+     {
+        ecore_timer_del(cov->timer);
+        cov->timer = NULL;
+     }
+
+   if (cov->double_down_timer)
+     {
+        ecore_timer_del(cov->double_down_timer);
+        cov->double_down_timer = NULL;
+     }
+
+   if (cov->tap_timer)
+     {
+        ecore_timer_del(cov->tap_timer);
+        cov->tap_timer = NULL;
+     }
+}
+
+static void
+_screen_reader_support_check()
+{
+   int ret;
+   unsigned int val;
+   Eina_List *l;
+   Cover *cov;
+
+   ret = ecore_x_window_prop_card32_get
+      (target_win, ECORE_X_ATOM_E_ILLUME_ACCESS_CONTROL, &val, 1);
+
+   if ((ret >= 0) && (val == 2))
+     {
+        /* hide input window */
+        EINA_LIST_FOREACH(covers, l, cov)
+          {
+             ecore_x_window_hide(cov->win);
+             _cov_data_reset(cov);
+          }
+
+        _move_module_enable_set(EINA_FALSE);
+     }
+   else
+     {
+        /* show input window */
+        EINA_LIST_FOREACH(covers, l, cov)
+          {
+             ecore_x_window_show(cov->win);
+          }
+
+        _move_module_enable_set(EINA_TRUE);
+     }
 }
 
 static void
@@ -362,7 +428,6 @@ _message_mouse_send(Cover *cov, int type)
    ecore_x_pointer_xy_get(cov->down_win, &x, &y);
    _coordinate_calibrate(cov->down_win, &x, &y);
 
-   INF("%d -> %x", type, cov->down_win);
    ecore_x_client_message32_send(cov->down_win, ECORE_X_ATOM_E_ILLUME_ACCESS_CONTROL,
                                  ECORE_X_EVENT_MASK_WINDOW_CONFIGURE,
                                  cov->down_win,
@@ -603,35 +668,58 @@ _mouse_up(Cover *cov, Ecore_Event_Mouse_Button *ev)
              /* get root window rotation */
              angle = _win_angle_get(target_win);
 
-             if (abs(dx) < abs(dy))
+             if (abs(dx) > abs(dy)) /* left or right */
+               {
+                  if (dx > 0) /* right */
+                    {
+                       INFO(cov, "three finger swipe right");
+                       switch (angle)
+                         {
+                          case 270:
+                            _app_tray_open(cov);
+                          break;
+
+                          case 90:
+                            _quickpanel_open();
+                          break;
+                         }
+
+                    }
+                  else /* left */
+                    {
+                       INFO(cov, "three finger swipe left");
+                       switch (angle)
+                         {
+                          case 270:
+                            _quickpanel_open();
+                          break;
+
+                          case 90:
+                            _app_tray_open(cov);
+                          break;
+
+                         }
+                    }
+               }
+             else /* up or down */
                {
                   if (dy > 0) /* down */
                     {
-                       INFO(cov, "three finger flick down");
+                       INFO(cov, "three finger swipe down");
                        switch (angle)
                          {
-                          case 90:
                           case 180:
-                            _app_tray_open(cov);
-                            break;
-
-                          case 270:
                           default:
                             _quickpanel_open();
-                            break;
+                          break;
                          }
                     }
                   else /* up */
                     {
-                       INFO(cov, "three finger flick up");
+                       INFO(cov, "three finger swipe up");
                        switch (angle)
                          {
-                          case 90:
                           case 180:
-                            _quickpanel_open();
-                          break;
-
-                          case 270:
                           default:
                             _app_tray_open(cov);
                           break;
@@ -720,13 +808,15 @@ _mouse_up(Cover *cov, Ecore_Event_Mouse_Button *ev)
                   INFO(cov, "single flick right");
                   switch (angle)
                     {
-                     case 180:
                      case 270:
-                       ecore_x_e_illume_access_action_read_prev_send
-                                                        (target_win);
+                       ecore_x_e_illume_access_action_up_send(target_win);
                      break;
 
                      case 90:
+                       ecore_x_e_illume_access_action_down_send(target_win);
+                     break;
+
+                     case 180:
                      default:
                        ecore_x_e_illume_access_action_read_next_send
                                                         (target_win);
@@ -739,13 +829,15 @@ _mouse_up(Cover *cov, Ecore_Event_Mouse_Button *ev)
                   INFO(cov, "single flick left");
                   switch (angle)
                     {
-                     case 180:
                      case 270:
-                       ecore_x_e_illume_access_action_read_next_send
-                                                        (target_win);
+                       ecore_x_e_illume_access_action_down_send(target_win);
                      break;
 
                      case 90:
+                       ecore_x_e_illume_access_action_up_send(target_win);
+                     break;
+
+                     case 180:
                      default:
                        ecore_x_e_illume_access_action_read_prev_send
                                                         (target_win);
@@ -761,11 +853,16 @@ _mouse_up(Cover *cov, Ecore_Event_Mouse_Button *ev)
                   switch (angle)
                     {
                      case 90:
-                     case 180:
-                       ecore_x_e_illume_access_action_up_send(target_win);
+                       ecore_x_e_illume_access_action_read_prev_send
+                                                        (target_win);
                      break;
 
                      case 270:
+                       ecore_x_e_illume_access_action_read_next_send
+                                                        (target_win);
+                     break;
+
+                     case 180:
                      default:
                        ecore_x_e_illume_access_action_down_send(target_win);
                      break;
@@ -777,11 +874,16 @@ _mouse_up(Cover *cov, Ecore_Event_Mouse_Button *ev)
                   switch (angle)
                     {
                      case 90:
-                     case 180:
-                       ecore_x_e_illume_access_action_down_send(target_win);
+                       ecore_x_e_illume_access_action_read_next_send
+                                                        (target_win);
                      break;
 
                      case 270:
+                       ecore_x_e_illume_access_action_read_prev_send
+                                                        (target_win);
+                     break;
+
+                     case 180:
                      default:
                        ecore_x_e_illume_access_action_up_send(target_win);
                      break;
@@ -836,32 +938,24 @@ _cb_mouse_down(void    *data __UNUSED__,
    Ecore_Event_Mouse_Button *ev = event;
    Eina_List *l;
    Cover *cov;
-   int i = 0;
-
-   for (i = 0; i < 3; i++)
-     {
-        if (multi_device[i] == -1)
-          {
-             multi_device[i] = ev->multi.device;
-             break;
-          }
-        else if (multi_device[i] == ev->multi.device) break;
-     }
 
    EINA_LIST_FOREACH(covers, l, cov)
      {
+        /* sometimes the mouse down event has improper multi.device value */
+        cov->n_taps++;
+
         if (ev->window == cov->win)
           {
              //XXX change specific number
-             if (ev->multi.device == multi_device[0])
+             if (ev->multi.device == 0)
                {
                   _target_window_find();
                   _mouse_down(cov, ev);
                }
 
-             if (ev->multi.device == multi_device[1] &&
-                 !(cov->two_finger_down) &&
-                 !(cov->longpressed))
+             else if (cov->n_taps == 2 &&
+                      !(cov->two_finger_down) &&
+                      !(cov->longpressed))
                {
                   /* prevent longpress client message by two finger */
                   if (cov->timer)
@@ -879,9 +973,9 @@ _cb_mouse_down(void    *data __UNUSED__,
                   cov->two_finger_move = eina_inarray_new(sizeof(Ecore_Event_Mouse_Move), 0);
                }
 
-             if (ev->multi.device == multi_device[2] &&
-                 !(cov->three_finger_down) &&
-                 !(cov->longpressed))
+             else if (cov->n_taps == 3 &&
+                      !(cov->three_finger_down) &&
+                      !(cov->longpressed))
                {
                   cov->three_finger_down = EINA_TRUE;
 
@@ -912,11 +1006,13 @@ _cb_mouse_up(void    *data __UNUSED__,
 
    EINA_LIST_FOREACH(covers, l, cov)
      {
+        cov->n_taps--;
+
         if (ev->window == cov->win)
           {
              /* the first finger: 1, from the second finger: 0 */
-             if (ev->buttons == 1)
-               _mouse_up(cov, ev);
+             if (ev->buttons == 1) _mouse_up(cov, ev);
+
              return ECORE_CALLBACK_PASS_ON;
           }
      }
@@ -940,17 +1036,17 @@ _cb_mouse_move(void    *data __UNUSED__,
         if (ev->window == cov->win)
           {
              //if (ev->multi.device == multi_device[0] || ev->multi.device == multi_device[1])
-             if (cov->two_finger_down && ev->multi.device == multi_device[1])
+             if (cov->two_finger_down && cov->n_taps == 2)
                _mouse_move(cov, ev);
              else if (cov->longpressed && /* client message for moving is available only after long press is detected */
                       !(cov->mouse_double_down) && /* mouse move after double down should not send read message */
-                      !(cov->two_finger_down) && ev->multi.device == multi_device[0])
+                      !(cov->two_finger_down) && ev->multi.device == 0)
                {
                   INFO(cov, "read");
                   _message_read_send(cov);
                }
              else if (cov->mouse_double_down && /* client message for moving is available only after long press is detected */
-                      !(cov->two_finger_down) && ev->multi.device == multi_device[0])
+                      !(cov->two_finger_down) && ev->multi.device == 0)
                {
                   if (cov->longpressed)
                     {
@@ -1053,7 +1149,6 @@ _covers_init(void)
 {
    Eina_List *l, *l2, *l3;
    E_Manager *man;
-   int i = 0;
 
    EINA_LIST_FOREACH(e_manager_list(), l, man)
      {
@@ -1067,7 +1162,7 @@ _covers_init(void)
                   if (cov)
                     {
                        covers = eina_list_append(covers, cov);
-                       for (i = 0; i < HISTORY_MAX; i++) cov->mouse_history[i] = -1;
+                       cov->n_taps = 0;
 
                        cov->atom_control_panel_open = ecore_x_atom_get("_E_MOD_SCREEN_READER_ACTION_CONTROL_PANEL_OPEN_");
                        cov->atom_app_tray_open = ecore_x_atom_get("_E_MOD_SCREEN_READER_ACTION_APP_TRAY_OPEN_");
@@ -1144,8 +1239,6 @@ _cb_zone_move_resize(void    *data __UNUSED__,
 static void
 _events_init(void)
 {
-   int i = 0;
-
    handlers = eina_list_append
      (handlers, ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_DOWN,
                                         _cb_mouse_down, NULL));
@@ -1167,8 +1260,6 @@ _events_init(void)
    handlers = eina_list_append
      (handlers, ecore_event_handler_add(E_EVENT_ZONE_MOVE_RESIZE,
                                         _cb_zone_move_resize, NULL));
-
-   for (i = 0; i < 3; i++) multi_device[i] = -1;
 }
 
 static void
@@ -1185,10 +1276,22 @@ _cb_property_change(void *data __UNUSED__,
    E_Border *bd;
    Ecore_X_Event_Window_Property *event = ev;
 
+   if (!g_enable) return ECORE_CALLBACK_PASS_ON;
+
    if (event->atom == ECORE_X_ATOM_NET_ACTIVE_WINDOW)
      {
         bd = e_border_focused_get();
-        if (bd) target_win = bd->client.win;
+        if (bd)
+          {
+             target_win = bd->client.win;
+             _screen_reader_support_check();
+          }
+     }
+
+   if (event->atom == ECORE_X_ATOM_E_ILLUME_ACCESS_CONTROL &&
+       event->win == target_win)
+     {
+        _screen_reader_support_check();
      }
 
    return ECORE_CALLBACK_PASS_ON;

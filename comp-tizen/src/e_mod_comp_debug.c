@@ -83,9 +83,11 @@ _e_mod_comp_debug_canvas_info_dump(E_Comp        *c,
                                    E_Comp_Canvas *canvas,
                                    FILE          *fs)
 {
-   Eina_List *l;
+   Eina_List *l, *ll;
    E_Comp_Object *co, *_co = NULL;
    E_Comp_Win *cw, *_cw = NULL;
+   E_Comp_Layer *ly = NULL;
+   Eina_List *lm = NULL;
    int x, y, w, h, i = 1;
    const char *file = NULL, *group = NULL;
    double val = 0.0;
@@ -105,10 +107,18 @@ _e_mod_comp_debug_canvas_info_dump(E_Comp        *c,
    fprintf(fs, "--------------------------------------------------------------------------------------------------------------------------------------\n");
    fprintf(fs, " NO     WinID      shobj        obj    found_o   ex   ey   ew   eh | W S O | V SYNC  DMG DONE |\n");
    fprintf(fs, "--------------------------------------------------------------------------------------------------------------------------------------\n");
-   Evas_Object *o = evas_object_top_get(canvas->evas);
    Eina_Bool found = 0;
-   while (o)
+
+   ly = e_mod_comp_canvas_layer_get(canvas, "comp");
+   E_CHECK(ly);
+
+   lm = evas_object_smart_members_get(ly->layout);
+   Evas_Object *o = NULL;
+
+   EINA_LIST_REVERSE_FOREACH(lm, ll, o)
      {
+        if (!evas_object_visible_get(o)) continue;
+
         EINA_INLIST_REVERSE_FOREACH(c->wins, cw)
           {
              if (!cw) break;
@@ -126,7 +136,7 @@ _e_mod_comp_debug_canvas_info_dump(E_Comp        *c,
                }
           }
 
-        if (found && _co && _cw && _cw->visible)
+        if (found && _co && _cw)
           {
              edje_object_file_get(_co->shadow, &file, &group);
              evas_object_geometry_get(o, &x, &y, &w, &h);
@@ -142,7 +152,6 @@ _e_mod_comp_debug_canvas_info_dump(E_Comp        *c,
                      edje_object_part_state_get(_co->shadow, "e.swallow.content", &val), val);
           }
 
-        o = evas_object_below_get(o);
         found = 0;
         _co = NULL;
         _cw = NULL;
