@@ -109,7 +109,7 @@ e_mod_comp_effect_zone_rotation_begin(E_Comp_Effect_Zone_Rotation *zr)
     */
    E_Border *bd = e_border_focused_get();
    E_Border *_bd = NULL;
-   E_Comp_Win *cw = NULL, *cw2 = NULL;
+   E_Comp_Win *cw = NULL, *cw2 = NULL, *cw3 = NULL;
    if (bd)
      {
         cw = e_mod_comp_win_find(bd->win);
@@ -119,10 +119,28 @@ e_mod_comp_effect_zone_rotation_begin(E_Comp_Effect_Zone_Rotation *zr)
              if (!REGION_EQUAL_TO_ZONE(cw, bd->zone))
                {
                   cw2 = e_mod_comp_util_win_normal_get(cw);
-                  if ((cw2) && (cw2->bd)) _bd = cw2->bd;
+                  if ((cw2) && (cw2->bd))
+                    {
+                       _bd = cw2->bd;
+                       cw3 = cw2;
+                    }
                }
              else
-               _bd = bd;
+               {
+                  _bd = bd;
+                  cw3 = cw;
+               }
+
+             if (cw3)
+               {
+                  if (TYPE_LOCKSCREEN_CHECK(cw3) ||
+                      TYPE_HOME_CHECK(cw3))
+                    {
+                       ELB(ELBT_COMP, "SKIP ROT_EFFECT",
+                           e_mod_comp_util_client_xid_get(cw3));
+                       return EINA_FALSE;
+                    }
+               }
 
              if (_bd)
                {
@@ -137,12 +155,6 @@ e_mod_comp_effect_zone_rotation_begin(E_Comp_Effect_Zone_Rotation *zr)
                        else if (!strcmp(_bd->client.icccm.name, "video_play"))
                          {
                             ELB(ELBT_COMP, "SKIP VIDEO PLAYER", _bd->client.win);
-                            return EINA_FALSE;
-                         }
-                       if ((!strcmp(_bd->client.icccm.name, "LOCK_SCREEN")) &&
-                           (!strcmp(_bd->client.icccm.class, "LOCK_SCREEN")))
-                         {
-                            ELB(ELBT_COMP, "SKIP LOCK_SCREEN", _bd->client.win);
                             return EINA_FALSE;
                          }
                     }

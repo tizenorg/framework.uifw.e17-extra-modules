@@ -36,6 +36,7 @@ _e_mod_move_mini_apptray_widget_cb_motion_start_internal_mini_apptray_check(E_Mo
 {
    E_Move        *m;
    E_Move_Border *find_mb = NULL;
+   E_Move_Border *qp_mb = NULL;
    Eina_Bool      found = EINA_FALSE;
    m = e_mod_move_util_get();
 
@@ -46,6 +47,9 @@ _e_mod_move_mini_apptray_widget_cb_motion_start_internal_mini_apptray_check(E_Mo
    E_CHECK_RETURN(e_mod_move_util_compositor_object_visible_get(mini_apptray_mb),
                   EINA_FALSE);
    if (e_mod_move_mini_apptray_objs_animation_state_get(mini_apptray_mb)) return EINA_FALSE;
+
+   qp_mb = e_mod_move_quickpanel_find();
+   if (e_mod_move_quickpanel_objs_animation_state_get(qp_mb)) return EINA_FALSE;
 
    // Mini app-tray is under rotation state.
    // I think there is another exception case.

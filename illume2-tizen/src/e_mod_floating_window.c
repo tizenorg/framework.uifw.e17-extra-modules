@@ -497,6 +497,7 @@ _e_mod_floating_smart_cleanup(Ecore_X_Event_Client_Message *event __UNUSED__)
      {
         border = ft_bd->bd;
         if (!border) continue;
+        if (e_object_is_del(E_OBJECT(border))) continue;
         /* Build a list of windows not iconified. */
         if ((!border->iconic) && (!border->lock_user_location))
           {
@@ -527,7 +528,7 @@ _e_mod_floating_smart_cleanup(Ecore_X_Event_Client_Message *event __UNUSED__)
    EINA_LIST_FREE(borders, border)
      {
         int new_x, new_y;
-
+        if (e_object_is_del(E_OBJECT(border))) continue;
         e_place_zone_region_smart(border->zone, borders, border->x, border->y,
                                   border->w, border->h, &new_x, &new_y);
         e_border_move(border, new_x, new_y);

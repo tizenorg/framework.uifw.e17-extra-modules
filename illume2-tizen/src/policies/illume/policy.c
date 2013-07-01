@@ -170,7 +170,7 @@ static void _policy_border_uniconify_below_borders(E_Border *bd);
 static void _policy_border_uniconify_top_border(E_Border *bd);
 
 /* for supporting rotation */
-static void       _policy_border_dependent_rotation(E_Border *bd);
+static void       _policy_border_dependent_rotation(E_Border *bd, int rotation);
 static Eina_Bool _policy_dependent_rotation_check(E_Border *bd, int rotation);
 static int _prev_angle_get(Ecore_X_Window win);
 
@@ -945,7 +945,8 @@ _policy_border_del(E_Border *bd)
    if (e_illume_border_is_quickpanel(bd) ||
        e_illume_border_is_miniapp_tray(bd) ||
        (bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING) ||
-       e_illume_border_is_syspopup(bd))
+       e_illume_border_is_syspopup(bd) ||
+       e_illume_border_is_app_selector(bd))
      dep_rot.list = eina_list_remove(dep_rot.list, bd);
 }
 
@@ -1047,7 +1048,8 @@ _policy_border_post_fetch(E_Border *bd)
    if (e_illume_border_is_quickpanel(bd) ||
        e_illume_border_is_miniapp_tray(bd) ||
        (bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING) ||
-       e_illume_border_is_syspopup(bd))
+       e_illume_border_is_syspopup(bd) ||
+       e_illume_border_is_app_selector(bd))
      {
         bd->client.e.state.rot.type = E_BORDER_ROTATION_TYPE_DEPENDENT;
         if (!eina_list_data_find(dep_rot.list, bd))
@@ -5388,7 +5390,7 @@ _policy_change_root_angle_by_border_angle (E_Border* bd)
              if (ang == -1) ang = 0;
 
              if (dep_rot.ang != ang)
-               _policy_border_dependent_rotation(bd);
+               _policy_border_dependent_rotation(bd, ang);
           }
      }
 
@@ -6528,21 +6530,23 @@ fin:
 void
 _policy_border_hook_rotation_list_add(E_Border *bd)
 {
-   _policy_border_dependent_rotation(bd);
+   int rotation = 0;
+   if (!bd) return;
+
+   rotation = bd->client.e.state.rot.curr;
+   _policy_border_dependent_rotation(bd, rotation);
 }
 
 static void
-_policy_border_dependent_rotation(E_Border *bd)
+_policy_border_dependent_rotation(E_Border *bd, int rotation)
 {
    Eina_List *l;
    E_Border *dep_bd = NULL;
-   int rotation = 0;
 
    if (!bd) return;
    if (!dep_rot.list) return;
    if (dep_rot.refer.active_win != bd->client.win) return;
 
-   rotation = bd->client.e.state.rot.curr;
    EINA_LIST_FOREACH(dep_rot.list, l, dep_bd)
      {
         if (!dep_bd) continue;
@@ -6550,10 +6554,10 @@ _policy_border_dependent_rotation(E_Border *bd)
           {
              ELBF(ELBT_ROT, 0, dep_bd->client.win, "ROT_SET ANG [%d -> %d]",
                   dep_bd->client.e.state.rot.curr, rotation);
-             dep_rot.ang = rotation;
              e_border_rotation_set(dep_bd, rotation);
           }
      }
+   dep_rot.ang = rotation;
 }
 
 static Eina_Bool
@@ -6596,6 +6600,7 @@ _policy_property_active_indicator_win_change(Ecore_X_Event_Window_Property *even
 {
    Ecore_X_Window active_win = 0;
    E_Border *bd = NULL;
+   int rotation = 0;
 
    if (!event) return;
 
@@ -6649,9 +6654,9 @@ _policy_property_active_indicator_win_change(Ecore_X_Event_Window_Property *even
                   bd->client.icccm.name ? bd->client.icccm.name : "",
                   active_win);
              dep_rot.refer.active_win = active_win;
-             dep_rot.ang = bd->client.e.state.rot.curr;
+             rotation = bd->client.e.state.rot.curr;
 
-             _policy_border_dependent_rotation(bd);
+             _policy_border_dependent_rotation(bd, rotation);
           }
      }
 }

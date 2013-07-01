@@ -19,6 +19,7 @@ typedef enum _E_Comp_Win_Class_Type
    E_COMP_WIN_CLASS_TYPE_MINI_APPTRAY,
    E_COMP_WIN_CLASS_TYPE_VOLUME,
    E_COMP_WIN_CLASS_TYPE_BACKGROUND,
+   E_COMP_WIN_CLASS_TYPE_SETUP_WIZARD,
    E_COMP_WIN_CLASS_TYPE_ISF,
 } E_Comp_Win_Class_Type;
 
@@ -38,6 +39,7 @@ typedef enum _E_Comp_Win_Name_Type
    E_COMP_WIN_NAME_TYPE_MINI_APPTRAY,
    E_COMP_WIN_NAME_TYPE_VOLUME,
    E_COMP_WIN_NAME_TYPE_BACKGROUND,
+   E_COMP_WIN_NAME_TYPE_SETUP_WIZARD,
    E_COMP_WIN_NAME_TYPE_ISF_KEYBOARD,
    E_COMP_WIN_NAME_TYPE_ISF_SUB,
 } E_Comp_Win_Name_Type;
@@ -63,6 +65,7 @@ static const char *win_class[] =
    "MINIAPP_TRAY",
    "volume",
    "BACKGROUND",
+   "SETUP_WIZARD",
    "ISF",
 };
 
@@ -82,6 +85,7 @@ static const char *win_name[] =
    "MINIAPP_TRAY",
    "volume",
    "BACKGROUND",
+   "SETUP_WIZARD",
    // E_COMP_WIN_NAME_TYPE_ISF_KEYBOARD
    "Virtual Keyboard",
    // E_COMP_WIN_NAME_TYPE_ISF_SUB
@@ -108,7 +112,8 @@ static E_Comp_Win_Class_Type win_class_vals[] =
    E_COMP_WIN_CLASS_TYPE_MINI_APPTRAY,
    E_COMP_WIN_CLASS_TYPE_VOLUME,
    E_COMP_WIN_CLASS_TYPE_BACKGROUND,
-   E_COMP_WIN_CLASS_TYPE_ISF
+   E_COMP_WIN_CLASS_TYPE_SETUP_WIZARD,
+   E_COMP_WIN_CLASS_TYPE_ISF,
 };
 
 static E_Comp_Win_Class_Type win_name_vals[] =
@@ -127,8 +132,9 @@ static E_Comp_Win_Class_Type win_name_vals[] =
    E_COMP_WIN_NAME_TYPE_MINI_APPTRAY,
    E_COMP_WIN_NAME_TYPE_VOLUME,
    E_COMP_WIN_NAME_TYPE_BACKGROUND,
+   E_COMP_WIN_NAME_TYPE_SETUP_WIZARD,
    E_COMP_WIN_NAME_TYPE_ISF_KEYBOARD,
-   E_COMP_WIN_NAME_TYPE_ISF_SUB
+   E_COMP_WIN_NAME_TYPE_ISF_SUB,
 };
 
 static Eina_Hash *class_hash  = NULL;
@@ -286,6 +292,10 @@ e_mod_comp_win_type_setup(E_Comp_Win *cw)
       case E_COMP_WIN_CLASS_TYPE_BACKGROUND:
          if (ntype == E_COMP_WIN_NAME_TYPE_BACKGROUND)
            res = E_COMP_WIN_TYPE_BACKGROUND;
+         break;
+      case E_COMP_WIN_CLASS_TYPE_SETUP_WIZARD:
+         if (ntype == E_COMP_WIN_NAME_TYPE_SETUP_WIZARD)
+         res = E_COMP_WIN_TYPE_SETUP_WIZARD;
          break;
       default:
          break;

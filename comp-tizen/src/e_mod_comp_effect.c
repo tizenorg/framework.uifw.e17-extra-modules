@@ -937,17 +937,31 @@ _effect_show(E_Comp_Win *cw)
                   _effect_above_wins_set(cw, EINA_TRUE);
                }
           }
-        /* don't need to check visibility for home window by home key */
+        /* in most cases, border show events of home window are generated
+         * by pressing the h/w home button. at that moment, home window
+         * is invisible thus the wm doesn't need to check visibility for
+         * home window. just make app closing effect except lock and
+         * setup wizard window.
+         */
         else if (TYPE_HOME_CHECK(cw))
           {
-             /* app window hide effect by pressing the home key */
+             /* app window hide effect by pressing the h/w home button */
              cw2 = e_mod_comp_util_win_normal_get(NULL);
              if (cw2)
                {
+                  /* do nothing, if cw2 is such exceptional windows as lock
+                   * and setup wizard window. this case usually happens when
+                   * system is booting. (first show of the home window)
+                   */
+                  res = e_mod_comp_policy_home_app_win_check(cw2);
+
                   ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
-                       "%15.15s|>BG HOME 0x%08x FG 0x%08x", "EFFECT",
+                       "%15.15s|>BG HOME 0x%08x FG 0x%08x SKIP:%d", "EFFECT",
                        e_mod_comp_util_client_xid_get(cw),
-                       e_mod_comp_util_client_xid_get(cw2));
+                       e_mod_comp_util_client_xid_get(cw2),
+                       !(res));
+
+                  E_CHECK(res);
 
                   /* background is home */
                   _MAKE_EMISSION("e,state,visible,on,noeffect");

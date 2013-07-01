@@ -120,6 +120,8 @@ _e_mod_move_indicator_widget_cb_motion_start_internal_apptray_check(E_Move_Borde
 static Eina_Bool
 _e_mod_move_indicator_widget_cb_motion_start_internal_quickpanel_check(E_Move_Border *qp_mb)
 {
+   E_Move_Border *mini_apptray_mb = NULL;
+
    E_CHECK_RETURN(qp_mb, EINA_FALSE);
    E_CHECK_RETURN(TYPE_QUICKPANEL_CHECK(qp_mb), EINA_FALSE);
    E_CHECK_RETURN(qp_mb->visible, EINA_FALSE);
@@ -135,6 +137,10 @@ _e_mod_move_indicator_widget_cb_motion_start_internal_quickpanel_check(E_Move_Bo
      if (qp_mb->bd->client.e.state.rot.wait_for_done) return EINA_FALSE;
 
    if (e_mod_move_quickpanel_objs_animation_state_get(qp_mb)) return EINA_FALSE;
+
+   mini_apptray_mb = e_mod_move_mini_apptray_find();
+   if (e_mod_move_mini_apptray_objs_animation_state_get(mini_apptray_mb))
+     return EINA_FALSE;
 
    if (!(qp_mb->m->qp_scroll_with_clipping))
      e_mod_move_quickpanel_dim_show(qp_mb);
@@ -1099,7 +1105,7 @@ _e_mod_move_indicator_widget_target_window_find_by_pointer(Ecore_X_Window *win,
           continue;
 
         // if notification , alpha, and indicator_state_none then search again below.
-        if (TYPE_NOTIFICATION_CHECK(find_mb)
+        if ((TYPE_NOTIFICATION_CHECK(find_mb) || TYPE_APP_SELECTOR_CHECK(find_mb))
             && (find_mb->argb)
             && (find_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
           {
@@ -1224,7 +1230,7 @@ _e_mod_move_indicator_widget_active_indicator_win_find_and_set(void)
      {
         target_mb = e_mod_move_border_client_find(target_win);
         E_CHECK(target_mb);
-        if (TYPE_NOTIFICATION_CHECK(target_mb)
+        if ((TYPE_NOTIFICATION_CHECK(target_mb) || TYPE_APP_SELECTOR_CHECK(target_mb))
             && (target_mb->argb)
             && (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
           {
@@ -1317,12 +1323,11 @@ e_mod_move_indicator_widget_apply(void)
 
    m = e_mod_move_util_get();
    E_CHECK(m);
-   if (m->screen_reader_state)
+   if ((m->screen_reader_state) || (m->setup_wizard_state))
      {
         _e_mod_move_indicator_widget_active_indicator_win_find_and_set();
         return;
      }
-   if (m->setup_wizard_state) return;
 
    if (e_mod_move_indicator_widget_target_window_find(&target_win))
      {
@@ -1340,7 +1345,7 @@ e_mod_move_indicator_widget_apply(void)
                   e_mod_move_indicator_widget_del(indi_widget);
                   e_mod_move_indicator_widget_set(e_mod_move_indicator_widget_add(target_win));
                   if ((target_mb) &&
-                      (TYPE_NOTIFICATION_CHECK(target_mb)) &&
+                      (TYPE_NOTIFICATION_CHECK(target_mb) || TYPE_APP_SELECTOR_CHECK(target_mb)) &&
                       (target_mb->argb) &&
                       (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
                     {
@@ -1356,9 +1361,10 @@ e_mod_move_indicator_widget_apply(void)
              //then add new indicator widget.
              e_mod_move_indicator_widget_set(e_mod_move_indicator_widget_add(target_win));
 
-             if (TYPE_NOTIFICATION_CHECK(target_mb)
-                 && (target_mb->argb)
-                 && (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
+             if ((target_mb) &&
+                 (TYPE_NOTIFICATION_CHECK(target_mb) || TYPE_APP_SELECTOR_CHECK(target_mb)) &&
+                 (target_mb->argb) &&
+                 (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
                {
                   ;
                }

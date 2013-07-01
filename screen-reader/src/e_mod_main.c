@@ -274,6 +274,10 @@ _app_tray_open(Cover *cov)
      {
         if (!bd) continue;
         if (!bd->visible) continue;
+
+        /* UTILITY type such as keyboard window could come first, before NORMAL
+           type such as app tray, quickpanel window comes */
+        if (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_UTILITY) continue;
         if (bd->client.netwm.type != ECORE_X_WINDOW_TYPE_NORMAL) break;
 
         name = bd->client.icccm.name;
@@ -310,6 +314,10 @@ _quickpanel_open(void)
      {
         if (!bd) continue;
         if (!bd->visible) continue;
+
+        /* UTILITY type such as keyboard window could come first, before NORMAL
+           type such as app tray, quickpanel window comes */
+        if (bd->client.netwm.type == ECORE_X_WINDOW_TYPE_UTILITY) continue;
         if (bd->client.netwm.type != ECORE_X_WINDOW_TYPE_NORMAL) break;
 
         name = bd->client.icccm.name;
@@ -324,6 +332,11 @@ _quickpanel_open(void)
         ecore_x_e_illume_quickpanel_state_send
           (ecore_x_e_illume_zone_get(bd->client.win),
            ECORE_X_ILLUME_QUICKPANEL_STATE_ON);
+
+        /* set unfocused window to quickpanel (unfocused window), otherwise
+          target window would set to focused window in _target_window_find(); */
+        target_win = bd->client.win;
+        unfocused_win = bd->client.win;
         break;
      }
 }
@@ -1283,6 +1296,10 @@ _cb_property_change(void *data __UNUSED__,
         bd = e_border_focused_get();
         if (bd)
           {
+             /* if there was an unfocused window, the target window is changed
+                in the _target_window_find();. so reset unfocused window here */
+             if (unfocused_win) unfocused_win = 0;
+
              target_win = bd->client.win;
              _screen_reader_support_check();
           }

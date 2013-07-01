@@ -674,9 +674,6 @@ _e_mod_move_quickpanel_objs_animation_frame(void  *data,
               ecore_x_e_illume_quickpanel_state_set(zone->black_win, ECORE_X_ILLUME_QUICKPANEL_STATE_OFF);
            }
 
-         // restore comp layer's position
-         _e_mod_move_quickpanel_comp_layer_obj_move_intern(zone->x, zone->y);
-
          memset(anim_data, 0, sizeof(E_Move_Quickpanel_Animation_Data));
          E_FREE(anim_data);
          mb->anim_data = NULL;
@@ -1762,17 +1759,30 @@ e_mod_move_quickpanel_objs_add(E_Move_Border *mb)
 EINTERN Eina_Bool
 e_mod_move_quickpanel_objs_del(E_Move_Border *mb)
 {
-   E_Move *m = NULL;
-   Evas_Object *move_layer = NULL;
+   E_Move        *m = NULL;
+   E_Manager     *man = NULL;
+   E_Zone        *zone = NULL;
+   Evas_Object   *move_layer = NULL;
+   E_Move_Border *mini_apptray_mb = NULL;
    E_CHECK_RETURN(mb, EINA_FALSE);
    E_CHECK_RETURN(TYPE_QUICKPANEL_CHECK(mb), EINA_FALSE);
    m = mb->m;
+   E_CHECK_RETURN(m, EINA_FALSE);
+   man = m->man;
+   E_CHECK_RETURN(man,EINA_FALSE);
+   zone = e_util_zone_current_get(man);
+   // restore comp layer's position
+   if (zone) _e_mod_move_quickpanel_comp_layer_obj_move_intern(zone->x, zone->y);
 
    move_layer = e_mod_move_util_comp_layer_get(m, "move");
    E_CHECK_RETURN(move_layer, EINA_FALSE);
 
     if (evas_object_visible_get(move_layer))
-      evas_object_hide(move_layer);
+      {
+         mini_apptray_mb = e_mod_move_mini_apptray_find();
+         if (!e_mod_move_mini_apptray_objs_animation_state_get(mini_apptray_mb))
+           evas_object_hide(move_layer);
+      }
 
    if (m->qp_scroll_with_clipping)
      {

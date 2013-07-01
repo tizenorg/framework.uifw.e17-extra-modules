@@ -629,6 +629,7 @@ e_mod_move_mini_apptray_objs_add(E_Move_Border *mb)
         e_mod_move_bd_move_objs_move(mb, mb->x, mb->y);
         e_mod_move_bd_move_objs_resize(mb, mb->w, mb->h);
         e_mod_move_bd_move_objs_show(mb);
+        e_mod_move_util_screen_input_block(mb->m);
 
         if (!evas_object_visible_get(ly))
           evas_object_show(ly);
@@ -661,17 +662,23 @@ e_mod_move_mini_apptray_objs_add_with_pos(E_Move_Border *mb,
 EINTERN Eina_Bool
 e_mod_move_mini_apptray_objs_del(E_Move_Border *mb)
 {
-   Evas_Object *ly = NULL;
+   E_Move_Border *qp_mb = NULL;
+   Evas_Object   *ly = NULL;
    E_CHECK_RETURN(mb, EINA_FALSE);
    E_CHECK_RETURN(TYPE_MINI_APPTRAY_CHECK(mb), EINA_FALSE);
    ly = e_mod_move_util_comp_layer_get(mb->m, "move");
    E_CHECK_RETURN(ly, EINA_FALSE);
    if (evas_object_visible_get(ly))
-     evas_object_hide(ly);
+     {
+        qp_mb = e_mod_move_quickpanel_find();
+        if (!e_mod_move_quickpanel_objs_animation_state_get(qp_mb))
+          evas_object_hide(ly);
+     }
    e_mod_move_bd_move_objs_del(mb, mb->objs);
    e_mod_move_util_rotation_unlock(mb->m);
    // Composite mode set False
    e_mod_move_util_compositor_composite_mode_set(mb->m, EINA_FALSE);
+   e_mod_move_util_screen_input_unblock(mb->m);
    mb->objs = NULL;
    return EINA_TRUE;
 }

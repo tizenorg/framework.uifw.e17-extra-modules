@@ -38,6 +38,12 @@
 #define TYPE_MINI_APPTRAY_CHECK(a) \
    ((a)->win_type == E_COMP_WIN_TYPE_MINI_APPTRAY)
 
+#define TYPE_LOCKSCREEN_CHECK(a) \
+   ((a)->win_type == E_COMP_WIN_TYPE_LOCKSCREEN)
+
+#define TYPE_SETUP_WIZARD_CHECK(a) \
+   ((a)->win_type == E_COMP_WIN_TYPE_SETUP_WIZARD)
+
 typedef enum _E_Comp_Win_Type
 {
    E_COMP_WIN_TYPE_UNKNOWN = 0,
@@ -69,6 +75,7 @@ typedef enum _E_Comp_Win_Type
    E_COMP_WIN_TYPE_MINI_APPTRAY,
    E_COMP_WIN_TYPE_VOLUME,
    E_COMP_WIN_TYPE_BACKGROUND,
+   E_COMP_WIN_TYPE_SETUP_WIZARD,
    E_COMP_WIN_TYPE_ISF_KEYBOARD,
    E_COMP_WIN_TYPE_ISF_SUB,
 } E_Comp_Win_Type;

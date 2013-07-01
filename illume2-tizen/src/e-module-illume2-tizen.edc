@@ -25,8 +25,8 @@ collections
 
    group
      {
-        images.image: "RB0_resize.png" COMP;
-        images.image: "RB0_resize_notAvail.png" COMP;
+        images.image: "mw_frame_press.png" COMP;
+        images.image: "mw_frame_press_overscroll.png" COMP;
         name: "new_shadow";
         max: 720 720;
         parts
@@ -49,14 +49,14 @@ collections
                   description
                     {
                        state: "default" 0;
-                       image.normal: "RB0_resize.png";
+                       image.normal: "mw_frame_press.png";
                        image.border: 5 5 5 5;
                        image.middle: NONE;
                     }
                   description
                     {
                        state: "not_avail" 0;
-                       image.normal: "RB0_resize_notAvail.png";
+                       image.normal: "mw_frame_press_overscroll.png";
                        image.border: 5 5 5 5;
                     }
                }
