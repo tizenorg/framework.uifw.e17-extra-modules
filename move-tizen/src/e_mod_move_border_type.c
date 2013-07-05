@@ -338,18 +338,23 @@ e_mod_move_border_type_setup(E_Move_Border *mb)
       case E_MOVE_BORDER_CLASS_TYPE_APPTRAY:
          if (ntype == E_MOVE_BORDER_NAME_TYPE_APPTRAY)
            res = E_MOVE_BORDER_TYPE_APPTRAY;
+         break;
       case E_MOVE_BORDER_CLASS_TYPE_MINI_APPTRAY:
          if (ntype == E_MOVE_BORDER_NAME_TYPE_MINI_APPTRAY)
            res = E_MOVE_BORDER_TYPE_MINI_APPTRAY;
+         break;
       case E_MOVE_BORDER_CLASS_TYPE_SETUP_WIZARD:
          if (ntype == E_MOVE_BORDER_NAME_TYPE_SETUP_WIZARD)
            res = E_MOVE_BORDER_TYPE_SETUP_WIZARD;
+         break;
       case E_MOVE_BORDER_CLASS_TYPE_APP_SELECTOR:
          if (ntype == E_MOVE_BORDER_NAME_TYPE_APP_SELECTOR)
            res = E_MOVE_BORDER_TYPE_APP_SELECTOR;
+         break;
       case E_MOVE_BORDER_CLASS_TYPE_PWLOCK:
          if (ntype == E_MOVE_BORDER_NAME_TYPE_PWLOCK)
            res = E_MOVE_BORDER_TYPE_PWLOCK;
+         break;
       case E_MOVE_BORDER_CLASS_TYPE_BACKGROUND:
          if (ntype == E_MOVE_BORDER_NAME_TYPE_BACKGROUND)
            res = E_MOVE_BORDER_TYPE_BACKGROUND;
