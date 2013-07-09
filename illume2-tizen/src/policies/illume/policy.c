@@ -248,8 +248,8 @@ struct _E_Policy_Rotation_Dependent
 
    struct
      {
+        E_Border *active_bd;
         Ecore_X_Window cmd_win;
-        Ecore_X_Window active_win;
      } refer;
 
    int ang;
@@ -260,7 +260,7 @@ static E_Policy_Rotation_Dependent dep_rot =
    NULL,
    NULL,
    {NULL, NULL},
-   -1
+   0
 };
 
 typedef struct _E_Resizable_Area_Info
@@ -1054,15 +1054,19 @@ _policy_border_post_fetch(E_Border *bd)
         bd->client.e.state.rot.type = E_BORDER_ROTATION_TYPE_DEPENDENT;
         if (!eina_list_data_find(dep_rot.list, bd))
           {
-             int prev_ang = -1;
+             int ang = _prev_angle_get(bd->client.win);
+             int next_ang = 0;
 
              dep_rot.list = eina_list_append(dep_rot.list, bd);
 
-             if (_prev_angle_get(bd->client.win) != -1)
-               bd->client.e.state.rot.curr = prev_ang;
+             if (ang == -1)
+               ang = bd->client.e.state.rot.curr;
 
-             if (dep_rot.ang != bd->client.e.state.rot.curr)
-               e_border_rotation_set(bd, dep_rot.ang);
+             if (dep_rot.refer.active_bd) next_ang = dep_rot.refer.active_bd->client.e.state.rot.curr;
+             else next_ang = dep_rot.ang;
+
+             if (next_ang != ang)
+               e_border_rotation_set(bd, next_ang);
           }
      }
 
@@ -1358,7 +1362,15 @@ _policy_border_show(E_Border *bd)
      }
 
    if (eina_list_data_find(dep_rot.list, bd) == bd)
-     e_border_rotation_set(bd, dep_rot.ang);
+     {
+        int next_ang = 0;
+
+        if (dep_rot.refer.active_bd) next_ang = dep_rot.refer.active_bd->client.e.state.rot.curr;
+        else next_ang = dep_rot.ang;
+
+        if (bd->client.e.state.rot.curr != next_ang)
+          e_border_rotation_set(bd, next_ang);
+     }
 }
 
 void
@@ -2531,17 +2543,20 @@ _policy_border_illume_window_state_change(E_Border *bd, unsigned int state)
 
         if (!eina_list_data_find(dep_rot.list, bd))
           {
-             int prev_ang = _prev_angle_get(bd->client.win);
+             int ang = _prev_angle_get(bd->client.win);
+             int next_ang = 0;
 
              bd->client.e.state.rot.type = E_BORDER_ROTATION_TYPE_DEPENDENT;
-
              dep_rot.list = eina_list_append(dep_rot.list, bd);
 
-             if (prev_ang != -1)
-               bd->client.e.state.rot.curr = prev_ang;
+             if (ang == -1)
+               ang = bd->client.e.state.rot.curr;
 
-             if (dep_rot.ang != bd->client.e.state.rot.curr)
-               e_border_rotation_set(bd, dep_rot.ang);
+             if (dep_rot.refer.active_bd) next_ang = dep_rot.refer.active_bd->client.e.state.rot.curr;
+             else next_ang = dep_rot.ang;
+
+             if (next_ang != ang)
+               e_border_rotation_set(bd, next_ang);
           }
          break;
 
@@ -3681,7 +3696,12 @@ int _policy_init (void)
         dep_rot.root = man->root;
         dep_rot.refer.cmd_win = _policy_indicator_cmd_win_get(dep_rot.root);
         if (dep_rot.refer.cmd_win)
-          dep_rot.refer.active_win = _policy_active_indicator_win_get(dep_rot.refer.cmd_win);
+          {
+             Ecore_X_Window win;
+
+             win = _policy_active_indicator_win_get(dep_rot.refer.cmd_win);
+             dep_rot.refer.active_bd = e_border_find_by_client_window(win);
+          }
      }
 
    // initialize atom
@@ -5383,7 +5403,7 @@ _policy_change_root_angle_by_border_angle (E_Border* bd)
 
    if (e_illume_border_is_camera(bd))
      {
-        if (dep_rot.refer.active_win == bd->client.win)
+        if (dep_rot.refer.active_bd == bd)
           {
              // make rotation request for the dependent windows such as quickpanel
              int ang = _policy_window_rotation_angle_get(bd->client.win);
@@ -6545,7 +6565,7 @@ _policy_border_dependent_rotation(E_Border *bd, int rotation)
 
    if (!bd) return;
    if (!dep_rot.list) return;
-   if (dep_rot.refer.active_win != bd->client.win) return;
+   if (dep_rot.refer.active_bd != bd) return;
 
    EINA_LIST_FOREACH(dep_rot.list, l, dep_bd)
      {
@@ -6611,7 +6631,8 @@ _policy_property_active_indicator_win_change(Ecore_X_Event_Window_Property *even
         return;
      }
 
-   if (dep_rot.refer.active_win != active_win)
+   if ((!dep_rot.refer.active_bd) ||
+       (dep_rot.refer.active_bd->client.win != active_win))
      {
         bd = e_border_find_by_client_window(active_win);
         if (!bd)
@@ -6646,14 +6667,15 @@ _policy_property_active_indicator_win_change(Ecore_X_Event_Window_Property *even
 
         if (rot)
           {
-             E_Border *prev_bd = e_border_find_by_client_window(dep_rot.refer.active_win);
+             E_Border *prev_bd = dep_rot.refer.active_bd;
              ELBF(ELBT_ROT, 0, active_win,
                   "INDICATOR ACTIVE WIN: [%s(0x%08x) -> %s(0x%08x)]",
                   prev_bd ? (prev_bd->client.icccm.name ? prev_bd->client.icccm.name : "") : "",
-                  dep_rot.refer.active_win,
+                  prev_bd ? prev_bd->client.win : NULL,
                   bd->client.icccm.name ? bd->client.icccm.name : "",
                   active_win);
-             dep_rot.refer.active_win = active_win;
+
+             dep_rot.refer.active_bd = bd;
              rotation = bd->client.e.state.rot.curr;
 
              _policy_border_dependent_rotation(bd, rotation);
