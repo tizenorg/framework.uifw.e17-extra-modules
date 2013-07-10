@@ -1076,7 +1076,12 @@ static void
 _e_mod_move_bd_obj_del(E_Move_Border *mb)
 {
    E_CHECK(mb);
-   e_mod_move_bd_move_objs_del(mb, mb->objs);
+   if (TYPE_QUICKPANEL_CHECK(mb))
+     e_mod_move_quickpanel_objs_del(mb);
+   else if (TYPE_MINI_APPTRAY_CHECK(mb))
+     e_mod_move_mini_apptray_objs_del(mb);
+   else
+     e_mod_move_bd_move_objs_del(mb, mb->objs);
 }
 
 static void
