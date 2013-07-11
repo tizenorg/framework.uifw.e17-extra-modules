@@ -1227,9 +1227,16 @@ _e_mod_move_indicator_widget_active_indicator_win_find_and_set(void)
    E_Move                  *m = NULL;
    Ecore_X_Window           target_win;
    E_Move_Border           *target_mb = NULL;
+   E_Move_Border           *find_mb = NULL;
+   E_Zone                  *zone = NULL;
+   Eina_Bool                target_mb_found = EINA_FALSE;
+   Eina_Bool                active_indi_win_found = EINA_FALSE;
 
    m = e_mod_move_util_get();
    E_CHECK(m);
+
+   zone = e_util_zone_current_get(m->man);
+   E_CHECK(zone);
 
    if (e_mod_move_indicator_widget_target_window_find(&target_win))
      {
@@ -1239,7 +1246,38 @@ _e_mod_move_indicator_widget_active_indicator_win_find_and_set(void)
             && (target_mb->argb)
             && (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
           {
-             ;
+             EINA_INLIST_REVERSE_FOREACH(m->borders, find_mb)
+               {
+                  if (!find_mb->bd) continue;
+
+                  // first, find target_mb's below border.
+                  if (find_mb->bd == target_mb->bd) target_mb_found = EINA_TRUE;
+                  if (!target_mb_found) continue;
+                  if (find_mb->bd == target_mb->bd) continue; // find target_mb's next border.
+
+                  if (TYPE_APPTRAY_CHECK(find_mb)) continue;
+                  if (TYPE_MINI_APPTRAY_CHECK(find_mb)) continue;
+                  if (TYPE_QUICKPANEL_CHECK(find_mb)) continue;
+
+                  // find system popup's below border
+                  if ((TYPE_NOTIFICATION_CHECK(find_mb) || TYPE_APP_SELECTOR_CHECK(find_mb))
+                      && (find_mb->argb)
+                      && (find_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
+                    {
+                       continue;
+                    }
+
+                  // OnScreen & FullScreen Window
+                  if (find_mb->visible
+                      && REGION_EQUAL_TO_ZONE(find_mb, zone)  // check fullscreen
+                      && (zone->id == 0))// change zone->id comparing to bd's profile property (mobile)
+                    {
+                       active_indi_win_found = EINA_TRUE;
+                       break;
+                    }
+               }
+             if (active_indi_win_found)
+               e_mod_move_util_prop_active_indicator_win_set(find_mb->bd->client.win, m);
           }
         else
            e_mod_move_util_prop_active_indicator_win_set(target_win, m);
@@ -1342,7 +1380,11 @@ e_mod_move_indicator_widget_apply(void)
           {
              // if current indicator widget's win is equal to finded win
              // then just return.
-             if ((indi_widget->win == target_win)) return;
+             if ((indi_widget->win == target_win))
+               {
+                  _e_mod_move_indicator_widget_active_indicator_win_find_and_set();
+                  return;
+               }
              else
                {
                   // if current indicator widget's win is not equal to finded win
@@ -1354,7 +1396,7 @@ e_mod_move_indicator_widget_apply(void)
                       (target_mb->argb) &&
                       (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
                     {
-                      ;
+                       _e_mod_move_indicator_widget_active_indicator_win_find_and_set();
                     }
                   else
                     e_mod_move_util_prop_active_indicator_win_set(target_win, m);
@@ -1371,7 +1413,7 @@ e_mod_move_indicator_widget_apply(void)
                  (target_mb->argb) &&
                  (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
                {
-                  ;
+                  _e_mod_move_indicator_widget_active_indicator_win_find_and_set();
                }
              else
                e_mod_move_util_prop_active_indicator_win_set(target_win, m);
