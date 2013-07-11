@@ -1,6 +1,6 @@
 Name:       e17-extra-modules
 Summary:    The E17 Extra Modules The E17 extra modules consists of modules made by SAMSUNG
-Version:    0.13.2
+Version:    0.14.1
 Release:    1
 Group:      System/GUI/Other
 License:    BSD
