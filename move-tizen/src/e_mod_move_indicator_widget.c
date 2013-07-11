@@ -387,6 +387,11 @@ _e_mod_move_indicator_widget_cb_motion_start(void *data,
         ev_win = e_mod_move_event_win_get(mwo->event);
      }
    ev_mb = e_mod_move_border_client_find(ev_win);
+
+   if (ev_mb && ev_mb->bd && ev_mb->bd->layer)
+     if (ev_mb->bd->layer == e_mod_move_util_layer_policy_get(E_MOVE_STATE_ABOVE_LAYER))
+       e_focus_event_mouse_down(ev_mb->bd);
+
    E_CHECK_RETURN(_e_mod_move_indicator_widget_target_window_policy_check(ev_mb),
                   EINA_FALSE);
 
