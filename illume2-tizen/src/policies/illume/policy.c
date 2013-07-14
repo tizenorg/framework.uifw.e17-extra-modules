@@ -6667,14 +6667,8 @@ _policy_property_active_indicator_win_change(Ecore_X_Event_Window_Property *even
 
         if (rot)
           {
-             E_Border *prev_bd = dep_rot.refer.active_bd;
              ELBF(ELBT_ROT, 0, active_win,
-                  "INDICATOR ACTIVE WIN: [%s(0x%08x) -> %s(0x%08x)]",
-                  prev_bd ? (prev_bd->client.icccm.name ? prev_bd->client.icccm.name : "") : "",
-                  prev_bd ? prev_bd->client.win : NULL,
-                  bd->client.icccm.name ? bd->client.icccm.name : "",
-                  active_win);
-
+                  "INDICATOR ACTIVE WIN CHANGED:0x%08x", active_win);
              dep_rot.refer.active_bd = bd;
              rotation = bd->client.e.state.rot.curr;
 
