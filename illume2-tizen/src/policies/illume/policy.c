@@ -5029,6 +5029,10 @@ void _policy_window_destroy (Ecore_X_Event_Window_Destroy *event)
    L (LT_XWIN, "[ILLUME2][XWIN] %s(%d).. win:0x%07x...\n", __func__, __LINE__, event->win);
 
    _policy_xwin_info_delete (event->win);
+
+   // for supporting dependent rotation
+   if (dep_rot.refer.cmd_win == event->win)
+     dep_rot.refer.cmd_win = NULL;
 }
 
 
