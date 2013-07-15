@@ -948,6 +948,9 @@ _policy_border_del(E_Border *bd)
        e_illume_border_is_syspopup(bd) ||
        e_illume_border_is_app_selector(bd))
      dep_rot.list = eina_list_remove(dep_rot.list, bd);
+
+   if (dep_rot.refer.active_bd == bd)
+     dep_rot.refer.active_bd = NULL;
 }
 
 void
