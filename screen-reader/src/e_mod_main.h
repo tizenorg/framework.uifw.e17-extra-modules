@@ -1,12 +1,13 @@
 #ifndef E_MOD_MAIN_H
 #define E_MOD_MAIN_H
 
-typedef struct _Config       Config;
+#include "e_mod_config.h"
+typedef struct _Mod    Mod;
 
-struct _Config
+struct _Mod
 {
-   /* saved * loaded config values */
-   Eina_Bool            window;
+   E_Config_DD     *conf_edd;
+   Config          *conf;
 };
 
 EAPI extern E_Module_Api e_modapi;

@@ -17,6 +17,8 @@
 #define MOUSE_MOVE 1
 #define MOUSE_BUTTON_UP 2
 
+Mod *_screen_reader_mod = NULL;
+
 typedef struct
 {
    E_Zone         *zone;
@@ -667,6 +669,7 @@ _mouse_up(Cover *cov, Ecore_Event_Mouse_Button *ev)
    int distance = 40;
    int dx, dy;
    int angle = 0;
+   int tfs_timeout = 450;
 
    if (cov->three_finger_down)
      {
@@ -675,8 +678,10 @@ _mouse_up(Cover *cov, Ecore_Event_Mouse_Button *ev)
         dx = ev->x - cov->dx;
         dy = ev->y - cov->dy;
 
+        if (_screen_reader_mod) tfs_timeout = _screen_reader_mod->conf->three_finger_swipe_timeout;
+
         if (((dx * dx) + (dy * dy)) > (4 * distance * distance)
-            && ((ev->timestamp - cov->dt) < (timeout * 3000)))
+            && ((ev->timestamp - cov->dt) < tfs_timeout))
           {
              /* get root window rotation */
              angle = _win_angle_get(target_win);
@@ -1370,6 +1375,22 @@ _vconf_cb_accessibility_tts_change(keynode_t *node,
    elm_config_all_flush();
    elm_config_save();
 }
+
+static void
+_e_mod_config_new(E_Module *m)
+{
+   Mod *mod = m->data;
+   mod->conf = e_mod_screen_reader_cfdata_config_new();
+}
+
+static void
+_e_mod_config_free(E_Module *m)
+{
+   Mod *mod = m->data;
+
+   e_mod_screen_reader_cfdata_config_free(mod->conf);
+   mod->conf = NULL;
+}
 /***************************************************************************/
 /* module setup */
 EAPI E_Module_Api e_modapi =
@@ -1380,6 +1401,17 @@ EAPI E_Module_Api e_modapi =
 EAPI void *
 e_modapi_init(E_Module *m)
 {
+   Mod *mod;
+
+   mod = calloc(1, sizeof(Mod));
+   m->data = mod;
+   e_mod_screen_reader_cfdata_edd_init(&(mod->conf_edd));
+   mod->conf = e_config_domain_load("module.screen-reader-tizen", mod->conf_edd);
+
+   if (!mod->conf) _e_mod_config_new(m);
+
+   _screen_reader_mod = mod;
+
    vconf_notify_key_changed(VCONFKEY_SETAPPL_ACCESSIBILITY_TTS,
                             _vconf_cb_accessibility_tts_change,
                             NULL);
@@ -1421,13 +1453,23 @@ e_modapi_init(E_Module *m)
 }
 
 EAPI int
-e_modapi_shutdown(E_Module *m __UNUSED__)
+e_modapi_shutdown(E_Module *m)
 {
    INF("[screen-reader module] module shutdown");
    if (property_handler) ecore_event_handler_del(property_handler);
 
    _covers_shutdown();
    _events_shutdown();
+
+   Mod *mod = m->data;
+
+   if (mod == _screen_reader_mod) _screen_reader_mod = NULL;
+   _e_mod_config_free(m);
+   E_CONFIG_DD_FREE(mod->conf_edd);
+
+   memset(mod, 0, sizeof(Mod));
+   free(mod);
+   mod = NULL;
 
    return 1;
 }
