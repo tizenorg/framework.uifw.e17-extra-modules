@@ -1055,6 +1055,8 @@ _policy_border_post_fetch(E_Border *bd)
        e_illume_border_is_app_selector(bd))
      {
         bd->client.e.state.rot.type = E_BORDER_ROTATION_TYPE_DEPENDENT;
+
+        // TODO: what to do if rotation fetch is changed?
         if (!eina_list_data_find(dep_rot.list, bd))
           {
              int ang = _prev_angle_get(bd->client.win);
@@ -1069,7 +1071,13 @@ _policy_border_post_fetch(E_Border *bd)
              else next_ang = dep_rot.ang;
 
              if (next_ang != ang)
-               e_border_rotation_set(bd, next_ang);
+               {
+                  // if this border's new_client flag is set,
+                  // this border's show time should be posted until done of rotation.
+                  // will call "e_border_rotation_set" in main eval of e17
+                  if (_policy_dependent_rotation_check(bd, next_ang))
+                    bd->client.e.state.rot.changes = next_ang;
+               }
           }
      }
 
@@ -2544,7 +2552,10 @@ _policy_border_illume_window_state_change(E_Border *bd, unsigned int state)
               _policy_border_indicator_control(indi_bd);
            }
 
-        if (!eina_list_data_find(dep_rot.list, bd))
+         // will be check below condition as new_client in post_fetch time,
+         // so skip here.
+         if ((!bd->new_client) &&
+            (!eina_list_data_find(dep_rot.list, bd)))
           {
              int ang = _prev_angle_get(bd->client.win);
              int next_ang = 0;
@@ -6594,6 +6605,7 @@ _policy_border_dependent_rotation(E_Border *bd, int rotation)
    EINA_LIST_FOREACH(dep_rot.list, l, dep_bd)
      {
         if (!dep_bd) continue;
+        if (!dep_bd->visible) continue;
         if (_policy_dependent_rotation_check(dep_bd, rotation))
           {
              ELBF(ELBT_ROT, 0, dep_bd->client.win, "ROT_SET ANG [%d -> %d]",
@@ -6609,11 +6621,43 @@ _policy_dependent_rotation_check(E_Border *bd, int rotation)
 {
    Eina_Bool ret = EINA_FALSE;
 
-   if (!bd) return ret;
-   if (!bd->visible) return ret;
-   if (bd->client.e.state.rot.curr == rotation) return ret;
-   ret = EINA_TRUE;
+   if (!bd) goto end;
+   if (rotation < 0) goto end;
+   if ((!bd->client.e.state.rot.support) && (!bd->client.e.state.rot.app_set)) goto end;
+   if (bd->client.e.state.rot.curr == rotation) goto end;
 
+   if (bd->client.e.state.rot.preferred_rot == -1)
+     {
+        unsigned int i;
+
+        if (bd->client.e.state.rot.app_set)
+          {
+             if (bd->client.e.state.rot.available_rots &&
+                 bd->client.e.state.rot.count)
+               {
+                  Eina_Bool found = EINA_FALSE;
+                  for (i = 0; i < bd->client.e.state.rot.count; i++)
+                    {
+                       if (bd->client.e.state.rot.available_rots[i] == rotation)
+                         {
+                            found = EINA_TRUE;
+                         }
+                    }
+                  if (found) ret = EINA_TRUE;
+               }
+          }
+        else
+          {
+             ELB(ELBT_ROT, "DO ROT", 0);
+             ret = EINA_TRUE;
+          }
+     }
+   else if (bd->client.e.state.rot.preferred_rot == rotation) ret = EINA_TRUE;
+
+end:
+   if (!ret)
+     ELBF(ELBT_ROT, 0, bd->client.win,
+          "[DEPENDENT] Couldn't or don't need to rotate it as given angle:%d", rotation);
    return ret;
 }
 
