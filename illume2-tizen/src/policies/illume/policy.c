@@ -4635,8 +4635,8 @@ _policy_check_transient_child_visible(E_Border *bd)
         if (ret) return ret;
 
         child_xwin_info = _policy_xwin_info_find(child->win);
-        if ((child_xwin_info) &&
-            (child_xwin_info->visibility == E_ILLUME_VISIBILITY_UNOBSCURED))
+        if ((child_xwin_info && (child_xwin_info->visibility == E_ILLUME_VISIBILITY_UNOBSCURED)) ||
+             !child->iconic)
           {
              return EINA_TRUE;
           }
@@ -4670,6 +4670,7 @@ _policy_calculate_visibility(void)
    int old_vis = 0;
    int set_root_angle = 0;
    int control_indi = 0;
+   E_Illume_XWin_Info *above_xwin_info = NULL;
 
    if (!_g_visibility_changed) return;
    _g_visibility_changed = EINA_FALSE;
@@ -4876,6 +4877,17 @@ _policy_calculate_visibility(void)
                             L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. Uniconify by illume.. win:0x%07x\n", __func__, __LINE__, xwin_info->bd_info->border->client.win);
                             _policy_border_force_uniconify(bd);
                          }
+                       else if (bd->transients)
+                         {
+                            if (!bd->iconic && !do_not_iconify)
+                              {
+                                 if (above_xwin_info && above_xwin_info->visibility == E_ILLUME_VISIBILITY_FULLY_OBSCURED)
+                                   {
+                                      L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. Iconify by illume.. win:0x%07x (parent:0x%07x)\n", __func__, __LINE__, xwin_info->bd_info->border->client.win, xwin_info->bd_info->border->parent ? xwin_info->bd_info->border->parent->client.win:(unsigned int)NULL);
+                                      _policy_border_iconify_by_illume(xwin_info);
+                                   }
+                              }
+                         }
                     }
                }
           }
@@ -4894,6 +4906,8 @@ _policy_calculate_visibility(void)
                     }
                }
           }
+
+        above_xwin_info = xwin_info;
      }
 
    if (control_indi)
@@ -6135,7 +6149,9 @@ _policy_border_iconify_by_illume(E_Illume_XWin_Info *xwin_info)
    if (!E_ILLUME_BORDER_IS_IN_MOBILE(bd)) return;
    if (e_object_is_del(E_OBJECT(bd))) return;
 
-   if (bd->parent && (!bd->parent->iconic)) return;
+   if ((xwin_info->visibility != E_ILLUME_VISIBILITY_FULLY_OBSCURED) &&
+       (bd->parent && (!bd->parent->iconic)))
+     return;
 
    if (e_illume_border_is_indicator(bd)) return;
    if (e_illume_border_is_keyboard(bd)) return;
