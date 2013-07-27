@@ -4247,10 +4247,11 @@ _policy_border_focus_top_stack_set (E_Border* bd)
    bl = e_container_border_list_last(bd->zone->container);
    while ((temp_bd = e_container_border_list_prev(bl)))
      {
-        if (temp_bd == cur_focus) break;
-
         if ((temp_bd->x >= root_w) || (temp_bd->y >= root_h)) continue;
         if (((temp_bd->x + temp_bd->w) <= 0) || ((temp_bd->y + temp_bd->h) <= 0)) continue;
+
+        if (temp_bd == cur_focus) break;
+
         if ((temp_bd != bd) &&
             (temp_bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING)) continue;
 
