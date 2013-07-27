@@ -1389,7 +1389,6 @@ _e_mod_config_free(E_Module *m)
    Mod *mod = m->data;
 
    e_mod_screen_reader_cfdata_config_free(mod->conf);
-   mod->conf = NULL;
 }
 /***************************************************************************/
 /* module setup */
@@ -1403,7 +1402,7 @@ e_modapi_init(E_Module *m)
 {
    Mod *mod;
 
-   mod = calloc(1, sizeof(Mod));
+   mod = E_NEW(Mod, 1);
    m->data = mod;
    e_mod_screen_reader_cfdata_edd_init(&(mod->conf_edd));
    mod->conf = e_config_domain_load("module.screen-reader-tizen", mod->conf_edd);
@@ -1463,13 +1462,20 @@ e_modapi_shutdown(E_Module *m)
 
    Mod *mod = m->data;
 
-   if (mod == _screen_reader_mod) _screen_reader_mod = NULL;
-   _e_mod_config_free(m);
-   E_CONFIG_DD_FREE(mod->conf_edd);
+   if (mod && mod == _screen_reader_mod)
+     {
+        _screen_reader_mod = NULL;
 
-   memset(mod, 0, sizeof(Mod));
-   free(mod);
-   mod = NULL;
+        _e_mod_config_free(m);
+        E_CONFIG_DD_FREE(mod->conf_edd);
+        E_FREE(mod);
+     }
+   else
+     {
+        ERR("[screen-reader] module data is not proper. "
+            "Expected: %p, Supplied: %p",
+            _screen_reader_mod, mod);
+     }
 
    return 1;
 }
