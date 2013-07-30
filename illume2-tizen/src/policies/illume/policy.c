@@ -1059,18 +1059,21 @@ _policy_border_post_fetch(E_Border *bd)
         // TODO: what to do if rotation fetch is changed?
         if (!eina_list_data_find(dep_rot.list, bd))
           {
-             int ang = _prev_angle_get(bd->client.win);
+             int ang = -1;
              int next_ang = 0;
 
+             if (bd->new_client)
+               {
+                  ang = _prev_angle_get(bd->client.win);
+                  if (ang != -1)
+                    bd->client.e.state.rot.curr = ang;
+               }
              dep_rot.list = eina_list_append(dep_rot.list, bd);
-
-             if (ang == -1)
-               ang = bd->client.e.state.rot.curr;
 
              if (dep_rot.refer.active_bd) next_ang = dep_rot.refer.active_bd->client.e.state.rot.curr;
              else next_ang = dep_rot.ang;
 
-             if (next_ang != ang)
+             if (next_ang != bd->client.e.state.rot.curr)
                {
                   // if this border's new_client flag is set,
                   // this border's show time should be posted until done of rotation.
@@ -2557,19 +2560,15 @@ _policy_border_illume_window_state_change(E_Border *bd, unsigned int state)
          if ((!bd->new_client) &&
             (!eina_list_data_find(dep_rot.list, bd)))
           {
-             int ang = _prev_angle_get(bd->client.win);
              int next_ang = 0;
 
              bd->client.e.state.rot.type = E_BORDER_ROTATION_TYPE_DEPENDENT;
              dep_rot.list = eina_list_append(dep_rot.list, bd);
 
-             if (ang == -1)
-               ang = bd->client.e.state.rot.curr;
-
              if (dep_rot.refer.active_bd) next_ang = dep_rot.refer.active_bd->client.e.state.rot.curr;
              else next_ang = dep_rot.ang;
 
-             if (next_ang != ang)
+             if (next_ang != bd->client.e.state.rot.curr)
                e_border_rotation_set(bd, next_ang);
           }
          break;
