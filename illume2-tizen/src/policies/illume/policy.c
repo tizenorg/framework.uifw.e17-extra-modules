@@ -1170,6 +1170,8 @@ _policy_border_pre_fetch(E_Border *bd)
         transient_for_win = ecore_x_icccm_transient_for_get(bd->client.win);
         if (bd->client.icccm.transient_for == transient_for_win)
           {
+             if (!bd->parent)
+               bd->parent = e_border_find_by_client_window(bd->client.icccm.transient_for);
              ELBF(ELBT_ILLUME, 0, bd->client.win, "Same transient_for:0x%07x. SKIP...", transient_for_win);
              goto transient_fetch_done;
           }
