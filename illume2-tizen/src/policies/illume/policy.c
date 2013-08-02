@@ -6657,7 +6657,7 @@ _policy_dependent_rotation_check(E_Border *bd, int rotation)
 
 end:
    if (!ret)
-     ELBF(ELBT_ROT, 0, bd->client.win,
+     ELBF(ELBT_ROT, 0, bd ? bd->client.win : NULL,
           "[DEPENDENT] Couldn't or don't need to rotate it as given angle:%d", rotation);
    return ret;
 }
