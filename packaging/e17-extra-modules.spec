@@ -1,6 +1,6 @@
 Name:       e17-extra-modules
 Summary:    The E17 Extra Modules The E17 extra modules consists of modules made by SAMSUNG
-Version:    0.14.7
+Version:    0.14.8
 Release:    1
 Group:      System/GUI/Other
 License:    BSD
@@ -48,8 +48,8 @@ export CFLAGS+=" -D_ENV_ARM"
 
 
 for FILE in %{DEF_SUBDIRS}
-do 
-        cd $FILE 
+do
+        cd $FILE
         %autogen
         %configure --prefix=/usr
         make
@@ -68,12 +68,12 @@ mkdir -p %{buildroot}/usr/bin
 cp -af keyrouter/scripts/* %{buildroot}/usr/bin/
 
 for FILE in %{DEF_SUBDIRS}
-do 
+do
         (cd $FILE && make install DESTDIR=%{buildroot} )
 done
 
-find  %{buildroot}/usr/lib/enlightenment/modules -name *.la | xargs rm 
-find  %{buildroot}/usr/lib/enlightenment/modules -name *.a | xargs rm 
+find  %{buildroot}/usr/lib/enlightenment/modules -name *.la | xargs rm
+find  %{buildroot}/usr/lib/enlightenment/modules -name *.a | xargs rm
 
 %files
 %manifest e17-extra-modules.manifest
