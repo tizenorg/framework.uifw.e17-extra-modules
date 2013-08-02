@@ -1677,7 +1677,7 @@ _policy_resize_start(E_Illume_Border_Info *bd_info)
    if(!(edje_object_file_set(o, buf, "new_shadow"))
       || !(bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING))
      {
-         o = evas_object_rectangle_add(canvas);                                 
+         o = evas_object_rectangle_add(canvas);
          evas_object_color_set(o, 100, 100, 100, 100);
      }
 
@@ -4716,6 +4716,8 @@ _policy_calculate_visibility(void)
         if ((xwin_info->viewable == 0) &&
             (xwin_info->iconify_by_wm == 0)) continue;
 
+        if (xwin_info->iconic) continue;
+
         if (!xwin_info->is_drawed) continue;
 
         // initializing variable
@@ -6051,6 +6053,7 @@ void _policy_border_iconify_cb(E_Border *bd)
    _g_visibility_changed = EINA_TRUE;
 
    xwin_info->attr.visible = 0;
+   xwin_info->iconic = EINA_TRUE;
 
    _policy_border_focus_top_stack_set(bd);
 }
@@ -6069,6 +6072,7 @@ void _policy_border_uniconify_cb(E_Border *bd)
 
    xwin_info->iconify_by_wm = 0;
    xwin_info->attr.visible = 1;
+   xwin_info->iconic = EINA_FALSE;
 
    L(LT_VISIBILITY, "[ILLUME2][VISIBILITY] %s(%d).. visibility is changed... win:0x%07x\n",  __func__, __LINE__, bd->client.win);
    _g_visibility_changed = EINA_TRUE;

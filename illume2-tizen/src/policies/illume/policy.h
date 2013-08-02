@@ -93,6 +93,7 @@ struct _E_Illume_XWin_Info
    Ecore_X_Window_Attributes attr;
    int argb;
    int visibility;
+   Eina_Bool iconic;
    Eina_Bool iconify_by_wm;
    Eina_Bool comp_vis;
    Eina_Bool is_drawed;
