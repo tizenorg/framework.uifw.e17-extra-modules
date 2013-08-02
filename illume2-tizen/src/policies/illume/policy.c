@@ -4818,6 +4818,7 @@ _policy_calculate_visibility(void)
         if (obscured_by_alpha_opaque)
           {
              do_not_iconify = EINA_TRUE;
+             L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. win:0x%07x. Do_not_iconify:%d\n", __func__, __LINE__, xwin_info->bd_info->border->client.win, do_not_iconify);
           }
         // when this border has transient windows,
         // check out this child's visibility.
@@ -4826,6 +4827,7 @@ _policy_calculate_visibility(void)
         else if (bd->transients)
           {
              do_not_iconify = _policy_check_transient_child_visible(bd);
+             L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. win:0x%07x. Do_not_iconify:%d\n", __func__, __LINE__, xwin_info->bd_info->border->client.win, do_not_iconify);
           }
 
         // 2. DO (UN)ICONIFY and send visibility notify if it's needed.
@@ -6170,8 +6172,8 @@ _policy_border_iconify_by_illume(E_Illume_XWin_Info *xwin_info)
      return;
 
    if (e_illume_border_is_indicator(bd)) return;
-   if (e_illume_border_is_keyboard(bd)) return;
-   if (e_illume_border_is_keyboard_sub(bd)) return;
+//   if (e_illume_border_is_keyboard(bd)) return;
+//   if (e_illume_border_is_keyboard_sub(bd)) return;
    if (e_illume_border_is_quickpanel(bd)) return;
    if (e_illume_border_is_quickpanel_popup(bd)) return;
    if (e_illume_border_is_clipboard(bd)) return;
