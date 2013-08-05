@@ -3343,22 +3343,22 @@ _policy_border_list_print (Ecore_X_Window win)
                     {
                        if (xwin_info->bd_info->border)
                          {
-                            fprintf (out, "%3i  0x%07x  %4i  %4i  %6i  %6i  %5i   %5i     %5i      %5i   %5i  %5i    yes(0x%07x)\n",
+                            fprintf (out, "%3i  0x%07x  %4i  %4i  %6i  %6i  %5i   %5i      %5i     %5i   %5i  %5i   %5i   yes(0x%07x)\n",
                                     i++, xwin_info->id, xwin_info->attr.w, xwin_info->attr.h, xwin_info->attr.x, xwin_info->attr.y, xwin_info->attr.depth,
-                                    xwin_info->viewable, xwin_info->visibility, xwin_info->comp_vis, xwin_info->bd_info->border->iconic, xwin_info->iconify_by_wm, xwin_info->bd_info->border->client.win);
+                                    xwin_info->viewable, xwin_info->visibility, xwin_info->comp_vis, xwin_info->bd_info->border->iconic, xwin_info->iconify_by_wm, xwin_info->skip_iconify, xwin_info->bd_info->border->client.win);
                          }
                        else
                          {
-                            fprintf (out, "%3i  0x%07x  %4i  %4i  %6i  %6i  %5i   %5i     %5i      %5i       0    %3i        no(NULL)\n",
+                            fprintf (out, "%3i  0x%07x  %4i  %4i  %6i  %6i  %5i   %5i     %5i      %5i       0    %3i   %5i     no(NULL)\n",
                                     i++, xwin_info->id, xwin_info->attr.w, xwin_info->attr.h, xwin_info->attr.x, xwin_info->attr.y, xwin_info->attr.depth,
-                                    xwin_info->viewable, xwin_info->visibility, xwin_info->comp_vis, xwin_info->iconify_by_wm);
+                                    xwin_info->viewable, xwin_info->visibility, xwin_info->comp_vis, xwin_info->iconify_by_wm, xwin_info->skip_iconify);
                          }
                     }
                   else
                     {
-                       fprintf (out, "%3i  0x%07x  %4i  %4i  %6i  %6i  %5i   %5i      %5i     %5i       0    %3i        no(NULL)\n",
+                       fprintf (out, "%3i  0x%07x  %4i  %4i  %6i  %6i  %5i   %5i      %5i     %5i       0    %3i   %5i     no(NULL)\n",
                                i++, xwin_info->id, xwin_info->attr.w, xwin_info->attr.h, xwin_info->attr.x, xwin_info->attr.y, xwin_info->attr.depth,
-                               xwin_info->viewable, xwin_info->visibility, xwin_info->comp_vis, xwin_info->iconify_by_wm);
+                               xwin_info->viewable, xwin_info->visibility, xwin_info->comp_vis, xwin_info->iconify_by_wm, xwin_info->skip_iconify);
                     }
                }
              fprintf (out, "---------------------------------------------------------------------------------------------\n" );
@@ -4647,10 +4647,20 @@ _policy_check_transient_child_visible(E_Border *bd)
         if (ret) return ret;
 
         child_xwin_info = _policy_xwin_info_find(child->win);
-        if ((child_xwin_info && (child_xwin_info->visibility == E_ILLUME_VISIBILITY_UNOBSCURED)) ||
-             !child->iconic)
+        if (child_xwin_info)
           {
-             return EINA_TRUE;
+             if (child_xwin_info->skip_iconify != EINA_TRUE)
+               {
+                  if ((child_xwin_info->visibility == E_ILLUME_VISIBILITY_UNOBSCURED) ||
+                      (!child->iconic))
+                    {
+                       return EINA_TRUE;
+                    }
+               }
+          }
+        else
+          {
+             if (!child->iconic) return EINA_TRUE;
           }
 
         ret = _policy_check_transient_child_visible(child);
@@ -5017,6 +5027,21 @@ _policy_xwin_info_add (Ecore_X_Window win)
 
    eina_hash_add(_e_illume_xwin_info_hash, e_util_winid_str_get(xwin_info->id), xwin_info);
    _e_illume_xwin_info_list = eina_inlist_append(_e_illume_xwin_info_list, EINA_INLIST_GET(xwin_info));
+
+   if (bd)
+     {
+        if ((e_illume_border_is_indicator(bd)) ||
+            (e_illume_border_is_keyboard(bd)) ||
+            (e_illume_border_is_keyboard_sub(bd)) ||
+            (e_illume_border_is_quickpanel(bd)) ||
+            (e_illume_border_is_quickpanel_popup(bd)) ||
+            (e_illume_border_is_clipboard(bd)) ||
+            (e_illume_border_is_app_tray(bd)) ||
+            (e_illume_border_is_miniapp_tray(bd)))
+          {
+             xwin_info->skip_iconify = EINA_TRUE;
+          }
+     }
 
    return EINA_TRUE;
 }

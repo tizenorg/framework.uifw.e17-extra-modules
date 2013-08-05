@@ -95,6 +95,7 @@ struct _E_Illume_XWin_Info
    int visibility;
    Eina_Bool iconic;
    Eina_Bool iconify_by_wm;
+   Eina_Bool skip_iconify;
    Eina_Bool comp_vis;
    Eina_Bool is_drawed;
    Eina_Bool viewable : 1;             // map state
