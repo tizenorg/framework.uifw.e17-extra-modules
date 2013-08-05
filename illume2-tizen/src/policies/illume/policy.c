@@ -6172,8 +6172,8 @@ _policy_border_iconify_by_illume(E_Illume_XWin_Info *xwin_info)
      return;
 
    if (e_illume_border_is_indicator(bd)) return;
-//   if (e_illume_border_is_keyboard(bd)) return;
-//   if (e_illume_border_is_keyboard_sub(bd)) return;
+   if (e_illume_border_is_keyboard(bd)) return;
+   if (e_illume_border_is_keyboard_sub(bd)) return;
    if (e_illume_border_is_quickpanel(bd)) return;
    if (e_illume_border_is_quickpanel_popup(bd)) return;
    if (e_illume_border_is_clipboard(bd)) return;
