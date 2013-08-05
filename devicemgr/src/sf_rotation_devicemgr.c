@@ -30,6 +30,12 @@
 #include "e_devicemgr_privates.h"
 #include "sf_rotation_devicemgr.h"
 
+#ifdef USE_DLOG
+#include "dlog.h"
+#undef LOG_TAG
+#define LOG_TAG "E17_EXTRA_MODULES"
+#endif
+
 typedef struct _E_DM_Sensor_Rotation E_DM_Sensor_Rotation;
 
 struct _E_DM_Sensor_Rotation
@@ -303,6 +309,9 @@ _sensor_rotation_changed_cb(unsigned int         event_type,
 
     ang = _ang_get(state);
 
+#ifdef USE_DLOG
+    SECURE_SLOGD("[ROTATION] SENSOR ROT_CHANGE, state:%d angle:%d", state, ang);
+#endif
     ELBF(ELBT_ROT, 0, 0, "ROT_EV state:%d angle:%d", state, ang);
 
     if (ang != -1)

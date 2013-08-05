@@ -62,7 +62,7 @@ dnl ========================================================================
 # checks for pkg-config
 dnl ========================================================================
 #PKG_CHECK_MODULES(ENLIGHTENMENT, [enlightenment, gestureproto, xgesture])
-PKG_CHECK_MODULES(ENLIGHTENMENT, [enlightenment, sensor, vconf])
+PKG_CHECK_MODULES(ENLIGHTENMENT, [enlightenment, sensor, vconf, dlog])
 ENLIGHTENMENT_CFLAGS="${ENLIGHTENMENT_CFLAGS} "
 AC_SUBST(ENLIGHTENMENT_CFLAGS)
 AC_SUBST(ENLIGHTENMENT_LIBS)
