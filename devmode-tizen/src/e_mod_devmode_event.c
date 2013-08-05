@@ -284,6 +284,7 @@ tsp_event_mgr_devmode_init(void *data)
         mask->mask = calloc(mask->mask_len, sizeof(char));
         if (!mask->mask)
           {
+             free(mask);
              TSP_ERROR("[devmode-tizen] [%s][%d] Failed to allocate memory !", __FUNCTION__, __LINE__);
              return EINA_FALSE;
           }
