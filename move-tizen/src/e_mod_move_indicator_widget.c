@@ -477,7 +477,8 @@ _e_mod_move_indicator_widget_cb_motion_start(void *data,
                {
                   _e_mod_move_indicator_widget_quickpanel_move_set(indi_widget, EINA_TRUE);
                   e_mod_move_quickpanel_objs_animation_start_position_set(qp_mb,
-                                                                          mb->angle);
+                                                                          mb->angle,
+                                                                          EINA_FALSE);
                   // send quickpanel to "move start message".
                   e_mod_move_quickpanel_anim_state_send(qp_mb, EINA_TRUE);
                }

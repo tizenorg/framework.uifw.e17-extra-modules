@@ -2180,9 +2180,11 @@ e_mod_move_quickpanel_dim_hide(E_Move_Border *mb)
    return EINA_TRUE;
 }
 
+// on_screen is true: quickpanel exists inside. false: quickpanel exists outside.
 EINTERN Eina_Bool
 e_mod_move_quickpanel_objs_animation_start_position_set(E_Move_Border *mb,
-                                                       int             angle)
+                                                        int            angle,
+                                                        Eina_Bool      on_screen)
 {
    int x = 0; int y = 0;
    int cx = 0; int cy = 0; int cw = 0; int ch = 0;
@@ -2198,50 +2200,79 @@ e_mod_move_quickpanel_objs_animation_start_position_set(E_Move_Border *mb,
    angle = ((angle % 360) / 90) * 90;
    contents = e_mod_move_border_contents_rect_get(mb, &cx, &cy ,&cw, &ch);
 
-   if (m->qp_scroll_with_clipping)
+   if (on_screen)
      {
-       switch (angle)
-         {
-          case 0:
-          case 90:
-          default:
-             x = mb->x; y = mb->y;
-             break;
-          case 180:
-          case 270:
-             x = mb->x + mb->w; y = mb->y + mb->h;
-             break;
+        if (m->qp_scroll_with_clipping)
+          {
+             switch (angle)
+               {
+                case 90:
+                   x = mb->x + mb->w;
+                   break;
+                case 180:
+                   y = mb->y;
+                   break;
+                case 270:
+                   x = mb->x;
+                   break;
+                case 0:
+                default:
+                   y = mb->y + mb->h;
+                   break;
+               }
           }
      }
    else
      {
-        switch (angle)
+        if (m->qp_scroll_with_clipping)
           {
-           case  90:
-              if (contents)
-                 x = cw * -1;
-              else
-                 x = mb->w * -1;
-              break;
-           case 180:
-              if (contents)
-                 y = zone->y + zone->h - cy;
-              else
-                 y = zone->y + zone->h;
-              break;
-           case 270:
-              if (contents)
-                 x = zone->x + zone->w - cx;
-              else
-                 x = zone->x + zone->w;
-              break;
-           case   0:
-           default :
-              if (contents)
-                 y = ch * -1;
-              else
-                 y = mb->h * -1;
-              break;
+             switch (angle)
+               {
+                case 90:
+                   x = zone->x;
+                   break;
+                case 180:
+                   y = zone->y + zone->h;
+                   break;
+                case 270:
+                   x = zone->x + zone->w;
+                   break;
+                case 0:
+                default:
+                   y = zone->y;
+                   break;
+               }
+          }
+        else
+          {
+             switch (angle)
+               {
+                case  90:
+                   if (contents)
+                      x = cw * -1;
+                   else
+                      x = mb->w * -1;
+                   break;
+                case 180:
+                   if (contents)
+                      y = zone->y + zone->h - cy;
+                   else
+                      y = zone->y + zone->h;
+                   break;
+                case 270:
+                   if (contents)
+                      x = zone->x + zone->w - cx;
+                   else
+                      x = zone->x + zone->w;
+                   break;
+                case   0:
+                default :
+                   if (contents)
+                      y = ch * -1;
+                   else
+                      y = mb->h * -1;
+                   break;
+               }
           }
      }
 

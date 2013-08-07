@@ -2088,7 +2088,8 @@ _e_mod_move_msg_window_show(Ecore_X_Event_Client_Message *ev)
 
              e_mod_move_quickpanel_e_border_move(qp_mb, mx, my);
              e_mod_move_quickpanel_objs_animation_start_position_set(qp_mb,
-                                                                     angles[0]);
+                                                                     angles[0],
+                                                                     EINA_FALSE);
              e_mod_move_quickpanel_objs_animation_move(qp_mb, ax, ay);
              L(LT_EVENT_X,
                "[MOVE] ev:%15.15s Quickpanel Show %s():%d\n",
@@ -2273,6 +2274,9 @@ _e_mod_move_msg_window_show(Ecore_X_Event_Client_Message *ev)
              e_mod_move_quickpanel_anim_state_send(qp_mb, EINA_TRUE);
 
              e_mod_move_quickpanel_e_border_move(qp_mb, mx, my);
+             e_mod_move_quickpanel_objs_animation_start_position_set(qp_mb,
+                                                                     angles[0],
+                                                                     EINA_TRUE);
              e_mod_move_quickpanel_objs_animation_move(qp_mb, ax, ay);
              L(LT_EVENT_X,
                "[MOVE] ev:%15.15s Quickpanel Hide %s():%d\n",
@@ -2531,7 +2535,8 @@ _e_mod_move_msg_qp_state(Ecore_X_Event_Client_Message *ev)
 
         e_mod_move_quickpanel_e_border_move(qp_mb, mx, my);
         e_mod_move_quickpanel_objs_animation_start_position_set(qp_mb,
-                                                                angles[0]);
+                                                                angles[0],
+                                                                EINA_FALSE);
         e_mod_move_quickpanel_objs_animation_move(qp_mb, ax, ay);
      }
    else if ((!open) && (state))// Quickpanel Close
@@ -2645,6 +2650,9 @@ _e_mod_move_msg_qp_state(Ecore_X_Event_Client_Message *ev)
         e_mod_move_quickpanel_anim_state_send(qp_mb, EINA_TRUE);
 
         e_mod_move_quickpanel_e_border_move(qp_mb, mx, my);
+        e_mod_move_quickpanel_objs_animation_start_position_set(qp_mb,
+                                                                angles[0],
+                                                                EINA_TRUE);
         e_mod_move_quickpanel_objs_animation_move(qp_mb, ax, ay);
      }
    else

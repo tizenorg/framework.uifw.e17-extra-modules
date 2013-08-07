@@ -34,7 +34,7 @@ EINTERN Eina_Bool e_mod_move_quickpanel_internal_data_del(E_Move_Border *mb);
 EINTERN Eina_Bool e_mod_move_quickpanel_e_border_move(E_Move_Border *mb, int x, int y);
 EINTERN Eina_List* e_mod_move_quickpanel_dim_show(E_Move_Border *mb);
 EINTERN Eina_Bool e_mod_move_quickpanel_dim_hide(E_Move_Border *mb);
-EINTERN Eina_Bool e_mod_move_quickpanel_objs_animation_start_position_set(E_Move_Border *mb, int angle);
+EINTERN Eina_Bool e_mod_move_quickpanel_objs_animation_start_position_set(E_Move_Border *mb, int angle, Eina_Bool on_screen); // on_screen is true: quickpanel exists inside screen. false: quickpanel exists outside screen.
 EINTERN E_Move_Event_Cb e_mod_move_quickpanel_event_cb_get(E_Move_Event_Type type);
 EINTERN Eina_Bool e_mod_move_quickpanel_visible_check(void);
 EINTERN Eina_Bool e_mod_move_quickpanel_below_window_reset(void);
