@@ -2744,7 +2744,7 @@ _e_mod_comp_bd_resize(void *data __UNUSED__,
    if ((cw->w == ev->border->w) && (cw->h == ev->border->h))
      return ECORE_CALLBACK_PASS_ON;
    _e_mod_comp_win_configure
-     (cw, cw->x, cw->y,
+     (cw, ev->border->x, ev->border->y,
      ev->border->w, ev->border->h, cw->border);
    return ECORE_CALLBACK_PASS_ON;
 }
