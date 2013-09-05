@@ -923,7 +923,14 @@ _e_mod_move_bd_del_intern(E_Move_Border *mb)
 static void
 _e_mod_move_bd_show_intern(E_Move_Border *mb)
 {
+   E_Border *bd = NULL;
+   E_Zone   *zone = NULL;
+
    E_CHECK(mb);
+   bd = mb->bd;
+   E_CHECK(bd);
+   zone = bd->zone;
+   E_CHECK(zone);
 
    if (mb->visible) return;
    mb->visible = 1;
@@ -942,7 +949,10 @@ _e_mod_move_bd_show_intern(E_Move_Border *mb)
      e_mod_move_indicator_e_border_move(mb, -10000, -10000);
    // If Quickpanel is shown, then move out of screen.
    if (TYPE_QUICKPANEL_CHECK(mb))
-     e_mod_move_quickpanel_e_border_move(mb, -10000, -10000);
+     {
+        e_mod_move_quickpanel_e_border_move(mb, -10000, -10000);
+        ecore_x_e_illume_quickpanel_state_set(zone->black_win, ECORE_X_ILLUME_QUICKPANEL_STATE_OFF);
+     }
 }
 
 static void
@@ -2371,7 +2381,6 @@ _e_mod_move_msg_qp_state_internal_quickpanel_check(E_Move_Border *mb)
    E_Move *m = e_mod_move_util_get();
    E_CHECK_RETURN(m, EINA_FALSE);
    E_CHECK_RETURN(mb, EINA_FALSE);
-   E_CHECK_RETURN(TYPE_APPTRAY_CHECK(mb), EINA_FALSE);
    if ((!m->elm_indicator_mode) && e_mod_move_indicator_click_get()) // if indicator process event, do event clear
      e_mod_move_indicator_event_clear();
    if ((m->elm_indicator_mode)
@@ -2401,6 +2410,7 @@ _e_mod_move_msg_qp_state(Ecore_X_Event_Client_Message *ev)
    Eina_Bool      state;
    Eina_Bool      comp_obj_visible = EINA_FALSE;
    E_Zone        *zone;
+   Eina_Bool      scrolling_state = EINA_FALSE;
    int cx, cy, cw, ch;
    int open, angles[2];
    int ax = 0; // animation x
@@ -2435,37 +2445,19 @@ _e_mod_move_msg_qp_state(Ecore_X_Event_Client_Message *ev)
 
    comp_obj_visible = e_mod_move_util_compositor_object_visible_get(qp_mb);
 
+   if (((!m->elm_indicator_mode) && e_mod_move_indicator_click_get())
+       || ((m->elm_indicator_mode)
+           && e_mod_move_indicator_widget_click_get(e_mod_move_indicator_widget_get()))
+       || (e_mod_move_quickpanel_click_get()))
+     {
+        scrolling_state = EINA_TRUE;
+     }
+
    zone = qp_mb->bd->zone;
    if (REGION_INSIDE_ZONE(qp_mb, zone)) state = EINA_TRUE;
    else state = EINA_FALSE;
 
-   if ((!m->elm_indicator_mode)
-       && e_mod_move_indicator_click_get())
-     {
-        L(LT_EVENT_X,
-          "[MOVE] ev:%15.15s [MOVE_MODULE] _E_ILLUME_QUICKPANEL_STATE error. w:0x%07x(state:%d) request:%d, Indicator Is Scrolling\n",
-          "X_CLIENT_MESSAGE", win, state, open);
-        return EINA_FALSE;
-     }
-
-   if ((m->elm_indicator_mode)
-       && e_mod_move_indicator_widget_click_get(e_mod_move_indicator_widget_get()))
-     {
-        L(LT_EVENT_X,
-          "[MOVE] ev:%15.15s [MOVE_MODULE] _E_ILLUME_QUICKPANEL_STATE error. w:0x%07x(state:%d) request:%d, Indicator Widget Is Scrolling\n",
-          "X_CLIENT_MESSAGE", win, state, open);
-        return EINA_FALSE;
-     }
-
-   if (e_mod_move_quickpanel_click_get())
-     {
-        L(LT_EVENT_X,
-          "[MOVE] ev:%15.15s [MOVE_MODULE] _E_ILLUME_QUICKPANEL_STATE error. w:0x%07x(state:%d) request:%d, Quickpanel Is Scrolling\n",
-          "X_CLIENT_MESSAGE", win, state, open);
-        return EINA_FALSE;
-     }
-
-   if ((open) && (!state) && (comp_obj_visible)) // Quickpanel Open
+   if ((open) && ((!state) || scrolling_state) && (comp_obj_visible)) // Quickpanel Open
      {
         switch (angles[0])
           {
@@ -2531,15 +2523,16 @@ _e_mod_move_msg_qp_state(Ecore_X_Event_Client_Message *ev)
 
         e_mod_move_quickpanel_objs_add(qp_mb);
         // send quickpanel to "move start message".
-        e_mod_move_quickpanel_anim_state_send(qp_mb, EINA_TRUE);
+        if (!scrolling_state) e_mod_move_quickpanel_anim_state_send(qp_mb, EINA_TRUE);
 
         e_mod_move_quickpanel_e_border_move(qp_mb, mx, my);
-        e_mod_move_quickpanel_objs_animation_start_position_set(qp_mb,
-                                                                angles[0],
-                                                                EINA_FALSE);
+        if (!scrolling_state)
+          e_mod_move_quickpanel_objs_animation_start_position_set(qp_mb,
+                                                                  angles[0],
+                                                                  EINA_FALSE);
         e_mod_move_quickpanel_objs_animation_move(qp_mb, ax, ay);
      }
-   else if ((!open) && (state))// Quickpanel Close
+   else if ((!open) && (state || scrolling_state))// Quickpanel Close
      {
         switch (angles[0])
           {
@@ -2647,12 +2640,14 @@ _e_mod_move_msg_qp_state(Ecore_X_Event_Client_Message *ev)
         e_mod_move_quickpanel_objs_add(qp_mb);
 
         // send quickpanel to "move start message".
-        e_mod_move_quickpanel_anim_state_send(qp_mb, EINA_TRUE);
+        if (!scrolling_state) e_mod_move_quickpanel_anim_state_send(qp_mb, EINA_TRUE);
 
         e_mod_move_quickpanel_e_border_move(qp_mb, mx, my);
-        e_mod_move_quickpanel_objs_animation_start_position_set(qp_mb,
-                                                                angles[0],
-                                                                EINA_TRUE);
+
+        if (!scrolling_state)
+          e_mod_move_quickpanel_objs_animation_start_position_set(qp_mb,
+                                                                  angles[0],
+                                                                  EINA_TRUE);
         e_mod_move_quickpanel_objs_animation_move(qp_mb, ax, ay);
      }
    else
