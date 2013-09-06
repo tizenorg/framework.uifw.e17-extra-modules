@@ -2418,13 +2418,25 @@ e_mod_move_quickpanel_stage_deinit(E_Move_Border *mb)
 EINTERN Eina_Bool
 e_mod_move_quickpanel_angle_change_post_job(E_Move_Border *mb)
 {
+   E_Zone   *zone = NULL;
+   E_Border *bd = NULL;
+
    E_CHECK_RETURN(mb, EINA_FALSE);
    E_CHECK_RETURN(TYPE_QUICKPANEL_CHECK(mb), EINA_FALSE);
+   bd = mb->bd;
+   E_CHECK_RETURN(bd, EINA_FALSE);
+   zone = bd->zone;
+   E_CHECK_RETURN(zone, EINA_FALSE);
+
+   if (!e_mod_move_quickpanel_objs_animation_state_get(mb)
+       && REGION_INTERSECTS_WITH_ZONE(mb, zone))
+     e_mod_move_quickpanel_objs_animation_start_position_set(mb, mb->angle, EINA_TRUE);
 
    if (e_mod_move_quickpanel_objs_animation_state_get(mb))
      return _e_mod_move_quickpanel_animation_change_with_angle(mb);
    else
      return _e_mod_move_quickpanel_fb_move_change_with_angle(mb);
+
 }
 
 static Eina_Bool
