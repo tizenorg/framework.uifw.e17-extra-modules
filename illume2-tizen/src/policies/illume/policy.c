@@ -864,7 +864,17 @@ _policy_border_del(E_Border *bd)
                    e_illume_border_is_app_tray(bd) ||
                    e_illume_border_is_miniapp_tray(bd)))
                {
-                  _policy_border_uniconify_below_borders_by_illume(xwin_info);
+                  if (E_CONTAINS(bd->x, bd->y, bd->w, bd->h, bd->zone->x, bd->zone->y, bd->zone->w, bd->zone->h))
+                    {
+                       _policy_border_uniconify_below_borders_by_illume(xwin_info);
+                    }
+               }
+             else
+               {
+                  if (E_CONTAINS(bd->x, bd->y, bd->w, bd->h, bd->zone->x, bd->zone->y, bd->zone->w, bd->zone->h))
+                    {
+                       _policy_border_uniconify_below_borders_by_illume(xwin_info);
+                    }
                }
           }
 
@@ -1168,6 +1178,19 @@ _policy_border_pre_fetch(E_Border *bd)
           xwin_info = _policy_xwin_info_find(bd->win);
 
         transient_for_win = ecore_x_icccm_transient_for_get(bd->client.win);
+        if (transient_for_win)
+          {
+             bd_parent = e_border_find_by_client_window(transient_for_win);
+          }
+
+        transient_each_other = _check_parent_in_transient_for_tree(bd, bd_parent);
+        if (transient_each_other)
+          {
+             ELBF(ELBT_ILLUME, 0, bd->client.win, "TRANSEINT_FOR each other.. transient_for:0x%07x. IGNORE...", transient_for_win);
+             bd->client.icccm.transient_for = transient_for_win;
+             goto transient_fetch_done;
+          }
+
         if (bd->client.icccm.transient_for == transient_for_win)
           {
              if (!bd->parent)
@@ -1177,10 +1200,6 @@ _policy_border_pre_fetch(E_Border *bd)
           }
 
         bd->client.icccm.transient_for = transient_for_win;
-        if (bd->client.icccm.transient_for)
-          {
-             bd_parent = e_border_find_by_client_window(bd->client.icccm.transient_for);
-          }
 
         /* If we already have a parent, remove it */
         if (bd->parent)
@@ -1188,46 +1207,45 @@ _policy_border_pre_fetch(E_Border *bd)
 #ifdef _F_DEICONIFY_APPROVE_
              if (bd_parent == bd->parent) change_parent = EINA_FALSE;
 #endif
-             bd->parent->transients = eina_list_remove(bd->parent->transients, bd);
-             if (bd->parent->modal == bd) bd->parent->modal = NULL;
+             if (!e_object_is_del(E_OBJECT(bd->parent)))
+               {
+                  bd->parent->transients = eina_list_remove(bd->parent->transients, bd);
+                  if (bd->parent->modal == bd) bd->parent->modal = NULL;
+               }
              bd->parent = NULL;
           }
 
         L(LT_TRANSIENT_FOR, "[ILLUME2][TRANSIENT_FOR] %s(%d)... win:0x%07x, parent:0x%07x\n", __func__, __LINE__, bd->client.win, bd->client.icccm.transient_for);
         if (bd_parent)
           {
-             transient_each_other = _check_parent_in_transient_for_tree(bd, bd_parent);
-             if (!transient_each_other)
+             L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. win:0x%07x(iconic:%d, by_wm:%d), parent:0x%07x(iconic:%d)\n", __func__, __LINE__, bd->client.win, bd->iconic, xwin_info ? xwin_info->iconify_by_wm : -100, bd_parent->client.win, bd_parent->iconic);
+             if (_e_illume_cfg->use_force_iconify)
                {
-                  L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. win:0x%07x(iconic:%d, by_wm:%d), parent:0x%07x(iconic:%d)\n", __func__, __LINE__, bd->client.win, bd->iconic, xwin_info ? xwin_info->iconify_by_wm : -100, bd_parent->client.win, bd_parent->iconic);
-                  if (_e_illume_cfg->use_force_iconify)
+                  if (!bd_parent->iconic)
                     {
-                       if (!bd_parent->iconic)
+                       if (xwin_info && xwin_info->iconify_by_wm)
                          {
-                            if (xwin_info && xwin_info->iconify_by_wm)
+                            if (bd->iconic)
                               {
-                                 if (bd->iconic)
-                                   {
-                                      L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. FORCE UNICONIFY... win:0x%07x\n", __func__, __LINE__, bd->client.win);
-                                      _policy_border_force_uniconify(bd);
-                                   }
+                                 L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. FORCE UNICONIFY... win:0x%07x\n", __func__, __LINE__, bd->client.win);
+                                 _policy_border_force_uniconify(bd);
                               }
                          }
                     }
+               }
 
-                  if (bd_parent != bd)
-                    {
-                       bd->parent = bd_parent;
-                       _policy_border_transient_for_layer_set(bd, bd->parent, bd->parent->layer);
-                       bd_parent->transients = eina_list_append(bd_parent->transients, bd);
+             if (bd_parent != bd)
+               {
+                  bd->parent = bd_parent;
+                  _policy_border_transient_for_layer_set(bd, bd->parent, bd->parent->layer);
+                  bd_parent->transients = eina_list_append(bd_parent->transients, bd);
 
-                       if ((e_config->modal_windows) && (bd->client.netwm.state.modal))
-                         bd->parent->modal = bd;
+                  if ((e_config->modal_windows) && (bd->client.netwm.state.modal))
+                     bd->parent->modal = bd;
 
-                       if (e_config->focus_setting == E_FOCUS_NEW_DIALOG ||
-                           (bd->parent->focused && (e_config->focus_setting == E_FOCUS_NEW_DIALOG_IF_OWNER_FOCUSED)))
-                         bd->take_focus = 1;
-                    }
+                  if (e_config->focus_setting == E_FOCUS_NEW_DIALOG ||
+                      (bd->parent->focused && (e_config->focus_setting == E_FOCUS_NEW_DIALOG_IF_OWNER_FOCUSED)))
+                     bd->take_focus = 1;
                }
           }
 
@@ -1344,7 +1362,7 @@ _policy_border_show(E_Border *bd)
    if (!bd) return;
 
    /* make sure we have a name so that we don't handle windows like E's root */
-   if (!bd->client.icccm.name) return;
+//   if (!bd->client.icccm.name) return;
 
    //   printf("Border Show: %s\n", bd->client.icccm.class);
 
@@ -1973,7 +1991,7 @@ static void _policy_property_window_state_change (Ecore_X_Event_Window_Property 
     * but do not have a name/class associated with them. Not entirely sure
     * which ones they are, but I would guess Managers, Containers, or Zones.
     * At any rate, we're not interested in those types of borders */
-   if ((!bd->client.icccm.name) || (!bd->client.icccm.class)) return;
+//   if ((!bd->client.icccm.name) || (!bd->client.icccm.class)) return;
 
    /* NB: If we have reached this point, then it should be a fullscreen
     * border that has toggled fullscreen on/off */
@@ -4634,12 +4652,13 @@ _policy_send_visibility_notify (Ecore_X_Window win, int visibility)
 }
 
 static Eina_Bool
-_policy_check_transient_child_visible(E_Border *bd)
+_policy_check_transient_child_visible(E_Border *ancestor_bd, E_Border *bd)
 {
    Eina_Bool ret = EINA_FALSE;
    E_Illume_XWin_Info *child_xwin_info = NULL;
    Eina_List *l;
    E_Border *child = NULL;
+   if (!ancestor_bd) return EINA_FALSE;
 
    EINA_LIST_FOREACH(bd->transients, l, child)
      {
@@ -4649,7 +4668,25 @@ _policy_check_transient_child_visible(E_Border *bd)
         child_xwin_info = _policy_xwin_info_find(child->win);
         if (child_xwin_info)
           {
-             if (child_xwin_info->skip_iconify != EINA_TRUE)
+             if (child_xwin_info->skip_iconify == EINA_TRUE)
+               {
+                  // special window especially keyboard, keyboard sub
+                  if (child_xwin_info->visibility == E_ILLUME_VISIBILITY_UNOBSCURED)
+                    {
+                       return EINA_TRUE;
+                    }
+                  else
+                    {
+                       if (!child->iconic)
+                         {
+                            if (E_CONTAINS(child->x, child->y, child->w, child->h, ancestor_bd->x, ancestor_bd->y, ancestor_bd->w, ancestor_bd->h))
+                              {
+                                 return EINA_TRUE;
+                              }
+                         }
+                    }
+               }
+             else
                {
                   if ((child_xwin_info->visibility == E_ILLUME_VISIBILITY_UNOBSCURED) ||
                       (!child->iconic))
@@ -4663,7 +4700,7 @@ _policy_check_transient_child_visible(E_Border *bd)
              if (!child->iconic) return EINA_TRUE;
           }
 
-        ret = _policy_check_transient_child_visible(child);
+        ret = _policy_check_transient_child_visible(ancestor_bd, child);
      }
 
    return ret;
@@ -4693,6 +4730,7 @@ _policy_calculate_visibility(void)
    int set_root_angle = 0;
    int control_indi = 0;
    E_Illume_XWin_Info *above_xwin_info = NULL;
+   Ecore_X_Window above_xwin = 0;
 
    if (!_g_visibility_changed) return;
    _g_visibility_changed = EINA_FALSE;
@@ -4726,8 +4764,6 @@ _policy_calculate_visibility(void)
         if ((xwin_info->viewable == 0) &&
             (xwin_info->iconify_by_wm == 0)) continue;
 
-        if (xwin_info->iconic) continue;
-
         if (!xwin_info->is_drawed) continue;
 
         // initializing variable
@@ -4739,6 +4775,16 @@ _policy_calculate_visibility(void)
 
         bd_info = xwin_info->bd_info;
         if (bd_info) bd = bd_info->border;
+
+        // the illume's policy of iconify should be applied to window belonging mobile side.
+        // so, there is no need to calculate visibility.
+        if ((bd) && (!E_ILLUME_BORDER_IS_IN_MOBILE(bd))) continue;
+
+        if (xwin_info->iconic && (!xwin_info->iconify_by_wm))
+          {
+             if (bd) goto check_above;
+             else continue;
+          }
 
         // 1. calculates window's region and decide it's visibility.
         if (is_fully_obscured == EINA_FALSE)
@@ -4773,6 +4819,11 @@ _policy_calculate_visibility(void)
                                  is_opaque_win = EINA_FALSE;
                               }
                          }
+                       else if (e_illume_border_is_app_tray(bd) ||
+                                e_illume_border_is_miniapp_tray(bd))
+                         {
+                            alpha_opaque = EINA_TRUE;
+                         }
 
                        if (bd->client.illume.win_state.state ==
                            ECORE_X_ILLUME_WINDOW_STATE_FLOATING)
@@ -4784,6 +4835,14 @@ _policy_calculate_visibility(void)
                     {
                        if (xwin_info->argb)
                          is_opaque_win = EINA_FALSE;
+                    }
+
+                  if (win_rect.x != visible_rect.x ||
+                      win_rect.y != visible_rect.y ||
+                      win_rect.width != visible_rect.width ||
+                      win_rect.height != visible_rect.height)
+                    {
+                       is_opaque_win = EINA_FALSE;
                     }
 
                   if (is_opaque_win)
@@ -4822,7 +4881,6 @@ _policy_calculate_visibility(void)
           }
 
         if (!bd) continue;
-        if (!E_ILLUME_BORDER_IS_IN_MOBILE(bd)) continue;
 
         // decide if it's the border that DO NOT iconify.
         if (obscured_by_alpha_opaque)
@@ -4836,7 +4894,7 @@ _policy_calculate_visibility(void)
         // DO NOT iconify this border.
         else if (bd->transients)
           {
-             do_not_iconify = _policy_check_transient_child_visible(bd);
+             do_not_iconify = _policy_check_transient_child_visible(bd, bd);
              L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. win:0x%07x. Do_not_iconify:%d\n", __func__, __LINE__, xwin_info->bd_info->border->client.win, do_not_iconify);
           }
 
@@ -4914,6 +4972,15 @@ _policy_calculate_visibility(void)
                                    }
                               }
                          }
+                       /* check old above win */
+                       else if (xwin_info->above_xwin != above_xwin)
+                         {
+                            if (!bd->iconic && !do_not_iconify && !xwin_info->skip_iconify)
+                              {
+                                 L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. Iconify by illume.. win:0x%07x\n", __func__, __LINE__, xwin_info->bd_info->border->client.win);
+                                 _policy_border_iconify_by_illume(xwin_info);
+                              }
+                         }
                     }
                }
           }
@@ -4933,7 +5000,11 @@ _policy_calculate_visibility(void)
                }
           }
 
+check_above:
+        xwin_info->above_xwin = above_xwin;
+
         above_xwin_info = xwin_info;
+        above_xwin = bd->client.win;
      }
 
    if (control_indi)
@@ -5088,7 +5159,7 @@ void _policy_window_destroy (Ecore_X_Event_Window_Destroy *event)
 
    // for supporting dependent rotation
    if (dep_rot.refer.cmd_win == event->win)
-     dep_rot.refer.cmd_win = NULL;
+     dep_rot.refer.cmd_win = 0;
 }
 
 
@@ -6062,7 +6133,10 @@ void _policy_border_iconify_cb(E_Border *bd)
    E_Illume_XWin_Info* xwin_info = _policy_xwin_info_find(bd->win);
    if (xwin_info == NULL) return;
 
-   _policy_border_uniconify_below_borders_by_illume(xwin_info);
+   if (E_CONTAINS(bd->x, bd->y, bd->w, bd->h, bd->zone->x, bd->zone->y, bd->zone->w, bd->zone->h))
+     {
+        _policy_border_uniconify_below_borders_by_illume(xwin_info);
+     }
 
    if (xwin_info->visibility != E_ILLUME_VISIBILITY_FULLY_OBSCURED)
      {
@@ -6192,6 +6266,8 @@ _policy_border_iconify_by_illume(E_Illume_XWin_Info *xwin_info)
    if (!E_ILLUME_BORDER_IS_IN_MOBILE(bd)) return;
    if (e_object_is_del(E_OBJECT(bd))) return;
 
+   if (!bd->visible) return;
+
    if ((xwin_info->visibility != E_ILLUME_VISIBILITY_FULLY_OBSCURED) &&
        (bd->parent && (!bd->parent->iconic)))
      return;
@@ -6302,7 +6378,11 @@ _policy_border_uniconify_below_borders_by_illume(E_Illume_XWin_Info *xwin_info)
    if (xwin_info->iconify_by_wm) return;
 
    // 2. check if current bd's visibility is fully-obscured or not
-   if (xwin_info->visibility == E_ILLUME_VISIBILITY_FULLY_OBSCURED) return;
+   if (xwin_info->visibility == E_ILLUME_VISIBILITY_FULLY_OBSCURED &&
+       bd->iconic)
+     {
+        return;
+     }
 
    // 3-1. find bd's below window and un-iconify it
    L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d)... UNICONIFY Below Windows of win:0x%07x\n", __func__, __LINE__, bd->client.win);
@@ -6377,6 +6457,8 @@ static E_Border* _policy_border_find_below(E_Border *bd)
              if (e_illume_border_is_app_tray(b)) continue;
              if (e_illume_border_is_miniapp_tray(b)) continue;
 
+             if (!ecore_x_window_visible_get(b->client.win)) continue;
+
              return b;
           }
      }
@@ -6448,10 +6530,36 @@ static void _policy_border_uniconify_top_border(E_Border *bd)
              if (e_illume_border_is_app_tray(b)) continue;
              if (e_illume_border_is_miniapp_tray(b)) continue;
 
+             if (!ecore_x_window_visible_get(b->client.win)) continue;
+
              if (b->iconic)
                {
-                  L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. FORCE UNICONIFY... win:0x%07x\n", __func__, __LINE__, b->client.win);
-                  _policy_border_force_uniconify(b);
+                  E_Border *parent_bd;
+                  E_Border *target_bd;
+                  E_Illume_XWin_Info *parent_xwin_info;
+
+                  target_bd = b;
+                  parent_bd = b->parent;
+
+                  while (parent_bd)
+                    {
+                       if (e_object_is_del(E_OBJECT(parent_bd))) break;
+
+                       if (parent_bd->iconic)
+                         {
+                            parent_xwin_info = _policy_xwin_info_find(parent_bd->win);
+                            if (!(parent_xwin_info && parent_xwin_info->iconify_by_wm))
+                              {
+                                 break;
+                              }
+
+                            target_bd = parent_bd;
+                         }
+                       parent_bd = parent_bd->parent;
+                    }
+
+                  L(LT_ICONIFY, "[ILLUME2][ICONIFY] %s(%d).. FORCE UNICONIFY... target win:0x%07x (win:0x%07x)\n", __func__, __LINE__, target_bd->client.win, b->client.win);
+                  _policy_border_force_uniconify(target_bd);
                }
 
              if ((b->x == b->zone->x) &&

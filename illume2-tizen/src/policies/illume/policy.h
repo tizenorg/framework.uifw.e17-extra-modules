@@ -100,6 +100,7 @@ struct _E_Illume_XWin_Info
    Eina_Bool is_drawed;
    Eina_Bool viewable : 1;             // map state
    E_Illume_Border_Info* bd_info;
+   Ecore_X_Window above_xwin;
 };
 
 void _policy_border_add(E_Border *bd);
