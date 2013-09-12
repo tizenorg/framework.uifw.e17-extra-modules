@@ -2542,14 +2542,33 @@ e_mod_move_quickpanel_anim_state_send(E_Move_Border *mb,
 {
    long d[5] = {0L, 0L, 0L, 0L, 0L};
    Ecore_X_Window win;
+   E_Move *m;
+   E_Zone *zone = NULL;
+   E_Border *bd = NULL;
+   int on_screen_state = 0;
+
    E_CHECK_RETURN(mb, EINA_FALSE);
    E_CHECK_RETURN(TYPE_QUICKPANEL_CHECK(mb), EINA_FALSE);
+   m = mb->m;
+   E_CHECK_RETURN(m, EINA_FALSE);
 
    win = e_mod_move_util_client_xid_get(mb);
    E_CHECK_RETURN(win, 0);
 
+   bd = mb->bd;
+   E_CHECK_RETURN(bd, EINA_FALSE);
+   zone = bd->zone;
+   E_CHECK_RETURN(zone, EINA_FALSE);
+
    if (state) d[0] = 1L;
    else d[0] = 0L;
+
+   if (REGION_INTERSECTS_WITH_ZONE(mb, zone)) on_screen_state = 1;
+
+   if (state)
+     e_msg_send("e.move.quickpanel", "start", on_screen_state, E_OBJECT(m->man), NULL, NULL, NULL);
+   else
+     e_msg_send("e.move.quickpanel", "end", on_screen_state, E_OBJECT(m->man), NULL, NULL, NULL);
 
    ecore_x_client_message32_send
      (win, ATOM_MV_QUICKPANEL_STATE,
