@@ -48,10 +48,13 @@ e_modapi_init(E_Module* m)
    e_devicemgr.zone_add_handler = ecore_event_handler_add(E_EVENT_ZONE_ADD, (Ecore_Event_Handler_Cb)_e_devicemgr_cb_zone_add, NULL);
    e_devicemgr.zone_del_handler = ecore_event_handler_add(E_EVENT_ZONE_DEL, (Ecore_Event_Handler_Cb)_e_devicemgr_cb_zone_del, NULL);
 
+   e_devicemgr.e_msg_handler = e_msg_handler_add(_e_mod_move_e_msg_handler, NULL);
+
    if (!e_devicemgr.window_property_handler) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add ECORE_X_EVENT_WINDOW_PROPERTY handler\n", __FUNCTION__);
    if (!e_devicemgr.event_generic_handler) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add ECORE_X_EVENT_GENERIC handler\n", __FUNCTION__);
    if (!e_devicemgr.zone_add_handler) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add E_EVENT_ZONE_ADD handler\n", __FUNCTION__);
    if (!e_devicemgr.zone_del_handler) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add E_EVENT_ZONE_DEL handler\n", __FUNCTION__);
+   if (!e_devicemgr.e_msg_handler) SLOG(LOG_DEBUG, "DEVICEMGR", "[e_devicemgr][%s] Failed to add E_MSG handler\n", __FUNCTION__);
 
    if (e_devicemgr.scrnconf_enable)
      {
@@ -77,6 +80,7 @@ e_modapi_shutdown(E_Module* m)
    ecore_event_handler_del(e_devicemgr.event_generic_handler);
    ecore_event_handler_del(e_devicemgr.zone_add_handler);
    ecore_event_handler_del(e_devicemgr.zone_del_handler);
+   if (e_devicemgr.e_msg_handler) e_msg_handler_del(e_devicemgr.e_msg_handler);
    e_devicemgr.window_property_handler = NULL;
    e_devicemgr.event_generic_handler = NULL;
    e_devicemgr.zone_add_handler = NULL;
@@ -102,6 +106,7 @@ _e_devicemgr_init(void)
 {
    unsigned int val = 1;
    int res, ret = 1;
+   int enable = 0;
 
    memset(&e_devicemgr, 0, sizeof(DeviceMgr));
 
@@ -143,8 +148,10 @@ _e_devicemgr_init(void)
    e_devicemgr.atomDevMgrCfg = ecore_x_atom_get(STR_ATOM_DEVICEMGR_CFG);
    e_devicemgr.atomFloat = ecore_x_atom_get(XATOM_FLOAT);
    e_devicemgr.atomInputTransform = ecore_x_atom_get(EVDEVMULTITOUCH_PROP_TRANSFORM);
+   e_devicemgr.atomExKeyboardEnabled = ecore_x_atom_get(E_PROP_EXTERNAL_KEYBOARD_ENABLED);
 
    ecore_x_window_prop_card32_set(e_devicemgr.rootWin, e_devicemgr.atomTouchInput, &val, 1);
+   ecore_x_window_prop_card32_set(e_devicemgr.rootWin, e_devicemgr.atomExKeyboardEnabled, &enable, 1);
    memset(&e_devicemgr.virtual_touchpad_area_info, -1, sizeof(e_devicemgr.virtual_touchpad_area_info));
    memset(&e_devicemgr.virtual_multitouch_id, -1, sizeof(e_devicemgr.virtual_multitouch_id));
    e_devicemgr.virtual_touchpad_pointed_window = 0;
@@ -656,6 +663,50 @@ _e_devicemgr_cb_client_message (void* data, int type, void* event)
      }
 
    return 1;
+}
+
+static void
+_e_mod_move_e_msg_handler(void *data, const char *name, const char *info, int val, E_Object   *obj, void *msgdata)
+{
+	Eina_List* l;
+	DeviceMgr_Device_Info *ldata;
+	unsigned int ret_val = 1;
+
+	if (!strncmp(name, "e.move.quickpanel", sizeof("e.move.quickpanel")))
+	{
+		if ((!strncmp(info, "start", sizeof("start"))))
+		{
+			// quickpanel state on
+			ret_val = 0;
+			ecore_x_window_prop_card32_set(e_devicemgr.rootWin, e_devicemgr.atomExKeyboardEnabled, &ret_val, 1);
+	        EINA_LIST_FOREACH(e_devicemgr.device_list, l ,ldata)
+			{
+				if(ldata->type == E_DEVICEMGR_KEYBOARD)
+				{
+					if(_e_devicemgr_detach_slave(ldata->id) == EINA_FALSE)
+					{
+						SLOG(LOG_DEBUG, "DEVICEMGR", "[DeviceMgr] : fail to detach slave device(%d) \n", ldata->id);
+					}
+				}
+			}
+		}
+		else if ((!strncmp(info, "end", sizeof("end"))) && (val == 0))
+		{
+			// quickpanel state off
+			ret_val = 1;
+			ecore_x_window_prop_card32_set(e_devicemgr.rootWin, e_devicemgr.atomExKeyboardEnabled, &ret_val, 1);
+			EINA_LIST_FOREACH(e_devicemgr.device_list, l ,ldata)
+			{
+				if(ldata->type == E_DEVICEMGR_KEYBOARD)
+				{
+					if(_e_devicemgr_reattach_slave(ldata->id, e_devicemgr.vck_id) == EINA_FALSE)
+					{
+						SLOG(LOG_DEBUG, "DEVICEMGR", "[DeviceMgr] : fail to reattach slave device(%d) to master device(%d) \n", ldata->id, e_devicemgr.vck_id);
+					}
+				}
+			}
+		}
+	}
 }
 
 static int

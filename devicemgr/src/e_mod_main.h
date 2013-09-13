@@ -60,6 +60,8 @@
 #define E_VIRTUAL_TOUCHPAD_NAME "Virtual Touchpad"
 #define EVDEVMULTITOUCH_PROP_TRANSFORM "EvdevMultitouch Transform Matrix"
 #define XATOM_FLOAT "FLOAT"
+#define E_PROP_EXTERNAL_KEYBOARD_ENABLED "External Keyboard Enabled"
+
 
 #define DEVICEMGR_PREFIX "/usr/lib/enlightenment/modules/e17-extra-modules-devicemgr/"
 
@@ -131,6 +133,7 @@ typedef struct _DeviceMgr_
    Ecore_X_Atom atomFloat;
    Ecore_X_Atom atomVirtualTouchpadInt;
    Ecore_X_Atom atomDeviceMgrInputWindow;
+   Ecore_X_Atom atomExKeyboardEnabled;
 
    /* scrn conf atoms */
    Ecore_X_Atom atomScrnConfDispModeSet;
@@ -157,6 +160,7 @@ typedef struct _DeviceMgr_
    Ecore_Event_Handler *client_message_handler;
    E_Border_Hook *border_move_end_hook;
    E_Border_Hook *border_resize_end_hook;
+   E_Msg_Handler *e_msg_handler;
 
    //variables to set XRROutputProperty
    RROutput output;
@@ -208,6 +212,7 @@ static void _e_devicemgr_hook_border_move_end(void *data, void *border);
 static void _e_devicemgr_hook_border_resize_end(void *data, void *border);
 static Eina_Bool _e_devicemgr_get_zones(void);
 static E_Zone* _e_devicemgr_get_nth_zone(int index);
+static void _e_mod_move_e_msg_handler(void *data, const char *name, const char *info, int val, E_Object   *obj, void *msgdata);
 
 static void _e_devicemgr_update_input_transform_matrix(Eina_Bool reset);
 static void _e_devicemgr_init_transform_matrix(void);
