@@ -9,9 +9,14 @@ struct _E_Move_Indicator_Widget
    Ecore_X_Window  win;
    Eina_Bool       quickpanel_move;
    Eina_Bool       apptray_move;
+   Eina_Bool       send_flick_done;
    Eina_Bool       move_started;
+
    Evas_Point      pos; // mouse position
    int             input_region_id;
+
+   Ecore_X_Window  target; //releate send_flick_done
+   Eina_Bool       flicked; //releate send_flick_done
 };
 
 typedef struct _E_Move_Indicator_Widget E_Move_Indicator_Widget;

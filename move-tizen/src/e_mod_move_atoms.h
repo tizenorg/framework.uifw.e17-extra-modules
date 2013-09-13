@@ -20,6 +20,7 @@ extern EINTERN Ecore_X_Atom ATOM_MV_PANEL_SCROLLABLE_STATE;
 extern EINTERN Ecore_X_Atom ATOM_MV_INDICATOR_GEOMETRY;
 extern EINTERN Ecore_X_Atom ATOM_INDICATOR_CMD_WIN;
 extern EINTERN Ecore_X_Atom ATOM_ACTIVE_INDICATOR_WIN;
+extern EINTERN Ecore_X_Atom ATOM_INDICATOR_FLICK_DONE;
 
 EINTERN int         e_mod_move_atoms_init(void);
 EINTERN int         e_mod_move_atoms_shutdown(void);
