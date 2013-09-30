@@ -62,6 +62,7 @@ rm -rf %{buildroot}
 # for license notification
 mkdir -p %{buildroot}/usr/share/license
 cp -a %{_builddir}/%{buildsubdir}/COPYING %{buildroot}/usr/share/license/%{name}
+cat %{_builddir}/%{buildsubdir}/COPYING.Flora >> %{buildroot}/usr/share/license/%{name}
 
 # for keyrouter
 mkdir -p %{buildroot}/usr/bin
