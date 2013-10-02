@@ -395,8 +395,8 @@ _e_mod_move_indicator_widget_cb_motion_start(void *data,
      }
    ev_mb = e_mod_move_border_client_find(ev_win);
 
-   if (ev_mb && ev_mb->bd && ev_mb->bd->layer)
-     if (ev_mb->bd->layer == e_mod_move_util_layer_policy_get(E_MOVE_STATE_ABOVE_LAYER))
+   if (ev_mb && ev_mb->bd)
+     if ((ev_mb->bd->client.icccm.accepts_focus) || (ev_mb->bd->client.icccm.take_focus))
        e_focus_event_mouse_down(ev_mb->bd);
 
    mb = e_mod_move_border_client_find(indi_widget->win);
