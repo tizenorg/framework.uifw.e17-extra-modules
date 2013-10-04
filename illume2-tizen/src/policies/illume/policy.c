@@ -6312,6 +6312,13 @@ static void _policy_border_force_uniconify(E_Border *bd)
    E_OBJECT_CHECK(bd);
    E_OBJECT_TYPE_CHECK(bd, E_BORDER_TYPE);
 
+   if (bd->client.e.state.deiconify_approve.wait_timer ||
+       bd->client.e.state.deiconify_approve.pending_job)
+     {
+        ELB(ELBT_BD, "DEICONIFY_APPROVE is already running", bd->client.win);
+        return;
+     }
+
    xwin_info = _policy_xwin_info_find(bd->win);
    if (!(xwin_info && xwin_info->iconify_by_wm)) return;
 
