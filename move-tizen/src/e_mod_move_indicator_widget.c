@@ -21,6 +21,7 @@ static Eina_Bool      _e_mod_move_indicator_widget_cb_motion_end(void *data, voi
 static void           _e_mod_move_indicator_widget_obj_event_setup(E_Move_Indicator_Widget *indicator_widget, E_Move_Widget_Object *mwo);
 static Eina_Bool      _e_mod_move_indicator_widget_scrollable_object_movable_check(E_Move_Indicator_Widget *indi_widget, E_Move_Border *mb, Evas_Point pos);
 static Eina_Bool      _e_mod_move_indicator_widget_target_window_find_by_pointer(Ecore_X_Window *win, Ecore_X_Window *pointed_win, int x, int y);
+static Eina_Bool      _e_mod_move_indicator_widget_focus_target_window_find_by_pointer(Ecore_X_Window *win, int x, int y);
 static Ecore_X_Window _e_mod_move_indicator_widget_event_win_find(void *event_info);
 static Eina_Bool      _e_mod_move_indicator_widget_target_window_policy_check(E_Move_Border *mb);
 static Eina_Bool      _e_mod_move_indicator_widget_event_send_policy_check(E_Move_Indicator_Widget *indi_widget, Evas_Point pos);
@@ -366,6 +367,7 @@ _e_mod_move_indicator_widget_cb_motion_start(void *data,
 
    E_Move_Border *mb = NULL;
    E_Move_Border *ev_mb = NULL;
+   E_Move_Border *focus_mb = NULL;
    E_Move_Border *qp_mb = NULL;
    E_Move_Border *at_mb = NULL;
    E_Move_Event_Motion_Info *info;
@@ -375,6 +377,7 @@ _e_mod_move_indicator_widget_cb_motion_start(void *data,
    Eina_List *l;
    E_Move_Scroll_Region_Indicator scroll_region = E_MOVE_SCROLL_REGION_NONE;
    Ecore_X_Window ev_win = 0;
+   Ecore_X_Window focus_win = 0;
 
    info  = (E_Move_Event_Motion_Info *)event_info;
    m = e_mod_move_util_get();
@@ -395,9 +398,11 @@ _e_mod_move_indicator_widget_cb_motion_start(void *data,
      }
    ev_mb = e_mod_move_border_client_find(ev_win);
 
-   if (ev_mb && ev_mb->bd)
-     if ((ev_mb->bd->client.icccm.accepts_focus) || (ev_mb->bd->client.icccm.take_focus))
-       e_focus_event_mouse_down(ev_mb->bd);
+   _e_mod_move_indicator_widget_focus_target_window_find_by_pointer(&focus_win, info->coord.x, info->coord.y);
+   focus_mb = e_mod_move_border_client_find(focus_win);
+   if (focus_mb && focus_mb->bd)
+     if ((focus_mb->bd->client.icccm.accepts_focus) || (focus_mb->bd->client.icccm.take_focus))
+       e_focus_event_mouse_down(focus_mb->bd);
 
    mb = e_mod_move_border_client_find(indi_widget->win);
 
@@ -1197,6 +1202,49 @@ _e_mod_move_indicator_widget_target_window_find_by_pointer(Ecore_X_Window *win,
                   ret = EINA_TRUE;
                }
           }
+     }
+
+   return ret;
+}
+
+static Eina_Bool
+_e_mod_move_indicator_widget_focus_target_window_find_by_pointer(Ecore_X_Window *win,
+                                                                 int x,
+                                                                 int y)
+{
+   E_Move        *m = NULL;
+   E_Move_Border *find_mb = NULL;
+   Eina_Bool      found = EINA_FALSE;
+   Eina_Bool      ret = EINA_FALSE;
+
+   E_CHECK_RETURN(win, EINA_FALSE);
+   m = e_mod_move_util_get();
+   E_CHECK_RETURN(m, EINA_FALSE);
+
+   EINA_INLIST_REVERSE_FOREACH(m->borders, find_mb)
+     {
+        if (!find_mb->bd) continue;
+
+        // finding visible border
+        if (!find_mb->visible) continue;
+
+        // finding pointed border
+        if (!E_INSIDE(x, y, find_mb->bd->x, find_mb->bd->y,
+                            find_mb->bd->w, find_mb->bd->h))
+          {
+             continue;
+          }
+        else
+          {
+             found = EINA_TRUE;
+             break;
+          }
+     }
+
+   if (found)
+     {
+        *win = find_mb->bd->client.win;
+        ret = EINA_TRUE;
      }
 
    return ret;
