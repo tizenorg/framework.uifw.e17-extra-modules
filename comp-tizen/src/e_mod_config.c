@@ -551,7 +551,10 @@ _match_label_get(Match_Config *m)
      }
 
    if (!eina_strbuf_length_get(buf))
-     return _("Unknown");
+     {
+        eina_strbuf_free(buf);
+        return _("Unknown");
+     }
 
    label = strdup(eina_strbuf_string_get(buf));
    eina_strbuf_free(buf);
