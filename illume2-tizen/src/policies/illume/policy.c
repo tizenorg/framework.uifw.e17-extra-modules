@@ -956,7 +956,8 @@ _policy_border_del(E_Border *bd)
        e_illume_border_is_miniapp_tray(bd) ||
        (bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING) ||
        e_illume_border_is_syspopup(bd) ||
-       e_illume_border_is_app_selector(bd))
+       e_illume_border_is_app_selector(bd) ||
+       e_illume_border_is_app_popup(bd))
      dep_rot.list = eina_list_remove(dep_rot.list, bd);
 
    if (dep_rot.refer.active_bd == bd)
@@ -1062,7 +1063,8 @@ _policy_border_post_fetch(E_Border *bd)
        e_illume_border_is_miniapp_tray(bd) ||
        (bd->client.illume.win_state.state == ECORE_X_ILLUME_WINDOW_STATE_FLOATING) ||
        e_illume_border_is_syspopup(bd) ||
-       e_illume_border_is_app_selector(bd))
+       e_illume_border_is_app_selector(bd) ||
+       e_illume_border_is_app_popup(bd))
      {
         bd->client.e.state.rot.type = E_BORDER_ROTATION_TYPE_DEPENDENT;
 

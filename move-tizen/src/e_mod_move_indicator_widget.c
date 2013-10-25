@@ -1163,9 +1163,11 @@ _e_mod_move_indicator_widget_target_window_find_by_pointer(Ecore_X_Window *win,
           }
 
         // if notification , alpha, and indicator_state_none then search again below.
-        if ((TYPE_NOTIFICATION_CHECK(find_mb) || TYPE_APP_SELECTOR_CHECK(find_mb))
-            && (find_mb->argb)
-            && (find_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
+        if (((TYPE_NOTIFICATION_CHECK(find_mb)) ||
+             (TYPE_APP_SELECTOR_CHECK(find_mb)) ||
+             (TYPE_APP_POPUP_CHECK(find_mb))) &&
+            (find_mb->argb) &&
+            (find_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
           {
              if (!noti_win_saved)
                {
@@ -1340,9 +1342,11 @@ _e_mod_move_indicator_widget_active_indicator_win_find_and_set(void)
      {
         target_mb = e_mod_move_border_client_find(target_win);
         E_CHECK(target_mb);
-        if ((TYPE_NOTIFICATION_CHECK(target_mb) || TYPE_APP_SELECTOR_CHECK(target_mb))
-            && (target_mb->argb)
-            && (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
+        if ((TYPE_NOTIFICATION_CHECK(target_mb) ||
+             TYPE_APP_SELECTOR_CHECK(target_mb) ||
+             TYPE_APP_POPUP_CHECK(target_mb)) &&
+            (target_mb->argb) &&
+            (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
           {
              EINA_INLIST_REVERSE_FOREACH(m->borders, find_mb)
                {
@@ -1358,17 +1362,19 @@ _e_mod_move_indicator_widget_active_indicator_win_find_and_set(void)
                   if (TYPE_QUICKPANEL_CHECK(find_mb)) continue;
 
                   // find system popup's below border
-                  if ((TYPE_NOTIFICATION_CHECK(find_mb) || TYPE_APP_SELECTOR_CHECK(find_mb))
-                      && (find_mb->argb)
-                      && (find_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
+                  if ((TYPE_NOTIFICATION_CHECK(find_mb) ||
+                       TYPE_APP_SELECTOR_CHECK(find_mb) ||
+                       TYPE_APP_POPUP_CHECK(find_mb)) &&
+                      (find_mb->argb) &&
+                      (find_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
                     {
                        continue;
                     }
 
                   // OnScreen & FullScreen Window
-                  if (find_mb->visible
-                      && REGION_EQUAL_TO_ZONE(find_mb, zone)  // check fullscreen
-                      && (zone->id == 0))// change zone->id comparing to bd's profile property (mobile)
+                  if ((find_mb->visible) &&
+                      (zone->id == 0) && // change zone->id comparing to bd's profile property (mobile)
+                      (REGION_EQUAL_TO_ZONE(find_mb, zone)))  // check fullscreen
                     {
                        active_indi_win_found = EINA_TRUE;
                        break;
@@ -1490,7 +1496,9 @@ e_mod_move_indicator_widget_apply(void)
                   e_mod_move_indicator_widget_del(indi_widget);
                   e_mod_move_indicator_widget_set(e_mod_move_indicator_widget_add(target_win));
                   if ((target_mb) &&
-                      (TYPE_NOTIFICATION_CHECK(target_mb) || TYPE_APP_SELECTOR_CHECK(target_mb)) &&
+                      (TYPE_NOTIFICATION_CHECK(target_mb) ||
+                       TYPE_APP_SELECTOR_CHECK(target_mb) ||
+                       TYPE_APP_POPUP_CHECK(target_mb)) &&
                       (target_mb->argb) &&
                       (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
                     {
@@ -1507,7 +1515,9 @@ e_mod_move_indicator_widget_apply(void)
              e_mod_move_indicator_widget_set(e_mod_move_indicator_widget_add(target_win));
 
              if ((target_mb) &&
-                 (TYPE_NOTIFICATION_CHECK(target_mb) || TYPE_APP_SELECTOR_CHECK(target_mb)) &&
+                 (TYPE_NOTIFICATION_CHECK(target_mb) ||
+                  TYPE_APP_SELECTOR_CHECK(target_mb) ||
+                  TYPE_APP_POPUP_CHECK(target_mb)) &&
                  (target_mb->argb) &&
                  (target_mb->indicator_state == E_MOVE_INDICATOR_STATE_NONE))
                {

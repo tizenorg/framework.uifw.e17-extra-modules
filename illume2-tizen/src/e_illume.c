@@ -864,6 +864,25 @@ e_illume_border_is_app_selector(E_Border *bd)
 }
 
 EAPI Eina_Bool
+e_illume_border_is_app_popup(E_Border *bd)
+{
+   const char *name = NULL;
+   const char *clas = NULL;
+
+   if (!bd) return EINA_FALSE;
+
+   name = bd->client.icccm.name;
+   clas = bd->client.icccm.class;
+
+   if (clas == NULL) return EINA_FALSE;
+   if (strncmp(clas,"APP_POPUP", strlen("APP_POPUP"))!= 0) return EINA_FALSE;
+   if (name == NULL) return EINA_FALSE;
+   if (strncmp(name,"APP_POPUP", strlen("APP_POPUP"))!= 0) return EINA_FALSE;
+
+   return EINA_TRUE;
+}
+
+EAPI Eina_Bool
 e_illume_border_is_fixed(E_Border *bd)
 {
    int min_w = 0, min_h = 0;
