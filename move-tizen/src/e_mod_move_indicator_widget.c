@@ -383,7 +383,11 @@ _e_mod_move_indicator_widget_cb_motion_start(void *data,
    m = e_mod_move_util_get();
 
    E_CHECK_RETURN(indi_widget, EINA_FALSE);
+   E_CHECK_RETURN(info, EINA_FALSE);
+   E_CHECK_RETURN(m, EINA_FALSE);
 
+   mb = e_mod_move_border_client_find(indi_widget->win);
+   E_CHECK_RETURN(mb, EINA_FALSE);
    // clicked window indicator policy check
    EINA_LIST_FOREACH(indi_widget->objs, l, mwo)
      {
@@ -403,10 +407,6 @@ _e_mod_move_indicator_widget_cb_motion_start(void *data,
    if (focus_mb && focus_mb->bd)
      if ((focus_mb->bd->client.icccm.accepts_focus) || (focus_mb->bd->client.icccm.take_focus))
        e_focus_event_mouse_down(focus_mb->bd);
-
-   mb = e_mod_move_border_client_find(indi_widget->win);
-
-   if (!m || !mb || !indi_widget || !info) return EINA_FALSE;
 
    mouse_down_event = info->event_info;
    E_CHECK_RETURN(mouse_down_event, EINA_FALSE);
