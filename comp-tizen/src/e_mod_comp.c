@@ -1520,6 +1520,35 @@ _e_mod_comp_win_del(E_Comp_Win *cw)
 }
 
 static void
+_e_mod_comp_win_prop_check(E_Comp_Win *cw)
+{
+   Ecore_X_Window win;
+   Ecore_X_Sync_Counter counter;
+
+   E_CHECK(cw);
+   win = e_mod_comp_util_client_xid_get(cw);
+
+   // ECORE_X_ATOM_E_COMP_SYNC_COUNTER
+   counter = ecore_x_e_comp_sync_counter_get(win);
+   if (cw->counter != counter)
+     {
+        if (cw->counter)
+          {
+             ecore_x_e_comp_sync_cancel_send(win);
+             ecore_x_sync_counter_inc(cw->counter, 1);
+             cw->sync_info.val++;
+          }
+        cw->counter = counter;
+        if (cw->counter)
+          {
+             ecore_x_sync_counter_inc(cw->counter, 1);
+             ecore_x_e_comp_sync_begin_send(win);
+             cw->sync_info.val = 1;
+          }
+     }
+}
+
+static void
 _e_mod_comp_win_show(E_Comp_Win *cw)
 {
    Ecore_X_Window win;
@@ -1971,6 +2000,25 @@ _e_mod_comp_destroy(void *data __UNUSED__,
         ev->win, _e_mod_comp_win_is_border(cw), cw);
    if (!cw->c->nocomp && cw->animating) cw->delete_me = 1;
    else _e_mod_comp_win_del(cw);
+   return ECORE_CALLBACK_PASS_ON;
+}
+
+/* Compositor must check the client window's property that want to be shown.
+ * TODO:Compositor will check the property of ECORE_X_ATOM_E_COMP_SYNC_COUNTER for now,
+ * but the other properties may also need to check later.
+ */
+static Eina_Bool
+_e_mod_comp_show_request(void *data __UNUSED__,
+                         int type   __UNUSED__,
+                         void       *event)
+{
+   Ecore_X_Event_Window_Show_Request *ev = event;
+   E_Comp_Win *cw = _e_mod_comp_win_find(ev->win);
+   if (!cw) return ECORE_CALLBACK_PASS_ON;
+   ELBF(ELBT_COMP, 0, e_mod_comp_util_client_xid_get(cw),
+        "%15.15s|w:0x%08x|bd:%d cw:%p", "X_SHOW_REQUEST",
+        ev->win, _e_mod_comp_win_is_border(cw), cw);
+   _e_mod_comp_win_prop_check(cw);
    return ECORE_CALLBACK_PASS_ON;
 }
 
@@ -3960,6 +4008,7 @@ e_mod_comp_init(void)
 
    handlers = eina_list_append(handlers, ecore_event_handler_add(ECORE_X_EVENT_WINDOW_CREATE,         _e_mod_comp_create,           NULL));
    handlers = eina_list_append(handlers, ecore_event_handler_add(ECORE_X_EVENT_WINDOW_DESTROY,        _e_mod_comp_destroy,          NULL));
+   handlers = eina_list_append(handlers, ecore_event_handler_add(ECORE_X_EVENT_WINDOW_SHOW_REQUEST,   _e_mod_comp_show_request,     NULL));
    handlers = eina_list_append(handlers, ecore_event_handler_add(ECORE_X_EVENT_WINDOW_SHOW,           _e_mod_comp_show,             NULL));
    handlers = eina_list_append(handlers, ecore_event_handler_add(ECORE_X_EVENT_WINDOW_HIDE,           _e_mod_comp_hide,             NULL));
    handlers = eina_list_append(handlers, ecore_event_handler_add(ECORE_X_EVENT_WINDOW_REPARENT,       _e_mod_comp_reparent,         NULL));
