@@ -1066,14 +1066,13 @@ _policy_border_post_fetch(E_Border *bd)
        e_illume_border_is_app_selector(bd) ||
        e_illume_border_is_app_popup(bd))
      {
-        bd->client.e.state.rot.type = E_BORDER_ROTATION_TYPE_DEPENDENT;
+        int ang = -1;
+        int next_ang = 0;
 
         // TODO: what to do if rotation fetch is changed?
         if (!eina_list_data_find(dep_rot.list, bd))
           {
-             int ang = -1;
-             int next_ang = 0;
-
+             bd->client.e.state.rot.type = E_BORDER_ROTATION_TYPE_DEPENDENT;
              if (bd->new_client)
                {
                   ang = _prev_angle_get(bd->client.win);
@@ -1081,18 +1080,19 @@ _policy_border_post_fetch(E_Border *bd)
                     bd->client.e.state.rot.curr = ang;
                }
              dep_rot.list = eina_list_append(dep_rot.list, bd);
+          }
 
-             if (dep_rot.refer.active_bd) next_ang = dep_rot.refer.active_bd->client.e.state.rot.curr;
-             else next_ang = dep_rot.ang;
+        // WORKAROUND: event if any property changes, E will check rotation state.
+        if (dep_rot.refer.active_bd) next_ang = dep_rot.refer.active_bd->client.e.state.rot.curr;
+        else next_ang = dep_rot.ang;
 
-             if (next_ang != bd->client.e.state.rot.curr)
-               {
-                  // if this border's new_client flag is set,
-                  // this border's show time should be posted until done of rotation.
-                  // will call "e_border_rotation_set" in main eval of e17
-                  if (_policy_dependent_rotation_check(bd, next_ang))
-                    bd->client.e.state.rot.changes = next_ang;
-               }
+        if (next_ang != bd->client.e.state.rot.curr)
+          {
+             // if this border's new_client flag is set,
+             // this border's show time should be posted until done of rotation.
+             // will call "e_border_rotation_set" in main eval of e17
+             if (_policy_dependent_rotation_check(bd, next_ang))
+               bd->client.e.state.rot.changes = next_ang;
           }
      }
 
