@@ -1,0 +1,48 @@
+program { name: "prog-show-rot-0";
+   signal: "e,state,visible,on";
+   source: "e.rot.0";
+   action: STATE_SET "default" 0.0;
+   target: "e.swallow.content";
+   //after: "prog-emit-show-done";
+   after: "prog-emit-rotation-done";
+   script {
+      set_curr_window_ang(0)
+      window_rotation(0)
+   }
+}
+program { name: "prog-show-rot-90";
+   signal: "e,state,visible,on";
+   source: "e.rot.90";
+   action: STATE_SET "default" 0.0;
+   target: "e.swallow.content";
+   //after: "prog-emit-show-done";
+   after: "prog-emit-rotation-done";
+   script {
+      set_curr_window_ang(90)
+      window_rotation(0)
+   }
+}
+program { name: "prog-show-rot-180";
+   signal: "e,state,visible,on";
+   source: "e.rot.180";
+   action: STATE_SET "default" 0.0;
+   target: "e.swallow.content";
+   //after: "prog-emit-show-done";
+   after: "prog-emit-rotation-done";
+   script {
+      set_curr_window_ang(180)
+      window_rotation(0)
+   }
+}
+program { name: "prog-show-rot-270";
+   signal: "e,state,visible,on";
+   source: "e.rot.270";
+   action: STATE_SET "default" 0.0;
+   target: "e.swallow.content";
+   //after: "prog-emit-show-done";
+   after: "prog-emit-rotation-done";
+   script {
+      set_curr_window_ang(270)
+      window_rotation(0)
+   }
+}

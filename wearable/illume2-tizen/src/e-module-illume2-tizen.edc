@@ -1,0 +1,1335 @@
+collections
+{
+   sounds
+   {
+      sample
+      {
+         name: "touch_sound" RAW;
+         source: "tizen_touch.wav";
+      }
+   }
+
+   group
+     {
+        images.image: "module_icon.png" COMP;
+        name: "icon";
+        max: 128 128;
+        parts
+          {
+             part
+               {
+                  name: "icon";
+                  type: IMAGE;
+                  mouse_events: 0;
+                  description
+                    {
+                       state: "default" 0.0;
+                       aspect: 1.0 1.0;
+                       aspect_preference: BOTH;
+                       image.normal: "module_icon.png";
+                    }
+               }
+        }
+     }
+
+   group
+     {
+        images.image: "tizen_dummy_icon.png" COMP;
+        name: "default_icon";
+        max: 100 100;
+        parts
+          {
+             part
+               {
+                  name: "icon";
+                  type: IMAGE;
+                  mouse_events: 0;
+                  description
+                    {
+                       state: "default" 0.0;
+                       aspect: 1.0 1.0;
+                       aspect_preference: BOTH;
+                       image.normal: "tizen_dummy_icon.png";
+                    }
+               }
+        }
+     }
+
+   group
+     {
+        images.image: "multi_window_minimize_normal.png" COMP;
+        images.image: "multi_window_minimize_press.png" COMP;
+        name: "mw_minimize_mode";
+
+        parts
+          {
+             part
+               {
+                  name:  "bg";
+                  mouse_events: 1;
+                  scale: 1;
+                  type: IMAGE;
+                  description
+                    {
+                       state: "default" 0.0;
+                       min: 112 112;
+                       max: 112 112;
+                       fixed: 1 1;
+                       rel1 { relative: 0.0 0.0; }
+                       rel2 { relative: 1.0 1.0; }
+                       image.normal: "multi_window_minimize_normal.png";
+                       //image.middle: SOLID;
+                    }
+                  description
+                    {
+                       state: "focused" 0.0;
+                       inherit: "default" 0.0;
+                       image.normal: "multi_window_minimize_press.png";
+                    }
+               }
+             part
+               {
+                  type: SWALLOW;
+                  name:  "swallow_icon";
+                  scale: 1;
+                  description
+                    {
+                       state: "default" 0.0;
+                       min: 102 102;
+                       max: 102 102;
+                       aspect: 1.0 1.0;
+                       fixed: 1 1;
+                       align: 0.5 0.5;
+                       rel1 { relative: 0.0 0.0; to: "bg"; offset: 4 4; }
+                       rel2 { relative: 1.0 1.0; to: "bg"; offset: -4 -4; }
+                    }
+               }
+         }
+        programs
+           {
+              program
+                {
+                   source: "illume2";
+                   name:   "icon_focused";
+                   signal: "pin.focused";
+                   action: STATE_SET "focused" 0.0;
+                   target: "bg";
+                }
+              program
+                {
+                   source: "illume2";
+                   name:   "icon_losefocused";
+                   signal: "pin.losefocus";
+                   action: STATE_SET "default" 0.0;
+                   target: "bg";
+                }
+              program
+                {
+                   source: "illume2";
+                   name:   "icon_play_sound";
+                   signal: "pin.sound";
+                   action: PLAY_SAMPLE "touch_sound" 1.0;
+                }
+           }
+     }
+
+   group
+     {
+        images.image: "mw_frame_press.png" COMP;
+        images.image: "mw_frame_press_overscroll.png" COMP;
+        images.image: "mw_frame_handler_press.png" COMP;
+        name: "new_shadow";
+        max: 720 720;
+        parts
+          {
+             part
+               {
+                  name: "opacity_rect";
+                  type: RECT;
+                  description
+                    {
+                       state: "default" 0.0;
+                       color: 255 255 255 255;
+                    }
+               }
+             part
+               {
+                  name: "resize_border";
+                  type: IMAGE;
+                  clip_to: "opacity_rect";
+                  description
+                    {
+                       state: "default" 0.0;
+                       image.normal: "mw_frame_press.png";
+                       image.border: 3 3 3 3;
+                       image.middle: NONE;
+                    }
+                  description
+                    {
+                       state: "avail" 0.0;
+                       inherit: "default" 0.0;
+                    }
+                  description
+                    {
+                       state: "notavail" 0.0;
+                       image.normal: "mw_frame_press_overscroll.png";
+                       image.border: 3 3 3 3;
+                       image.border_scale: 0;
+                    }
+               }
+             part
+               {
+                  name: "resize_handle";
+                  type: IMAGE;
+                  clip_to: "opacity_rect";
+                  description
+                    {
+                       state: "default" 0.0;
+                       min: 36 36;
+                       max:  36 36;
+                       image.normal: "mw_frame_handler_press.png";
+                       align: 1 1;
+                    }
+                  description
+                    {
+                       state: "default" 0.0;
+                       min: 36 36;
+                       max:  36 36;
+                       image.normal: "mw_frame_handler_press.png";
+                       align: 1 1;
+                       visible: 0;
+                    }
+                  description
+                    {
+                       state: "visible" 0.0;
+                       inherit: "default" 0.0;
+                       visible: 1;
+                    }
+                  description
+                    {
+                       state: "degree_90" 0.0;
+                       inherit: "visible" 0.0;
+                       map.on: 1;
+                       map.rotation.z: 270;
+                       align: 1 0;
+                    }
+                  description
+                    {
+                       state: "degree_180" 0.0;
+                       inherit: "visible" 0.0;
+                       map.on: 1;
+                       map.rotation.z: 180;
+                       align: 0 0;
+                    }
+                  description
+                    {
+                       state: "degree_270" 0.0;
+                       inherit: "visible" 0.0;
+                       map.on: 1;
+                       map.rotation.z: 90;
+                       align: 0 1;
+                    }
+               }
+          }
+
+          programs
+           {
+               program
+                 {
+                    source: "illume2";
+                    action: STATE_SET "visible" 0;
+                    signal: "resize,angle";
+                    target: "resize_handle";
+                 }
+               program
+                 {
+                    source: "illume2";
+                    action: STATE_SET "degree_90" 0;
+                    signal: "resize,angle,90";
+                    target: "resize_handle";
+                 }
+               program
+                 {
+                    source: "illume2";
+                    action: STATE_SET "degree_180" 0;
+                    signal: "resize,angle,180";
+                    target: "resize_handle";
+                 }
+               program
+                 {
+                    source: "illume2";
+                    action: STATE_SET "degree_270" 0;
+                    signal: "resize,angle,270";
+                    target: "resize_handle";
+                 }
+               program
+                 {
+                    source: "illume2";
+                    action: STATE_SET "avail" 0;
+                    signal: "resize,avail";
+                    target: "resize_border";
+                 }
+               program
+                 {
+                    source: "illume2";
+                    action: STATE_SET "notavail" 0;
+                    signal: "resize,notavail";
+                    target: "resize_border";
+                 }
+           }
+     }
+
+   /* for the tiling */
+   group { name: "ly_bar_resize";
+      images {
+         image: "ly_bar_resize.png" COMP;
+      }
+      max: 720 7;
+      parts {
+         part { name: "clipper";
+            type: RECT;
+            description { state: "default" 0.0;
+               visible: 1;
+               color: 255 255 255 1;
+            }
+            description { state: "visible" 0.0;
+               visible: 1;
+               color: 255 255 255 255;
+            }
+         }
+         part { name: "shower";
+            type: IMAGE;
+            clip_to: "clipper";
+            description { state: "default" 0.0;
+               image.normal: "ly_bar_resize.png";
+            }
+         }
+      }
+      programs {
+         program { name: "show";
+            signal: "visible,on";
+            source: "illume2";
+            action: STATE_SET "visible" 0.0;
+            transition: DECELERATE 0.4;
+            filter: "clipper" "default";
+            target: "clipper";
+         }
+         program { name: "hide";
+            signal: "visible,off";
+            source: "illume2";
+            action: STATE_SET "default" 0.0;
+            transition: DECELERATE 0.8;
+            filter: "clipper" "visible";
+            target: "clipper";
+         }
+      }
+   }
+
+   group { name: "ly_bt_resize";
+      images {
+         image: "ly_bt_resize.png" COMP;
+      }
+      max: 100 100;
+      parts {
+         part { name: "clipper";
+            type: RECT;
+            description { state: "default" 0.0;
+               visible: 1;
+               color: 255 255 255 1;
+            }
+            description { state: "visible" 0.0;
+               visible: 1;
+               color: 255 255 255 255;
+            }
+         }
+         part { name: "shower";
+            type: IMAGE;
+            clip_to: "clipper";
+            description { state: "default" 0.0;
+            }
+         }
+         part { name: "img";
+            type: IMAGE;
+            clip_to: "clipper";
+            description { state: "default" 0.0;
+               image.normal: "ly_bt_resize.png";
+               rel1 { relative: 0.5 0.5; to: "shower"; offset: -32 -32;}
+               rel2 { relative: 0.5 0.5; to: "shower"; offset:  32  32;}
+            }
+         }
+      }
+      programs {
+         program { name: "show";
+            signal: "visible,on";
+            source: "illume2";
+            action: STATE_SET "visible" 0.0;
+            transition: DECELERATE 0.2;
+            filter: "clipper" "default";
+            target: "clipper";
+         }
+         program { name: "hide";
+            signal: "visible,off";
+            source: "illume2";
+            action: STATE_SET "default" 0.0;
+            filter: "clipper" "visible";
+            target: "clipper";
+         }
+         program {
+            signal: "reached,max_min,on";
+            source: "illume2";
+            action: STATE_SET "max_min" 0.0;
+            transition: ACCELERATE 0.2;
+            filter: "clipper" "visible";
+            target: "clipper";
+         }
+         program {
+            signal: "reached,max_min,off";
+            source: "illume2";
+            action: STATE_SET "visible" 0.0;
+            transition: ACCELERATE 0.2;
+            filter: "clipper" "max_min";
+            target: "clipper";
+         }
+      }
+   }
+
+   group { name: "ly_bt_resize_cue";
+        images {
+         image: "ly_bt_resize_cue.png" COMP;
+         image: "ly_bt_resize_cue_up.png" COMP;
+         image: "ly_bt_resize_cue_up_press.png" COMP;
+         image: "ly_bt_resize_cue_down.png" COMP;
+         image: "ly_bt_resize_cue_down_press.png" COMP;
+      }
+      parts {
+         part { name: "clipper";
+            type: RECT;
+            description { state: "default" 0.0;
+               visible: 1;
+               color: 255 255 255 1;
+            }
+            description { state: "visible" 0.0;
+               visible: 1;
+               color: 255 255 255 255;
+            }
+         }
+         part { name: "shower";
+            type: IMAGE;
+            clip_to: "clipper";
+            description { state: "default" 0.0;
+               max: 250 250;
+               image.normal: "ly_bt_resize_cue.png";
+            }
+         }
+         part { name: "cue_up";
+            type: IMAGE;
+            clip_to: "clipper";
+            description { state: "default" 0.0;
+               image.normal: "ly_bt_resize_cue_up.png";
+               max: 45 45;
+               rel1 { relative:0.5 0; to:"shower"; offset: -22.5  10; }
+               rel2 { relative:0.5 0; to:"shower"; offset: 22.5  55; }
+            }
+            description { state: "pressed.up" 0.0;
+               inherit: "default";
+               image.normal: "ly_bt_resize_cue_up_press.png";
+            }
+            description { state: "pressed.down" 0.0;
+               inherit: "default";
+            }
+         }
+         part { name: "cue_down";
+            type: IMAGE;
+            clip_to: "clipper";
+            description { state: "default" 0.0;
+               image.normal: "ly_bt_resize_cue_down.png";
+               max: 45 45;
+               rel1 { relative:0.5 1; to:"shower"; offset: -22.5 -55; }
+               rel2 { relative:0.5 1; to:"shower"; offset: 22.5 -10; }
+            }
+            description { state: "pressed.down" 0.0;
+               inherit: "default";
+               image.normal: "ly_bt_resize_cue_down_press.png";
+            }
+            description { state: "pressed.up" 0.0;
+               inherit: "default";
+            }
+         }
+      }
+      programs {
+         program { name: "show";
+            signal: "visible,on";
+            source: "illume2";
+            action: STATE_SET "visible" 0.0;
+            transition: DECELERATE 0.4;
+            filter: "clipper" "default";
+            target: "clipper";
+         }
+         program { name: "hide";
+            signal: "visible,off";
+            source: "illume2";
+            action: STATE_SET "default" 0.0;
+            filter: "clipper" "visible";
+            target: "clipper";
+         }
+         program { name: "up";
+            signal: "pressed,up,on";
+            source: "illume2";
+            action: STATE_SET "pressed.up" 0.0;
+            target: "cue_up";
+            target: "cue_down";
+         }
+         program { name: "down";
+            signal: "pressed,down,on";
+            source: "illume2";
+            action: STATE_SET "pressed.down" 0.0;
+            target: "cue_up";
+            target: "cue_down";
+         }
+         program { name: "press_off";
+            signal: "pressed,off";
+            source: "illume2";
+            action: STATE_SET "default" 0.0;
+            target: "cue_up";
+            target: "cue_down";
+         }
+      }
+   }
+
+   group { name: "ly_bt_menu";
+      images {
+         image: "ly_menu_swap.png" COMP;
+         image: "ly_menu_swap_press.png" COMP;
+         image: "ly_menu_dnd.png" COMP;
+         image: "ly_menu_dnd_press.png" COMP;
+         image: "ly_menu_max.png" COMP;
+         image: "ly_menu_max_press.png" COMP;
+         image: "ly_menu_close.png" COMP;
+         image: "ly_menu_close_press.png" COMP;
+      }
+      parts {
+         part { name: "clipper";
+            type: RECT;
+            description { state: "default" 0.0;
+               visible: 1;
+               color: 255 255 255 1;
+               rel1 { relative: 0 0; }
+               rel2 { relative: 1 1; }
+            }
+            description { state: "visible" 0.0;
+                 inherit: "default";
+                 color: 255 255 255 255;
+            }
+         }
+         part { name: "swap_shower";
+            type: RECT;
+            clip_to: "clipper";
+            description { state: "default" 0.0;
+               visible: 0;
+               color: 0 0 0 0;
+              }
+            description { state: "top_on" 0.0;
+               inherit: "default";
+               visible: 1;
+               color: 255 255 255 255;
+               rel1 { relative: 0 0; offset: 0 63; }
+               rel2 { relative: 0 0; offset: 85 148; }
+              }
+            description { state: "top_off" 0.0;
+               inherit: "default";
+               visible: 1;
+               color: 0 0 0 0;
+               rel1 { relative: 0 0; offset: 0 63; }
+               rel2 { relative: 0 0; offset: 0 63; }
+              }
+            description { state: "bottom_on" 0.0;
+               inherit: "default";
+               visible: 1;
+               color: 255 255 255 255;
+               rel1 { relative: 0 0; offset: 0 0; }
+               rel2 { relative: 0 0; offset: 85 85; }
+              }
+            description { state: "bottom_off" 0.0;
+               inherit: "default";
+               visible: 1;
+               color: 0 0 0 0;
+               rel1 { relative: 0 0; offset: 0 0; }
+               rel2 { relative: 0 0; offset: 0 0; }
+              }
+         }
+         part { name: "swap_menu";
+            type: IMAGE;
+            clip_to: "swap_shower";
+            description { state: "default" 0.0;
+               image.normal: "ly_menu_swap.png";
+               visible: 1;
+               rel1 { relative: 0 0; to: "swap_shower"; }
+               rel2 { relative: 1 1; to: "swap_shower"; }
+            }
+            description { state: "visible_0" 0.0;
+               inherit: "default";
+               visible: 1;
+            }
+            description { state: "visible_0_press" 0.0;
+               inherit: "visible_0";
+               image.normal: "ly_menu_swap_press.png";
+            }
+            description { state: "visible_90" 0.0;
+               inherit: "default";
+               visible: 1;
+               map.on: 1;
+               map.rotation.z: 270;
+            }
+            description { state: "visible_90_press" 0.0;
+               inherit: "visible_90";
+               image.normal: "ly_menu_swap_press.png";
+            }
+            description { state: "visible_270" 0.0;
+               inherit: "default";
+               visible: 1;
+               map.on: 1;
+               map.rotation.z: 90;
+            }
+            description { state: "visible_270_press" 0.0;
+               inherit: "visible_270";
+               image.normal: "ly_menu_swap_press.png";
+            }
+         }
+         part { name: "dnd_shower";
+            type: RECT;
+            clip_to: "clipper";
+            description { state: "default" 0.0;
+               visible: 0;
+               color: 0 0 0 0;
+              }
+            description { state: "top_on" 0.0;
+               inherit: "default";
+               color: 255 255 255 255;
+               rel1 { relative: 0.33 0; offset: -42.5 0; }
+               rel2 { relative: 0.33 0; offset: 42.5 85; }
+              }
+            description { state: "top_off" 0.0;
+               inherit: "default";
+               color: 0 0 0 0;
+               rel1 { relative: 0.33 0; offset: -42.5 0; }
+               rel2 { relative: 0.33 0; offset: -42.5 0; }
+              }
+            description { state: "bottom_on" 0.0;
+               inherit: "default";
+               color: 255 255 255 255;
+               rel1 { relative: 0.33 0; offset: -42.5 63; }
+               rel2 { relative: 0.33 0; offset: 42.5 148; }
+              }
+            description { state: "bottom_off" 0.0;
+               inherit: "default";
+               color: 0 0 0 0;
+               rel1 { relative: 0.33 0; offset: -42.5 63; }
+               rel2 { relative: 0.33 0; offset: -42.5 63; }
+              }
+         }
+         part { name: "dnd_menu";
+            type: IMAGE;
+            clip_to: "dnd_shower";
+            description { state: "default" 0.0;
+               image.normal: "ly_menu_dnd.png";
+               rel1 { relative: 0 0; to: "dnd_shower"; }
+               rel2 { relative: 1 1; to: "dnd_shower"; }
+            }
+            description { state: "visible_0" 0.0;
+               inherit: "default";
+            }
+            description { state: "visible_0_press" 0.0;
+               inherit: "visible_0";
+               image.normal: "ly_menu_dnd_press.png";
+            }
+            description { state: "visible_90" 0.0;
+               inherit: "default";
+               map.on: 1;
+               map.rotation.z: 270;
+            }
+            description { state: "visible_90_press" 0.0;
+               inherit: "visible_90";
+               image.normal: "ly_menu_dnd_press.png";
+            }
+            description { state: "visible_270" 0.0;
+               inherit: "default";
+               map.on: 1;
+               map.rotation.z: 90;
+            }
+            description { state: "visible_270_press" 0.0;
+               inherit: "visible_270";
+               image.normal: "ly_menu_dnd_press.png";
+            }
+         }
+         part { name: "max_shower";
+            type: RECT;
+            clip_to: "clipper";
+            description { state: "default" 0.0;
+               visible: 0;
+               color: 0 0 0 0;
+              }
+            description { state: "top_on" 0.0;
+               inherit: "default";
+               visible: 1;
+               color: 255 255 255 255;
+               rel1 { relative: 0.5 0; offset: -42.5 0; }
+               rel2 { relative: 0.5 0; offset: 42.5 85; }
+              }
+            description { state: "top_off" 0.0;
+               inherit: "default";
+               visible: 0;
+               color: 0 0 0 0;
+               rel1 { relative: 0.5 0; offset: -42.5 0; }
+               rel2 { relative: 0.5 0; offset: -42.5 0; }
+              }
+            description { state: "bottom_on" 0.0;
+               inherit: "default";
+               visible: 1;
+               color: 255 255 255 255;
+               rel1 { relative: 0.5 0; offset: -42.5 63; }
+               rel2 { relative: 0.5 0; offset: 42.5 148; }
+              }
+            description { state: "bottom_off" 0.0;
+               inherit: "default";
+               visible: 0;
+               color: 0 0 0 0;
+               rel1 { relative: 0.5 0; offset: -42.5 63; }
+               rel2 { relative: 0.5 0; offset: -42.5 63; }
+              }
+         }
+         part { name: "max_menu";
+            type: IMAGE;
+            clip_to: "max_shower";
+            description { state: "default" 0.0;
+               image.normal: "ly_menu_max.png";
+               visible: 1;
+               rel1 { relative: 0 0; to: "max_shower"; }
+               rel2 { relative: 1 1; to: "max_shower"; }
+            }
+            description { state: "visible_0" 0.0;
+               inherit: "default";
+               visible: 1;
+            }
+            description { state: "visible_0_press" 0.0;
+               inherit: "visible_0";
+               image.normal: "ly_menu_max_press.png";
+            }
+            description { state: "visible_90" 0.0;
+               inherit: "default";
+               visible: 1;
+               map.on: 1;
+               map.rotation.z: 270;
+            }
+            description { state: "visible_90_press" 0.0;
+               inherit: "visible_90";
+               image.normal: "ly_menu_max_press.png";
+            }
+            description { state: "visible_270" 0.0;
+               inherit: "default";
+               visible: 1;
+               map.on: 1;
+               map.rotation.z: 90;
+            }
+            description { state: "visible_270_press" 0.0;
+               inherit: "visible_270";
+               image.normal: "ly_menu_max_press.png";
+            }
+         }
+         part { name: "close_shower";
+            type: RECT;
+            clip_to: "clipper";
+            description { state: "default" 0.0;
+               visible: 0;
+               color: 0 0 0 0;
+              }
+            description { state: "top_on" 0.0;
+               inherit: "default";
+               visible: 1;
+               color: 255 255 255 255;
+               rel1 { relative: 1 0; offset: -85 63; }
+               rel2 { relative: 1 0; offset:  0 148; }
+              }
+            description { state: "top_off" 0.0;
+               inherit: "default";
+               visible: 0;
+               color: 0 0 0 0;
+               rel1 { relative: 1 0; offset: -85 63; }
+               rel2 { relative: 1 0; offset: -85 63; }
+              }
+            description { state: "bottom_on" 0.0;
+               inherit: "default";
+               visible: 1;
+               color: 255 255 255 255;
+               rel1 { relative: 1 0; offset: -85 0; }
+               rel2 { relative: 1 0; offset: 0 85; }
+              }
+            description { state: "bottom_off" 0.0;
+               inherit: "default";
+               visible: 0;
+               color: 0 0 0 0;
+               rel1 { relative: 1 0; offset: -85 0; }
+               rel2 { relative: 1 0; offset: -85 0; }
+              }
+         }
+         part { name: "close_menu";
+            type: IMAGE;
+            clip_to: "close_shower";
+            description { state: "default" 0.0;
+               image.normal: "ly_menu_close.png";
+               visible: 1;
+               rel1 { relative: 0 0; to: "close_shower"; }
+               rel2 { relative: 1 1; to: "close_shower"; }
+            }
+            description { state: "visible_0" 0.0;
+               inherit: "default";
+               visible: 1;
+            }
+            description { state: "visible_0_press" 0.0;
+               inherit: "visible_0";
+               image.normal: "ly_menu_close_press.png";
+            }
+            description { state: "visible_90" 0.0;
+               inherit: "default";
+               visible: 1;
+               map.on: 1;
+               map.rotation.z: 270;
+            }
+            description { state: "visible_90_press" 0.0;
+               inherit: "visible_90";
+               image.normal: "ly_menu_close_press.png";
+            }
+            description { state: "visible_270" 0.0;
+               inherit: "default";
+               visible: 1;
+               map.on: 1;
+               map.rotation.z: 90;
+            }
+            description { state: "visible_270_press" 0.0;
+               inherit: "visible_270";
+               image.normal: "ly_menu_close_press.png";
+            }
+         }
+      }
+      programs {
+         program { name: "show.top";
+            signal: "visible,on,top";
+            source: "illume2";
+            action: STATE_SET "visible" 0.0;
+            target: "clipper";
+            after: "menu.show1.top";
+         }
+         program { name: "menu.show1.top";
+            action: STATE_SET "top_on" 0.0;
+            transition: DECELERATE 0.1;
+            target: "swap_shower";
+            after: "menu.show3.top";
+         }
+         program { name: "menu.show2.top";
+            action: STATE_SET "top_on" 0.0;
+            transition: DECELERATE 0.1;
+            target: "dnd_shower";
+            after: "menu.show3.top";
+         }
+         program { name: "menu.show3.top";
+            action: STATE_SET "top_on" 0.0;
+            transition: DECELERATE 0.1;
+            target: "max_shower";
+            after: "menu.show4.top";
+         }
+         program { name: "menu.show4.top";
+            action: STATE_SET "top_on" 0.0;
+            transition: DECELERATE 0.2;
+            target: "close_shower";
+         }
+         program { name: "show.bottom";
+            signal: "visible,on,bottom";
+            source: "illume2";
+            action: STATE_SET "visible" 0.0;
+            target: "clipper";
+            after: "menu.show1.bottom";
+         }
+         program { name: "menu.show1.bottom";
+            action: STATE_SET "bottom_on" 0.0;
+            transition: DECELERATE 0.1;
+            target: "swap_shower";
+            after: "menu.show3.bottom";
+         }
+         program { name: "menu.show2.bottom";
+            action: STATE_SET "bottom_on" 0.0;
+            transition: DECELERATE 0.1;
+            target: "dnd_shower";
+            after: "menu.show3.bottom";
+         }
+         program { name: "menu.show3.bottom";
+            action: STATE_SET "bottom_on" 0.0;
+            transition: DECELERATE 0.1;
+            target: "max_shower";
+            after: "menu.show4.bottom";
+         }
+         program { name: "menu.show4.bottom";
+            action: STATE_SET "bottom_on" 0.0;
+            transition: DECELERATE 0.2;
+            target: "close_shower";
+         }
+         program { name: "menu.hide.top";
+            signal: "visible,off,top";
+            source: "illume2";
+            action: STATE_SET "top_off" 0.0;
+            transition: ACCELERATE 0.1;
+            target: "swap_shower";
+            target: "dnd_shower";
+            target: "max_shower";
+            target: "close_shower";
+            after: "hide";
+         }
+         program { name: "menu.hide.bottom";
+            signal: "visible,off,bottom";
+            source: "illume2";
+            action: STATE_SET "bottom_off" 0.0;
+            transition: ACCELERATE 0.1;
+            target: "swap_shower";
+            target: "dnd_shower";
+            target: "max_shower";
+            target: "close_shower";
+            after: "hide";
+         }
+         program { name: "hide";
+            action: STATE_SET "default" 0.0;
+            target: "clipper";
+            after: "hide2";
+         }
+         program { name: "hide2";
+            action: SIGNAL_EMIT "hide,done" "illume2";
+         }
+         program { name: "align.change.top.on";
+            signal: "align,change";
+            source: "illume2";
+            action: STATE_SET "top_on" 0.0;
+            filter: "swap_shower" "bottom_on";
+            target: "swap_shower";
+            target: "dnd_shower";
+            target: "max_shower";
+            target: "close_shower";
+         }
+         program { name: "align.change.top.off";
+            signal: "align,change";
+            source: "illume2";
+            action: STATE_SET "top_off" 0.0;
+            filter: "swap_shower" "bottom_off";
+            target: "swap_shower";
+            target: "dnd_shower";
+            target: "max_shower";
+            target: "close_shower";
+         }
+         program { name: "align.change.bottom.on";
+            signal: "align,change";
+            source: "illume2";
+            action: STATE_SET "bottom_on" 0.0;
+            filter: "swap_shower" "top_on";
+            target: "swap_shower";
+            target: "dnd_shower";
+            target: "max_shower";
+            target: "close_shower";
+         }
+         program { name: "align.change.bottom.off";
+            signal: "align,change";
+            source: "illume2";
+            action: STATE_SET "bottom_off" 0.0;
+            filter: "swap_shower" "top_off";
+            target: "swap_shower";
+            target: "dnd_shower";
+            target: "max_shower";
+            target: "close_shower";
+         }
+         program { name: "visible.change.on.top";
+            signal: "visible,change,top";
+            source: "illume2";
+            action: STATE_SET "visible" 0.0;
+            filter: "clipper" "default";
+            target: "clipper";
+            after: "menu.show1.top";
+         }
+         program { name: "visible.change.off.top";
+            signal: "visible,change,top";
+            source: "illume2";
+            filter: "clipper" "visible";
+            action: STATE_SET "top_off" 0.0;
+            transition: ACCELERATE 0.1;
+            target: "swap_shower";
+            target: "dnd_shower";
+            target: "max_shower";
+            target: "close_shower";
+            after: "hide";
+         }
+         program { name: "visible.change.on.bottom";
+            signal: "visible,change,bottom";
+            source: "illume2";
+            action: STATE_SET "visible" 0.0;
+            filter: "clipper" "default";
+            target: "clipper";
+            after: "menu.show1.bottom";
+         }
+         program { name: "visible.change.off.bottom";
+            signal: "visible,change,bottom";
+            source: "illume2";
+            filter: "clipper" "visible";
+            action: STATE_SET "bottom_off" 0.0;
+            transition: ACCELERATE 0.1;
+            target: "swap_shower";
+            target: "dnd_shower";
+            target: "max_shower";
+            target: "close_shower";
+            after: "hide";
+         }
+         program { name: "visible.off.notransit";
+            signal: "visible,off,notransit";
+            source: "illume2";
+            filter: "clipper" "visible";
+            after: "hide";
+         }
+         program { name: "change.angle.0";
+            signal: "change,angle,0";
+            source: "illume2";
+            action: STATE_SET "visible_0" 0.0;
+            target: "swap_menu";
+            target: "dnd_menu";
+            target: "max_menu";
+            target: "close_menu";
+         }
+         program { name: "change.angle.90";
+            signal: "change,angle,90";
+            source: "illume2";
+            action: STATE_SET "visible_90" 0.0;
+            target: "swap_menu";
+            target: "dnd_menu";
+            target: "max_menu";
+            target: "close_menu";
+         }
+         program { name: "change.angle.270";
+            signal: "change,angle,270";
+            source: "illume2";
+            action: STATE_SET "visible_270" 0.0;
+            target: "swap_menu";
+            target: "dnd_menu";
+            target: "max_menu";
+            target: "close_menu";
+         }
+         program { name: "swap.pressed.0";
+            signal: "swap,press,on";
+            source: "illume2";
+            action: STATE_SET "visible_0_press" 0.0;
+            filter: "swap_menu" "visible_0";
+            target: "swap_menu";
+         }
+         program { name: "swap.pressed.90";
+            signal: "swap,press,on";
+            source: "illume2";
+            action: STATE_SET "visible_90_press" 0.0;
+            filter: "swap_menu" "visible_90";
+            target: "swap_menu";
+         }
+         program { name: "swap.pressed.270";
+            signal: "swap,press,on";
+            source: "illume2";
+            action: STATE_SET "visible_270_press" 0.0;
+            filter: "swap_menu" "visible_270";
+            target: "swap_menu";
+         }
+         program { name: "swap.released.0";
+            signal: "swap,press,off";
+            source: "illume2";
+            action: STATE_SET "visible_0" 0.0;
+            filter: "swap_menu" "visible_0_press";
+            target: "swap_menu";
+         }
+         program { name: "swap.released.90";
+            signal: "swap,press,off";
+            source: "illume2";
+            action: STATE_SET "visible_90" 0.0;
+            filter: "swap_menu" "visible_90_press";
+            target: "swap_menu";
+         }
+         program { name: "swap.released.270";
+            signal: "swap,press,off";
+            source: "illume2";
+            action: STATE_SET "visible_270" 0.0;
+            filter: "swap_menu" "visible_270_press";
+            target: "swap_menu";
+         }
+         program { name: "dnd.pressed.0";
+            signal: "dnd,press,on";
+            source: "illume2";
+            action: STATE_SET "visible_0_press" 0.0;
+            filter: "dnd_menu" "visible_0";
+            target: "dnd_menu";
+         }
+         program { name: "dnd.pressed.90";
+            signal: "dnd,press,on";
+            source: "illume2";
+            action: STATE_SET "visible_90_press" 0.0;
+            filter: "dnd_menu" "visible_90";
+            target: "dnd_menu";
+         }
+         program { name: "dnd.pressed.270";
+            signal: "dnd,press,on";
+            source: "illume2";
+            action: STATE_SET "visible_270_press" 0.0;
+            filter: "dnd_menu" "visible_270";
+            target: "dnd_menu";
+         }
+         program { name: "dnd.released.0";
+            signal: "dnd,press,off";
+            source: "illume2";
+            action: STATE_SET "visible_0" 0.0;
+            filter: "dnd_menu" "visible_0_press";
+            target: "dnd_menu";
+         }
+         program { name: "dnd.released.90";
+            signal: "dnd,press,off";
+            source: "illume2";
+            action: STATE_SET "visible_90" 0.0;
+            filter: "dnd_menu" "visible_90_press";
+            target: "dnd_menu";
+         }
+         program { name: "dnd.released.270";
+            signal: "dnd,press,off";
+            source: "illume2";
+            action: STATE_SET "visible_270" 0.0;
+            filter: "dnd_menu" "visible_270_press";
+            target: "dnd_menu";
+         }
+         program { name: "max.pressed.0";
+            signal: "max,press,on";
+            source: "illume2";
+            action: STATE_SET "visible_0_press" 0.0;
+            filter: "max_menu" "visible_0";
+            target: "max_menu";
+         }
+         program { name: "max.pressed.90";
+            signal: "max,press,on";
+            source: "illume2";
+            action: STATE_SET "visible_90_press" 0.0;
+            filter: "max_menu" "visible_90";
+            target: "max_menu";
+         }
+         program { name: "max.pressed.270";
+            signal: "max,press,on";
+            source: "illume2";
+            action: STATE_SET "visible_270_press" 0.0;
+            filter: "max_menu" "visible_270";
+            target: "max_menu";
+         }
+         program { name: "max.released.0";
+            signal: "max,press,off";
+            source: "illume2";
+            action: STATE_SET "visible_0" 0.0;
+            filter: "max_menu" "visible_0_press";
+            target: "max_menu";
+         }
+         program { name: "max.released.90";
+            signal: "max,press,off";
+            source: "illume2";
+            action: STATE_SET "visible_90" 0.0;
+            filter: "max_menu" "visible_90_press";
+            target: "max_menu";
+         }
+         program { name: "max.released.270";
+            signal: "max,press,off";
+            source: "illume2";
+            action: STATE_SET "visible_270" 0.0;
+            filter: "max_menu" "visible_270_press";
+            target: "max_menu";
+         }
+         program { name: "close.pressed.0";
+            signal: "close,press,on";
+            source: "illume2";
+            action: STATE_SET "visible_0_press" 0.0;
+            filter: "close_menu" "visible_0";
+            target: "close_menu";
+         }
+         program { name: "close.pressed.90";
+            signal: "close,press,on";
+            source: "illume2";
+            action: STATE_SET "visible_90_press" 0.0;
+            filter: "close_menu" "visible_90";
+            target: "close_menu";
+         }
+         program { name: "close.pressed.270";
+            signal: "close,press,on";
+            source: "illume2";
+            action: STATE_SET "visible_270_press" 0.0;
+            filter: "close_menu" "visible_270";
+            target: "close_menu";
+         }
+          program { name: "close.released.0";
+            signal: "close,press,off";
+            source: "illume2";
+            action: STATE_SET "visible_0" 0.0;
+            filter: "close_menu" "visible_0_press";
+            target: "close_menu";
+         }
+         program { name: "close.released.90";
+            signal: "close,press,off";
+            source: "illume2";
+            action: STATE_SET "visible_90" 0.0;
+            filter: "close_menu" "visible_90_press";
+            target: "close_menu";
+         }
+         program { name: "close.released.270";
+            signal: "close,press,off";
+            source: "illume2";
+            action: STATE_SET "visible_270" 0.0;
+            filter: "close_menu" "visible_270_press";
+            target: "close_menu";
+         }
+      }
+   }
+
+   group { name: "ly_active_stress";
+      images {
+         image: "ly_active_line.png" COMP;
+         image: "ly_active_rect.png" COMP;
+      }
+      parts {
+         part { name: "clipper";
+            type: RECT;
+            description { state: "default" 0.0;
+               visible: 1;
+               color: 255 255 255 1;
+               rel1 { relative: 0 0; }
+               rel2 { relative: 1 1; }
+            }
+            description { state: "visible" 0.0;
+               visible: 1;
+               color: 255 255 255 255;
+               rel1 { relative: 0 0; }
+               rel2 { relative: 1 1; }
+            }
+         }
+         part { name: "clipper_rect";
+            type: RECT;
+            description { state: "default" 0.0;
+               visible: 1;
+               color: 255 255 255 1;
+               rel1 { relative: 0 0; }
+               rel2 { relative: 1 1; }
+            }
+            description { state: "visible" 0.0;
+               visible: 1;
+               color: 255 255 255 255;
+               rel1 { relative: 0 0; }
+               rel2 { relative: 1 1; }
+            }
+         }
+         part { name: "line";
+            type: IMAGE;
+            clip_to: "clipper";
+            mouse_events: 0;
+            description { state: "default" 0.0;
+               image.normal: "ly_active_line.png";
+               image.border: 7 7 7 7;
+               image.middle: NONE;
+            }
+         }
+         part { name: "rect";
+            type: IMAGE;
+            clip_to: "clipper_rect";
+            mouse_events: 0;
+            description { state: "default" 0.0;
+               image.normal: "ly_active_rect.png";
+               rel1 { relative: 0 0; offset: 7 7;   to: "line"; }
+               rel2 { relative: 1 1; offset: -7 -7; to: "line"; }
+            }
+         }
+      }
+      programs {
+         program { name: "show";
+            signal: "visible,on,line";
+            source: "illume2";
+            action: STATE_SET "visible" 0.0;
+            transition: DECELERATE 0.2;
+            target: "clipper";
+         }
+         program { name: "hide";
+            signal: "visible,off,line";
+            source: "illume2";
+            action: STATE_SET "default" 0.0;
+            transition: DECELERATE 0.2;
+            target: "clipper";
+         }
+         program { name: "show.rect";
+            signal: "visible,on,rect";
+            source: "illume2";
+            action: STATE_SET "visible" 0.0;
+            transition: ACCELERATE 0.2;
+            target: "clipper_rect";
+         }
+         program { name: "hide.rect";
+            signal: "visible,off,rect";
+            source: "illume2";
+            action: STATE_SET "default" 0.0;
+            transition: DECELERATE 0.2;
+            target: "clipper_rect";
+         }
+         program { name: "visible.off.notransit";
+            signal: "visible,off,notransit";
+            source: "illume2";
+            action: STATE_SET "default" 0.0;
+            filter: "clipper" "visible";
+            target: "clipper";
+         }
+      }
+   }
+
+   group { name: "ly_dim_rect";
+      parts {
+         part { name: "clipper";
+            type: RECT;
+            mouse_events: 0;
+            description { state: "default" 0.0;
+               visible: 0;
+               color: 255 255 255 1;
+               rel1 { relative: 0 0; }
+               rel2 { relative: 1 1; }
+            }
+            description { state: "visible" 0.0;
+               visible: 1;
+               color: 255 255 255 255;
+               rel1 { relative: 0 0; }
+               rel2 { relative: 1 1; }
+            }
+         }
+         part { name: "dim_empty";
+            type: RECT;
+            clip_to: "clipper";
+            mouse_events: 0;
+            description { state: "default" 0.0;
+               visible: 0;
+               color: 19 52 63 77;
+            }
+            description { state: "visible" 0.0;
+               inherit: "default" 0.0;
+               visible: 1;
+            }
+         }
+      }
+      programs {
+         program { name: "show";
+            signal: "visible,on,dim";
+            source: "illume2";
+            action: STATE_SET "visible" 0.0;
+            transition: DECELERATE 0.2;
+            target: "clipper";
+            target: "dim_empty";
+         }
+         program { name: "hide";
+            signal: "visible,off,dim";
+            source: "illume2";
+            action: STATE_SET "default" 0.0;
+            transition: DECELERATE 0.2;
+            target: "clipper";
+            target: "dim_empty";
+         }
+      }
+   }
+}

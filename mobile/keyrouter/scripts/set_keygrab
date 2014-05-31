@@ -1,0 +1,61 @@
+#!/bin/sh
+
+if [ "$1" != "-id" ]; then
+	echo "Usage> set_keygrab -id <window_id> <key_name> <grab_mode>"
+	echo " ex> set_keygrab -id 0x1600002 HOME TOP_POSITION"
+	echo " key> SEND, HOME, END, POWER, VOLUME_UP, VOLUME_DOWN, HALF_SHUTER, FULL_SHUTTER"
+	echo " grab_mode> EXCLUSIVE, TOP_POSITION, SHARED, EMPTY"
+	exit 1
+fi
+
+winid=$2
+key_name=$3
+grab_mode=$4
+
+if [ "${key_name}" = "HOME" ]; then
+	key=140
+elif [ "${key_name}" = "SEND" ]; then
+	key=177
+elif [ "${key_name}" = "END" ]; then
+	key=182
+elif [ "${key_name}" = "POWER" ]; then
+	key=124
+elif [ "${key_name}" = "VOLUME_UP" ]; then
+	key=123
+elif [ "${key_name}" = "VOLUME_DOWN" ]; then
+	key=122
+elif [ "${key_name}" = "HALF_SHUTTER" ]; then
+	key=179
+else
+	key=220
+fi
+
+if [ "${grab_mode}" = "TOP_POSITION" ]; then
+	grab="61440"
+elif [ "${grab_mode}" = "SHARED" ]; then
+	grab="3840"
+elif [ "${grab_mode}" = "EXCLUSIVE" ]; then
+	grab="983040"
+else
+	grab="0"
+fi
+let "grab += key"
+#grab_hex=`echo 0xf8c | awk '{printf "%d\n", $1}'`
+grab_hex=${grab}
+
+echo "Setting grabbing the key(${key_name}) @ ${grab_mode} mode on window(${winid}) == start =="
+
+echo "xprop -id ${winid} -f _GRAB_KEY 32c -set _GRAB_KEY ${grab_hex}"
+xprop -id ${winid} -f _GRAB_KEY 32c -set _GRAB_KEY ${grab_hex}
+
+if [ "${grab_mode}" = "EMPTY" ]; then
+	echo "xprop -root -f _GRAB_EXCL_WIN_KEYCODE 32c -set _GRAB_EXCL_WIN_KEYCODE 0"
+	xprop -root -f _GRAB_EXCL_WIN_KEYCODE 32c -set _GRAB_EXCL_WIN_KEYCODE 0
+fi
+
+if [ "${grab_mode}" = "EXCLUSIVE" ]; then
+	echo "xprop -root -f _GRAB_EXCL_WIN_KEYCODE 32c -set _GRAB_EXCL_WIN_KEYCODE ${key}"
+	xprop -root -f _GRAB_EXCL_WIN_KEYCODE 32c -set _GRAB_EXCL_WIN_KEYCODE ${key}
+fi
+
+echo "Setting grabbing the key(${key_name}) @ ${grab_mode} mode on window(${winid}) == end =="

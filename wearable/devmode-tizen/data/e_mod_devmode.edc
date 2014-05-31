@@ -1,0 +1,289 @@
+#define COLUMN		6
+
+#define TEXT_FONT			"Tizen:style=Roman"
+#define TEXT_SIZE			12
+#define TEXT_COLOR_BLACK		0 0 0 255
+#define TEXT_COLOR_WHITE		255 255 255 255
+
+#define BG_COLOR_WHITE			255 255 255 0
+#define BG_COLOR_BLACK			0 0 0 255
+#define BG_COLOR_BLUE			0 0 255 255
+#define BG_IMAGE_BLACK_N_WHITE	"black_white_dot.png"
+
+#define ICON_SETTING			"icon_settings.png"
+
+#define PART_INFO_COLUMN(__num, __to) \
+part { name: "info_"__num"_bg"; \
+	type: RECT; \
+	scale: 1; \
+	description { state: "default" 0.0; \
+		rel1 { relative: ((__num-1)/COLUMN) 0; to: __to; } \
+		rel2 { relative: (__num/COLUMN) 1; to: __to; } \
+		color: 200 200 200 200; \
+		visible: 1; \
+	} \
+	description { state: "red" 0.0; \
+		inherit: "default" 0.0; \
+		color: 255 7 7 128; \
+		visible: 1; \
+	} \
+} \
+part { name: "column_line_"__num; \
+	type: RECT; \
+	description { state: "default" 0.0; \
+			rel1 { relative: 1 0; to: "info_"__num"_bg"; } \
+			rel2 { relative: 1 1; to: "info_"__num"_bg"; } \
+			min: 1 0; \
+			fixed: 1 0; \
+			align: 0.0 0.5; \
+			color: 50 50 50 255; \
+	} \
+	description { state: "white" 0.0; \
+		inherit: "white" 0.0; \
+		color: 255 255 255 255; \
+	} \
+} \
+part { name: "info_"__num; \
+	type: TEXT; \
+	scale: 1; \
+	description { state: "default" 0.0; \
+		rel1 { relative: 0 0; to: "info_"__num"_bg"; } \
+		rel2 { relative: 1 1; to: "info_"__num"_bg"; } \
+		text { \
+			font: TEXT_FONT; \
+			size: TEXT_SIZE; \
+			min: 0 1; \
+			align: 0.0 0.5; \
+		} \
+		color: TEXT_COLOR_BLACK; \
+	} \
+	description { state: "white" 0.0; \
+		inherit: "default" 0.0; \
+		color: TEXT_COLOR_BLACK; \
+	} \
+}
+
+#define PROGRAM_INFO_BG(__num) \
+program { name: "pgm_show_info_"__num"_bg"; \
+	source: "*"; \
+	signal: "sig_show_info_"__num"_bg"; \
+	action: STATE_SET "red" 0.0; \
+	target: "info_"__num"_bg"; \
+} \
+program { name: "pgm_hide_info_"__num"_bg"; \
+	source: "*"; \
+	signal: "sig_hide_info_"__num"_bg"; \
+	action: STATE_SET "default" 0.0; \
+	target: "info_"__num"_bg"; \
+}
+
+
+collections {
+	group { name: "main_layout";
+		images {
+			image: BG_IMAGE_BLACK_N_WHITE COMP;
+			image: ICON_SETTING COMP;
+		}
+
+		parts {
+			part { name: "bg";
+				type: RECT;
+				scale: 1;
+				description { state: "default" 0.0;
+					rel1 { relative: 0 0; }
+					rel2 { relative: 1 1; }
+					color: BG_COLOR_WHITE;
+				}
+				description { state: "black" 0.0;
+					inherit: "default" 0.0;
+					color: BG_COLOR_BLACK;
+				}
+				description { state: "blue" 0.0;
+					inherit: "default" 0.0;
+					color: BG_COLOR_BLUE;
+				}
+			}
+
+			part { name: "bg_image";
+				type: IMAGE;
+				scale: 1;
+				description { state: "default" 0.0;
+					rel1.to: "bg";
+					rel2.to: "bg";
+					visible: 0;
+				}
+				description { state: "dot" 0.0;
+					inherit: "default" 0.0;
+					visible: 1;
+					image.normal: BG_IMAGE_BLACK_N_WHITE;
+				}
+			}
+
+			part { name: "top_area";
+				type: RECT;
+				scale: 1;
+				description { state: "default" 0.0;
+					rel1.to: "bg";
+					rel2 { relative: 1 0; to: "bg"; }
+					min: 0 30;
+					fixed: 0 1;
+					align: 0.5 0.0;
+					visible: 1;
+					color: 0 0 255 100;
+					visible: 0;
+				}
+			}
+			
+			part { name: "top_area_bottom_line";
+				type: RECT;
+				scale: 0;
+				description { state: "default" 0.0;
+					rel1 { relative: 0 1; to: "top_area"; }
+					rel2 { relative: 1 0; to: "top_area"; }
+					min: 0 1;
+					fixed: 0 1;
+					align: 0.5 0.0;
+					color: 50 50 50 255;
+				}
+				description { state: "white" 0.0;
+					inherit: "default" 0.0;
+					color: 255 255 255 255;
+				}
+			}
+			
+			PART_INFO_COLUMN(1, "top_area");
+			PART_INFO_COLUMN(2, "top_area");
+			PART_INFO_COLUMN(3, "top_area");
+			PART_INFO_COLUMN(4, "top_area");
+			PART_INFO_COLUMN(5, "top_area");
+			PART_INFO_COLUMN(6, "top_area");
+			/*PART_INFO_COLUMN(7, "top_area");*/
+/*
+			part { name: "setting_btn_bg";
+				type: RECT;
+				scale: 1;
+				description { state: "default" 0.0;
+					rel1.to: "info_7_bg";
+					rel2.to: "info_7_bg";
+					color: 100 100 100 100;
+				}
+				description { state: "pressed" 0.0;
+					inherit: "default" 0.0;
+					color: 255 0 0 100;
+				}
+			}
+			part { name: "setting_btn";
+				type: IMAGE;
+				mouse_events: 0;
+				scale: 1;
+				description { state: "default" 0.0;
+					rel1 { relative: 0.5 0.5; to: "setting_btn_bg"; }
+					rel2 { relative: 0.5 0.5; to: "setting_btn_bg"; }
+					image.normal: ICON_SETTING;
+					min: 30 30;
+					fixed: 1 1;
+					align: 0.5 0.5;
+				}
+			}
+
+			part { name: "swallow_back_button";
+				type: SWALLOW;
+				scale: 1;
+				description { state: "default" 0.0;
+					rel1 { relative: 1 1; to: "bg"; }
+					rel2 { relative: 1 1; to: "bg"; }
+					min: 50 50;
+					fixed: 1 1;
+					align: 1.0 1.0;
+				}
+			}
+*/
+		}
+		
+		programs {
+			PROGRAM_INFO_BG(1);
+			PROGRAM_INFO_BG(2);
+			PROGRAM_INFO_BG(3);
+			PROGRAM_INFO_BG(4);
+			PROGRAM_INFO_BG(5);
+			PROGRAM_INFO_BG(6);
+			/*PROGRAM_INFO_BG(7);*/
+
+			program { name: "pgm_change_text_black";
+				action: STATE_SET "default" 0.0;
+				target: "info_1";
+				target: "info_2";
+				target: "info_3";
+				target: "info_4";
+				target: "info_5";
+				target: "info_6";
+				/*target: "info_7";*/
+			}
+			program { name: "pgm_change_text_white";
+				action: STATE_SET "white" 0.0;
+				target: "info_1";
+				target: "info_2";
+				target: "info_3";
+				target: "info_4";
+				target: "info_5";
+				target: "info_6";
+				/*target: "info_7";*/
+			}
+/*
+			program { name: "pgm_setting_btn_down";
+				signal: "mouse,down,1";
+				source: "setting_btn_bg";
+				action: STATE_SET "pressed" 0.0;
+				target: "setting_btn_bg";
+			}
+			program { name: "pgm_setting_btn_up";
+				signal: "mouse,up,1";
+				source: "setting_btn_bg";
+				action: STATE_SET "default" 0.0;
+				target: "setting_btn_bg";
+			}
+			program { name: "pgm_setting_btn_clicked";
+				signal: "mouse,clicked,1";
+				source: "setting_btn_bg";
+				action: SIGNAL_EMIT "sig_setting_btn_clicked" "edje";
+			}
+*/
+			program { name: "pgm_change_bg_white";
+				signal: "sig_change_bg_white";
+				source: "*";
+				script {
+					set_state(PART:"bg", "default", 0.0);
+					set_state(PART:"bg_image", "default", 0.0);
+					run_program(PROGRAM:"pgm_change_text_black");
+				}
+			}
+			program { name: "pgm_change_bg_black";
+				signal: "sig_change_bg_black";
+				source: "*";
+				script {
+					set_state(PART:"bg", "black", 0.0);
+					set_state(PART:"bg_image", "default", 0.0);
+					run_program(PROGRAM:"pgm_change_text_white");
+				}
+			}
+			program { name: "pgm_change_bg_blue";
+				signal: "sig_change_bg_blue";
+				source: "*";
+				script {
+					set_state(PART:"bg", "blue", 0.0);
+					set_state(PART:"bg_image", "default", 0.0);
+					run_program(PROGRAM:"pgm_change_text_white");
+				}
+			}
+			program { name: "pgm_change_dot";
+				signal: "sig_change_bg_dot";
+				source: "*";
+				script {
+					set_state(PART:"bg", "default", 0.0);
+					set_state(PART:"bg_image", "dot", 0.0);
+					run_program(PROGRAM:"pgm_change_text_black");
+				}
+			}
+		}
+	}
+}

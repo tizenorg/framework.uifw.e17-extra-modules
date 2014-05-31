@@ -1,0 +1,466 @@
+/*-----------------------------------------------------*/
+/* group "indicator"                                   */
+/*-----------------------------------------------------*/
+group { name: "indicator";
+  images {
+     image: "comp-sh1.png" COMP;
+     image: "bt_glow.png" COMP;
+  }
+  parts {
+     /*------------------------------------------------*/
+     part { name: "clipper";
+        type: RECT;
+        description { state: "default" 0.0;
+           visible: 0;
+           color: 0 0 0 0;
+           rel1.relative: -1.0  -1.0 ;
+           rel1.offset  : -9999 -9999;
+           rel2.relative:  2.0   2.0 ;
+           rel2.offset  :  9999  9999;
+        }
+        description { state: "default" 0.1;
+           inherit: "default" 0.0;
+           visible: 0;
+           color  : 0 0 0 0;
+        }
+        description { state: "default,0" 0.0;
+           inherit: "default" 0.0;
+           visible: 0;
+           color  : 255 255 255 0;
+        }
+        description { state: "default,90" 0.0;
+           inherit: "default" 0.0;
+           visible: 0;
+           color  : 255 255 255 0;
+        }
+        description { state: "default,180" 0.0;
+           inherit: "default" 0.0;
+           visible: 0;
+           color  : 255 255 255 0;
+        }
+        description { state: "default,270" 0.0;
+           inherit: "default" 0.0;
+           visible: 0;
+           color  : 255 255 255 0;
+        }
+        description { state: "visible" 0.0;
+           inherit: "default" 0.0;
+           visible: 1;
+           color: 255 255 255 255;
+        }
+     }
+     /*------------------------------------------------*/
+     part { name: "shower";
+        type: RECT;
+        description { state: "default" 0.0;
+           visible: 0;
+           rel1.relative:  0  0;
+           rel1.offset  :  0  0;
+           rel2.relative:  0  0;
+        }
+        description { state: "default" 0.1;
+           inherit: "default" 0.0;
+           rel1.relative:  0  0;
+           rel2.relative:  1  1;
+        }
+        description { state: "default,0" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative:  0  -1;
+           rel2.relative:  1  0;
+        }
+        description { state: "default,90" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative:  -1  0;
+           rel2.relative:  0  1;
+        }
+        description { state: "default,180" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative:  0  1;
+           rel2.relative:  1  2;
+        }
+        description { state: "default,270" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative:  1  0;
+           rel2.relative:  2  1;
+        }
+        description { state: "visible" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative:  0  0;
+           rel2.relative:  1  1;
+        }
+     }
+     /*------------------------------------------------*/
+     part { name: "e.swallow.content";
+        type: SWALLOW;
+        clip_to: "clipper";
+        description { state: "default" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "default" 0.1;
+           inherit: "default" 0.0;
+           rel1.relative:  0  0;
+           rel2.relative:  1  1;
+        }
+        description { state: "default,0" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative:  0  0;
+           rel2.relative:  1  1;
+        }
+        description { state: "default,90" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative:  0  0;
+           rel2.relative:  1  1;
+        }
+        description { state: "default,180" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative:  0  0;
+           rel2.relative:  1  1;
+        }
+        description { state: "default,270" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative:  0  0;
+           rel2.relative:  1  1;
+        }
+        description { state: "visible" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative:  0  0;
+           rel2.relative:  1  1;
+        }
+     }
+     /*------------------------------------------------*/
+  }
+  programs {
+     /*------------------------------------------------*/
+     /* signal emit program                            */
+     /*------------------------------------------------*/
+     #include "../common/comp-prog-signal-emit.edc"
+
+     /*-------------------------------------------------------------------
+      *                         0.2          0.15
+      *-------------------------------------------------------------------
+      *  [curr]   ---> show0    ---> show1    ---> show2    ---> SHOW,DONE
+      *-------------------------------------------------------------------
+      * default0.0    default0.1    default0.1    visible0.0
+      *-------------------------------------------------------------------
+      *  clipper       clipper       clipper       clipper
+      *  shower        shower        shower        shower
+      *  swallow       swallow       swallow       swallow
+      *-------------------------------------------------------------------
+      */
+     program { name: "prog-show-0";
+        signal: "e,state,visible,on";
+        source: "e";
+        action: STATE_SET "default" 0.1;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-show-1";
+     }
+     program { name: "prog-show-1";
+        action: STATE_SET "default" 0.1;
+        transition: LINEAR 0.2;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-show-2";
+     }
+     program { name: "prog-show-2";
+        action: STATE_SET "visible" 0.0;
+        transition: DECELERATE 0.15;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-show-done";
+     }
+     /*------------------------------------------------*/
+     program { name: "prog-show-noeffect";
+        signal: "e,state,visible,on,noeffect";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-show-done";
+     }
+     /*-------------------------------------------------------------------
+      *                               0.15
+      *-------------------------------------------------------------------
+      *  [curr]   ---> custom0-show0  ---> custom0-show1  ---> SHOW,DONE
+      *-------------------------------------------------------------------
+      * default0.0    default,0 0.0        visible0.0
+      *-------------------------------------------------------------------
+      *  clipper       clipper              clipper
+      *  shower        shower               shower
+      *  swallow       swallow              swallow
+      *-------------------------------------------------------------------
+      */
+     program { name: "prog-show-custom0,0-0";
+        signal: "e,state,visible,on,custom0,0";
+        source: "e";
+        action: STATE_SET "default,0" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-show-custom0,0-1";
+     }
+     program { name: "prog-show-custom0,0-1";
+        action: STATE_SET "visible" 0.0;
+        transition: DECELERATE 0.15;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-show-done";
+     }
+     program { name: "prog-show-custom0,90-0";
+        signal: "e,state,visible,on,custom0,90";
+        source: "e";
+        action: STATE_SET "default,90" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-show-custom0,90-1";
+     }
+     program { name: "prog-show-custom0,90-1";
+        action: STATE_SET "visible" 0.0;
+        transition: DECELERATE 0.15;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-show-done";
+     }
+     program { name: "prog-show-custom0,180-0";
+        signal: "e,state,visible,on,custom0,180";
+        source: "e";
+        action: STATE_SET "default,180" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-show-custom0,180-1";
+     }
+     program { name: "prog-show-custom0,180-1";
+        action: STATE_SET "visible" 0.0;
+        transition: DECELERATE 0.15;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-show-done";
+     }
+     program { name: "prog-show-custom0,270-0";
+        signal: "e,state,visible,on,custom0,270";
+        source: "e";
+        action: STATE_SET "default,270" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-show-custom0,270-1";
+     }
+     program { name: "prog-show-custom0,270-1";
+        action: STATE_SET "visible" 0.0;
+        transition: DECELERATE 0.15;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-show-done";
+     }
+     /*------------------------------------------------*/
+     program { name: "prog-show-custom1";
+        signal: "e,state,visible,on,custom1";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-show-done";
+     }
+     /*------------------------------------------------
+      *           0
+      *------------------------------------------------
+      *  [curr]   ---> hide0    ---> HIDE,DONE
+      *------------------------------------------------
+      * visible0.0    default0.1
+      *------------------------------------------------
+      *  clipper       clipper
+      *  shower        shower
+      *  swallow       swallow
+      *------------------------------------------------
+      */
+     program { name: "prog-hide-0";
+        signal: "e,state,visible,off";
+        source: "e";
+        action: STATE_SET "default" 0.1;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-hide-done";
+     }
+     /*------------------------------------------------*/
+     program { name: "prog-hide-noeffect";
+        signal: "e,state,visible,off,noeffect";
+        source: "e";
+        action: STATE_SET "default" 0.1;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-hide-done";
+     }
+     /*-------------------------------------------------------------------------------------
+      *                               0.15
+      *-------------------------------------------------------------------------------------
+      *  [curr]   ---> custom0-hide0  ---> custom0-hide1 ---> custom0-hide1 ---> HIDE,DONE
+      *-------------------------------------------------------------------------------------
+      * visible0.0     visible0.0          default,0 0.0      default0.1
+      *-------------------------------------------------------------------------------------
+      *  clipper       clipper             clipper            clipper
+      *  shower        shower              shower             shower
+      *  swallow       swallow             swallow            swallow
+      *-------------------------------------------------------------------------------------
+      */
+     program { name: "prog-hide-custom0,0-0";
+        signal: "e,state,visible,off,custom0,0";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-hide-custom0,0-1";
+     }
+     program { name: "prog-hide-custom0,0-1";
+        action: STATE_SET "default,0" 0.0;
+        transition: DECELERATE 0.15;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-hide-custom0,0-2";
+     }
+     program { name: "prog-hide-custom0,0-2";
+        action: STATE_SET "default" 0.1;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-hide-done";
+     }
+     program { name: "prog-hide-custom0,90-0";
+        signal: "e,state,visible,off,custom0,90";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-hide-custom0,90-1";
+     }
+     program { name: "prog-hide-custom0,90-1";
+        action: STATE_SET "default,90" 0.0;
+        transition: DECELERATE 0.15;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-hide-custom0,90-2";
+     }
+     program { name: "prog-hide-custom0,90-2";
+        action: STATE_SET "default" 0.1;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-hide-done";
+     }
+     program { name: "prog-hide-custom0,180-0";
+        signal: "e,state,visible,off,custom0,180";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-hide-custom0,180-1";
+     }
+     program { name: "prog-hide-custom0,180-1";
+        action: STATE_SET "default,180" 0.0;
+        transition: DECELERATE 0.15;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-hide-custom0,180-2";
+     }
+     program { name: "prog-hide-custom0,180-2";
+        action: STATE_SET "default" 0.1;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-hide-done";
+     }
+     program { name: "prog-hide-custom0,270-0";
+        signal: "e,state,visible,off,custom0,270";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-hide-custom0,270-1";
+     }
+     program { name: "prog-hide-custom0,270-1";
+        action: STATE_SET "default,270" 0.0;
+        transition: DECELERATE 0.15;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-hide-custom0,270-2";
+     }
+     program { name: "prog-hide-custom0,270-2";
+        action: STATE_SET "default" 0.1;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-hide-done";
+     }
+     /*------------------------------------------------*/
+     program { name: "prog-hide-custom1";
+        signal: "e,state,visible,off,custom1";
+        source: "e";
+        action: STATE_SET "default" 0.1;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-hide-done";
+     }
+     /*------------------------------------------------*/
+     program { name: "prog-raise-above-hide";
+        signal: "e,state,raise_above,off";
+        source: "e";
+        action: STATE_SET "default" 0.1;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-raise-above-hide-done";
+     }
+     /*------------------------------------------------*/
+     program { name: "prog-raise-above-hide-post-work";
+        signal: "e,state,raise_above_post,on";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+     }
+     /*------------------------------------------------*/
+     program { name: "prog-show-bg";
+        signal: "e,state,background,visible,on";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-bg-show-done";
+     }
+     /*------------------------------------------------*/
+     program { name: "prog-hide-bg";
+        signal: "e,state,background,visible,off";
+        source: "e";
+        action: STATE_SET "default" 0.1;
+        target: "clipper";
+        target: "shower";
+        target: "e.swallow.content";
+        after : "prog-emit-bg-hide-done";
+     }
+     /*------------------------------------------------*/
+  }
+} /* end of group "indicator" */

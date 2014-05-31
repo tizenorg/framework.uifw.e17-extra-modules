@@ -1,0 +1,10 @@
+<manifest>
+   <request>
+      <domain name="_" />
+   </request>
+   <assign>
+      <filesystem path="/usr/bin/extndialog" label="e17" exec_label="e17" />
+      <filesystem path="/usr/bin/elogwatcher" label="_" exec_label="none" />
+      <filesystem path="/usr/bin/keygrab_status" label="_" exec_label="none" />
+   </assign>
+</manifest>
