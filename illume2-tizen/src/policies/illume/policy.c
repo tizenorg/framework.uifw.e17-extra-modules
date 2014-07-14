@@ -4778,10 +4778,6 @@ _policy_calculate_visibility(void)
         bd_info = xwin_info->bd_info;
         if (bd_info) bd = bd_info->border;
 
-        // the illume's policy of iconify should be applied to window belonging mobile side.
-        // so, there is no need to calculate visibility.
-        if ((bd) && (!E_ILLUME_BORDER_IS_IN_MOBILE(bd))) continue;
-
         if (xwin_info->iconic && (!xwin_info->iconify_by_wm))
           {
              if (bd) goto check_above;
@@ -4847,7 +4843,7 @@ _policy_calculate_visibility(void)
                        is_opaque_win = EINA_FALSE;
                     }
 
-                  if (is_opaque_win)
+                  if (is_opaque_win || (bd && !bd->client.argb))
                     {
                        win_region = ecore_x_xregion_new();
                        if (win_region)

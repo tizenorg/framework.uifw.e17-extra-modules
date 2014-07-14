@@ -9,6 +9,8 @@ BuildRequires:  pkgconfig(enlightenment)
 BuildRequires:  pkgconfig(utilX)
 BuildRequires:  pkgconfig(elementary)
 BuildRequires:  pkgconfig(dlog)
+BuildRequires:  pkgconfig(libdri2)
+BuildRequires:  pkgconfig(libdrm)
 BuildRequires:  pkgconfig(x11)
 BuildRequires:  pkgconfig(xextproto)
 BuildRequires:  pkgconfig(xfixes)
@@ -17,10 +19,12 @@ BuildRequires:  pkgconfig(edje)
 BuildRequires:  pkgconfig(xrandr)
 BuildRequires:  pkgconfig(evas)
 BuildRequires:  pkgconfig(xi)
+BuildRequires:  pkgconfig(xv)
 BuildRequires:  pkgconfig(xtst)
 BuildRequires:  pkgconfig(pixman-1)
 BuildRequires:  pkgconfig(sensor)
 BuildRequires:  pkgconfig(vconf)
+BuildRequires:  pkgconfig(eom)
 BuildRequires:  edje-tools
 Requires: libX11
 Requires: sensor
@@ -34,10 +38,10 @@ The E17 Extra Modules  The E17 extra modules consists of modules made by SAMSUNG
 
 
 %build
+#%define DEF_SUBDIRS eom comp-tizen illume2-tizen keyrouter wmready accessibility move-tizen devicemgr extndialog screen-reader devmode-tizen
+%define DEF_SUBDIRS eom comp-tizen illume2-tizen keyrouter wmready accessibility move-tizen extndialog screen-reader devmode-tizen
 
-%define DEF_SUBDIRS comp-tizen illume2-tizen keyrouter wmready accessibility move-tizen devicemgr extndialog screen-reader devmode-tizen
-
-export CFLAGS+=" -Wall -g -fPIC -rdynamic"
+export CFLAGS=" -Wall -g -O0 -fPIC -rdynamic"
 export LDFLAGS+=" -Wl,--hash-style=both -Wl,--as-needed -Wl,--rpath=/usr/lib"
 # use dlog
 export CFLAGS+=" -DUSE_DLOG"
@@ -52,7 +56,7 @@ do
         cd $FILE
         %autogen
         %configure --prefix=/usr
-        make
+        make %{?jobs:-j%jobs}
         cd -
 done
 
@@ -85,9 +89,10 @@ find  %{buildroot}/usr/lib/enlightenment/modules -name *.a | xargs rm
 %{_libdir}/enlightenment/modules/e17-extra-module-keyrouter
 %{_libdir}/enlightenment/modules/e17-extra-module-wmready
 %{_libdir}/enlightenment/modules/move-tizen
-%{_libdir}/enlightenment/modules/e17-extra-module-devicemgr
+#%{_libdir}/enlightenment/modules/e17-extra-module-devicemgr
 %{_libdir}/enlightenment/modules/screen-reader
 %{_libdir}/enlightenment/modules/devmode-tizen
+%{_libdir}/enlightenment/modules/e17-extra-module-eom
 %{_datadir}/enlightenment/data/*
 %{_bindir}/extndialog
 %{_bindir}/*
