@@ -1,8 +1,7 @@
 Name:       e17-extra-modules
-Summary:    The E17 Extra Modules The E17 extra modules consists of modules made by SAMSUNG
-Version:    0.10.116
+Summary:    The E17 Extra Modules for Tizen
+Version:    0.12.13
 Release:    1
-VCS:        framework/uifw/e17-extra-modules#e17-extra-modules-0.9.118-2-g442d1a2f868f2e50a53d425f61879176d0681468
 Group:      System/GUI/Other
 License:    BSD
 Source0:    %{name}-%{version}.tar.gz
@@ -15,27 +14,30 @@ BuildRequires:  pkgconfig(xextproto)
 BuildRequires:  pkgconfig(xfixes)
 BuildRequires:  pkgconfig(xext)
 BuildRequires:  pkgconfig(edje)
+BuildRequires:  pkgconfig(eina)
+BuildRequires:  pkgconfig(ecore)
+BuildRequires:  pkgconfig(ecore-x)
+BuildRequires:  pkgconfig(xrandr)
+BuildRequires:  pkgconfig(libxml-2.0)
 BuildRequires:  pkgconfig(xrandr)
 BuildRequires:  pkgconfig(evas)
 BuildRequires:  pkgconfig(xi)
 BuildRequires:  pkgconfig(xtst)
+BuildRequires:  pkgconfig(cairo)
 BuildRequires:  pkgconfig(pixman-1)
-BuildRequires:  pkgconfig(sensor)
 BuildRequires:  pkgconfig(vconf)
-BuildRequires:  edje-tools
-%if "%{_repository}" == "wearable"
 BuildRequires:  pkgconfig(edbus)
-BuildRequires:  gettext
 BuildRequires:  cmake
-%endif
+BuildRequires:  gettext
+BuildRequires:  edje-tools
+#libhwc, efl-assist was library for private
+BuildRequires:  pkgconfig(libhwc)
+BuildRequires:  pkgconfig(security-server)
+BuildRequires:  pkgconfig(sensor)
 
 Requires: libX11
 Requires: vconf
-%if "%{_repository}" == "wearable"
 Requires: libsensord
-%elseif "%{_repository}" == "mobile"
-Requires: sensor
-%endif
 
 %description
 The E17 Extra Modules  The E17 extra modules consists of modules made by SAMSUNG.
@@ -45,102 +47,87 @@ The E17 Extra Modules  The E17 extra modules consists of modules made by SAMSUNG
 
 
 %build
-
-%if "%{_repository}" == "wearable"
-cd wearable/po
+cd po
 rm -rf CMakeFiles
 rm -rf CMakeCache.txt
 cmake .
 make %{?jobs:-j%jobs}
 make install
-cd ../../
+cd ..
+
+%if "%{?tizen_profile_name}" == "mobile"
+%define DEF_SUBDIRS comp-tizen illume2-tizen keyrouter wmready accessibility move-tizen devicemgr extndialog screen-reader elogwatcher processmgr smack-checker
+%elseif "%{?tizen_profile_name}" == "wearable"
+%define DEF_SUBDIRS comp-tizen-wearable illume2-tizen keyrouter wmready accessibility-wearable move-tizen devicemgr-wearable extndialog screen-reader elogwatcher processmgr-wearable smack-checker
 %endif
 
-
-%if "%{_repository}" == "wearable"
-%define DEF_SUBDIRS comp-tizen illume2-tizen keyrouter wmready accessibility move-tizen devicemgr extndialog screen-reader devmode-tizen elogwatcher
-%elseif "%{_repository}" == "mobile"
-%define DEF_SUBDIRS comp-tizen illume2-tizen keyrouter wmready accessibility move-tizen devicemgr extndialog screen-reader devmode-tizen
-%endif
-
-%if "%{_repository}" == "wearable"
 export GC_SECTIONS_FLAGS="-fdata-sections -ffunction-sections -Wl,--gc-sections"
 export CFLAGS+=" -Wall -g -fPIC -rdynamic ${GC_SECTIONS_FLAGS} -D_F_REMAP_MOUSE_BUTTON_TO_HWKEY_ "
-%if "%{sec_build_project_name}" == "tizenw_master" || "%{sec_build_project_name}" == "tizenw2_master"
-export CFLAGS="$CFLAGS -DW_WIN_CHECK"
-%endif
-%if 0%{?sec_build_binary_debug_enable}
-export CFLAGS="$CFLAGS -DTIZEN_DEBUG_ENABLE"
-%endif
-%elseif "%{_repository}" == "mobile"
-export CFLAGS+=" -Wall -g -fPIC -rdynamic"
-# use dlog
-export CFLAGS+=" -DUSE_DLOG"
-%endif
-
 export LDFLAGS+=" -Wl,--hash-style=both -Wl,--as-needed -Wl,--rpath=/usr/lib"
+
+export CFLAGS="$CFLAGS -DTIZEN_DEBUG_ENABLE"
+
+%if "%{?tizen_profile_name}" == "mobile"
+export CFLAGS+=" -D_ENV_MOBILE_"
+%elseif "%{?tizen_profile_name}" == "wearable"
+export CFLAGS+=" -D_ENV_WEARABLE_"
+%endif
 
 %ifarch %{arm}
 export CFLAGS+=" -D_ENV_ARM"
 %endif
 
-%if "%{_repository}" == "wearable"
-export CFLAGS+=" -D_F_WEARABLE_PROFILE_ "
-%endif
-
-
-%if "%{_repository}" == "wearable"
-cd wearable
-%elseif "%{_repository}" == "mobile"
-cd mobile
-%endif
 
 for FILE in %{DEF_SUBDIRS}
 do
-    cd $FILE
-    %autogen
-    %configure --prefix=/usr
-    make
-    cd -
+    if test "x${FILE}" = "xcomp-tizen" ; then
+        cd $FILE
+        export CFLAGS+=" -D_F_USE_GRAB_KEY_SET_"
+        %autogen
+        %configure --enable-hwc \
+                   --prefix=/usr
+        make %{?jobs:-j%jobs}
+        cd -
+    elif test "x${FILE}" = "xcomp-tizen-wearable" ; then
+        cd $FILE
+        export CFLAGS+=" -D_F_USE_GRAB_KEY_SET_"
+        %autogen
+        %configure --prefix=/usr
+        make %{?jobs:-j%jobs}
+        cd -
+    elif test "x${FILE}" = "xscreen-reader" ; then
+        cd $FILE
+        export CFLAGS+=" -DENABLE_RAPID_KEY_INPUT"
+        %autogen
+        %configure --prefix=/usr
+        make %{?jobs:-j%jobs}
+        cd -
+    else
+        cd $FILE
+        %autogen
+        %configure --prefix=/usr
+        make %{?jobs:-j%jobs}
+        cd -
+    fi
 done
-
 
 %install
 rm -rf %{buildroot}
 
-%if "%{_repository}" == "wearable"
 # for smack rule
-mkdir -p %{buildroot}/etc/smack/accesses2.d
-cp %{_builddir}/%{buildsubdir}/wearable/e17-extra-modules.rule %{buildroot}/etc/smack/accesses2.d
-%endif
+mkdir -p %{buildroot}/etc/smack/accesses.d
+cp %{_builddir}/%{buildsubdir}/e17-extra-modules.efl %{buildroot}/etc/smack/accesses.d
 
 # for license notification
 mkdir -p %{buildroot}/usr/share/license
-%if "%{_repository}" == "wearable"
-cp -a %{_builddir}/%{buildsubdir}/wearable/COPYING %{buildroot}/usr/share/license/%{name}
-%elseif "%{_repository}" == "mobile"
-cp -a %{_builddir}/%{buildsubdir}/mobile/COPYING %{buildroot}/usr/share/license/%{name}
-cat %{_builddir}/%{buildsubdir}/mobile/COPYING.Flora >> %{buildroot}/usr/share/license/%{name}
-%endif
+cp -a %{_builddir}/%{buildsubdir}/COPYING %{buildroot}/usr/share/license/%{name}
 
 # for locale
-%if "%{_repository}" == "wearable"
-cp %{_builddir}/%{buildsubdir}/wearable/po/locale %{buildroot}/usr/share -a
-%endif
+cp %{_builddir}/%{buildsubdir}/po/locale %{buildroot}/usr/share -a
 
 # for keyrouter
 mkdir -p %{buildroot}/usr/bin
-%if "%{_repository}" == "wearable"
-cp -af wearable/keyrouter/scripts/* %{buildroot}/usr/bin/
-%elseif "%{_repository}" == "mobile"
-cp -af mobile/keyrouter/scripts/* %{buildroot}/usr/bin/
-%endif
-
-%if "%{_repository}" == "wearable"
-cd wearable
-%elseif "%{_repository}" == "mobile"
-cd mobile
-%endif
+cp -af keyrouter/scripts/* %{buildroot}/usr/bin/
 
 for FILE in %{DEF_SUBDIRS}
 do
@@ -150,12 +137,11 @@ done
 find  %{buildroot}/usr/lib/enlightenment/modules -name *.la | xargs rm
 find  %{buildroot}/usr/lib/enlightenment/modules -name *.a | xargs rm
 
+mkdir -p %{buildroot}/usr/etc/dfps
+find . -name DynamicFPS.xml -exec cp '{}' %{buildroot}/usr/etc/dfps/ \;
+
 %files
-%if "%{_repository}" == "wearable"
-%manifest wearable/e17-extra-modules.manifest
-%elseif "%{_repository}" == "mobile"
-%manifest mobile/e17-extra-modules.manifest
-%endif
+%manifest e17-extra-modules.manifest
 %defattr(-,root,root,-)
 
 %{_libdir}/enlightenment/modules/comp-tizen
@@ -166,18 +152,20 @@ find  %{buildroot}/usr/lib/enlightenment/modules -name *.a | xargs rm
 %{_libdir}/enlightenment/modules/move-tizen
 %{_libdir}/enlightenment/modules/e17-extra-module-devicemgr
 %{_libdir}/enlightenment/modules/screen-reader
-%{_libdir}/enlightenment/modules/devmode-tizen
+%{_libdir}/enlightenment/modules/processmgr
+%{_libdir}/enlightenment/modules/smack-checker
 %{_datadir}/enlightenment/data/*
 %{_bindir}/extndialog
-
-%if "%{_repository}" == "wearable"
 %{_bindir}/elogwatcher
-%endif
-
 %{_bindir}/*
 /usr/share/license/%{name}
-
-%if "%{_repository}" == "wearable"
 /usr/share/locale/*
-/etc/smack/accesses2.d/e17-extra-modules.rule
+/etc/smack/accesses.d/e17-extra-modules.efl
+/usr/etc/dfps/DynamicFPS.xml
+
+%if "%{?tizen_profile_name}" == "mobile"
+%exclude %{_libdir}/enlightenment/modules/comp-tizen/effect/micro.so
+%elseif "%{?tizen_profile_name}" == "wearable"
+%exclude %{_libdir}/enlightenment/modules/comp-tizen/effect/common.so
 %endif
+%exclude %{_libdir}/enlightenment/modules/comp-tizen/effect/mobile.so

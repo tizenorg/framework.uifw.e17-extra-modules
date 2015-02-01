@@ -1,0 +1,415 @@
+/*-----------------------------------------------------*/
+/* group "app_tray"                                    */
+/*-----------------------------------------------------*/
+group { name: "app_tray";
+  images {
+     image: "comp-sh1.png" COMP;
+     image: "bt_glow.png" COMP;
+  }
+  parts {
+     part { name: "shower";
+        type: SPACER;
+        description { state: "default" 0.0;
+           rel1 {
+              relative: 1.0  0.0;
+           }
+           rel2 {
+              relative: 2.0  1.0;
+           }
+        }
+        description { state: "visible" 0.0;
+           inherit: "default" 0.0;
+           rel1 {
+              relative: 0.0  0.0;
+           }
+           rel2 {
+              relative: 1.0  1.0;
+           }
+        }
+        description { state: "background" 0.0;
+           inherit: "default" 0.0;
+           rel1 {
+              relative: 0.05  0.05;
+           }
+           rel2 {
+              relative: 0.95  0.95;
+           }
+        }
+        description { state: "default-angle-90" 0.0;
+           rel1 {
+              relative: 0.0  -1.0;
+           }
+           rel2 {
+              relative: 1.0  0.0;
+           }
+        }
+        description { state: "default-angle-270" 0.0;
+           rel1 {
+              relative: 0.0  1.0;
+           }
+           rel2 {
+              relative: 1.0  2.0;
+           }
+        }
+        description { state: "default-angle-180" 0.0;
+           rel1 {
+              relative: -1.0  0.0;
+           }
+           rel2 {
+              relative: 0.0  1.0;
+           }
+        }
+     }
+     part { name: "e.swallow.content";
+        type: SWALLOW;
+        description { state: "default" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "visible" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "background" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "default-angle-90" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "default-angle-270" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "default-angle-180" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+     }
+     part { name: "hider";
+        type: RECT;
+        description { state: "default" 0.0;
+           visible: 1;
+           color: 0 0 0 255;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "visible" 0.0;
+           inherit: "default" 0.0;
+           visible: 1;
+           color: 0 0 0 0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "background" 0.0;
+           inherit: "default" 0.0;
+           visible: 1;
+           color: 0 0 0 155;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "default-angle-90" 0.0;
+           visible: 1;
+           color: 0 0 0 255;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "default-angle-270" 0.0;
+           visible: 1;
+           color: 0 0 0 255;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "default-angle-180" 0.0;
+           visible: 1;
+           color: 0 0 0 255;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+     }
+  }
+  programs {
+     program { name: "image_show1";
+        signal: "e,state,visible,0,on";
+        source: "e";
+        action: STATE_SET "default" 0.0;
+        target: "shower";
+        target: "e.swallow.content";
+        after: "image_show2";
+     }
+     program { name: "image_show2";
+        action: STATE_SET "visible" 0.0;
+        transition: DECEL_FAC 0.25 0.8;
+        target : "shower";
+        target: "e.swallow.content";
+        after  : "image_show3";
+     }
+     program { name: "image_show3";
+        action: SIGNAL_EMIT "e,action,show,done" "e";
+     }
+     program { name: "hider_show1";
+        signal: "e,state,visible,0,on";
+        source: "e";
+        action: STATE_SET "default" 0.0;
+        target: "hider";
+        after: "hider_show2";
+     }
+     program { name: "hider_show2";
+        action: STATE_SET "visible" 0.0;
+        transition: DECEL_FAC 0.25 0.8;
+        target : "hider";
+     }
+     program { name: "right_image_show1";
+        signal: "e,state,visible,90,on";
+        source: "e";
+        action: STATE_SET "default-angle-90" 0.0;
+        target: "shower";
+        target: "e.swallow.content";
+        after: "right_image_show2";
+     }
+     program { name: "right_image_show2";
+        action: STATE_SET "visible" 0.0;
+        transition: DECEL_FAC 0.3 0.8;
+        target : "shower";
+        target: "e.swallow.content";
+        after  : "image_show3";
+     }
+     program { name: "right_hider_show1";
+        signal: "e,state,visible,90,on";
+        source: "e";
+        action: STATE_SET "default-angle-90" 0.0;
+        target: "hider";
+        after: "right_hider_show2";
+     }
+     program { name: "right_hider_show2";
+        action: STATE_SET "visible" 0.0;
+        transition: DECEL_FAC 0.3 0.8;
+        target : "hider";
+     }
+     program { name: "left_image_show1";
+        signal: "e,state,visible,270,on";
+        source: "e";
+        action: STATE_SET "default-angle-270" 0.0;
+        target: "shower";
+        target: "e.swallow.content";
+        after: "left_image_show2";
+     }
+     program { name: "left_image_show2";
+        action: STATE_SET "visible" 0.0;
+        transition: DECEL_FAC 0.3 0.8;
+        target : "shower";
+        target: "e.swallow.content";
+        after  : "image_show3";
+     }
+     program { name: "left_hider_show1";
+        signal: "e,state,visible,270,on";
+        source: "e";
+        action: STATE_SET "default-angle-270" 0.0;
+        target: "hider";
+        after: "left_hider_show2";
+     }
+     program { name: "left_hider_show2";
+        action: STATE_SET "visible" 0.0;
+        transition: DECEL_FAC 0.3 0.8;
+        target : "hider";
+     }
+     program { name: "reverse_image_show1";
+        signal: "e,state,visible,180,on";
+        source: "e";
+        action: STATE_SET "default-angle-180" 0.0;
+        target: "shower";
+        target: "e.swallow.content";
+        after: "reverse_image_show2";
+     }
+     program { name: "reverse_image_show2";
+        action: STATE_SET "visible" 0.0;
+        transition: DECEL_FAC 0.3 0.8;
+        target : "shower";
+        target: "e.swallow.content";
+        after  : "image_show3";
+     }
+     program { name: "reverse_hider_show1";
+        signal: "e,state,visible,180,on";
+        source: "e";
+        action: STATE_SET "default-angle-180" 0.0;
+        target: "hider";
+        after: "reverse_hider_show2";
+     }
+     program { name: "reverse_hider_show2";
+        action: STATE_SET "visible" 0.0;
+        transition: DECEL_FAC 0.3 0.8;
+        target : "hider";
+     }
+     program { name: "image_hide1";
+        signal: "e,state,visible,0,off";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "shower";
+        target: "e.swallow.content";
+        after: "image_hide2";
+     }
+     program { name: "image_hide2";
+        action: STATE_SET "default" 0.0;
+        transition: DECEL_FAC 0.3 0.8;
+        target: "shower";
+        target: "e.swallow.content";
+        after: "image_hide3";
+     }
+     program { name: "image_hide3";
+        action: SIGNAL_EMIT "e,action,hide,done" "e";
+     }
+     program { name: "hider_hide1";
+        signal: "e,state,visible,0,off";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "hider";
+        after: "hider_hide2";
+     }
+     program { name: "hider_hide2";
+        action: STATE_SET "default" 0.0;
+        transition: DECEL_FAC 0.3 0.8;
+        target: "hider";
+     }
+     program { name: "right_image_hide1";
+        signal: "e,state,visible,90,off";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "shower";
+        target: "e.swallow.content";
+        after: "right_image_hide2";
+     }
+     program { name: "right_image_hide2";
+        action: STATE_SET "default-angle-90" 0.0;
+        transition: DECEL_FAC 0.3 0.8;
+        target: "shower";
+        target: "e.swallow.content";
+        after: "image_hide3";
+     }
+     program { name: "right_hider_hide1";
+        signal: "e,state,visible,90,off";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "hider";
+        after: "right_hider_hide2";
+     }
+     program { name: "right_hider_hide2";
+        action: STATE_SET "default-angle-90" 0.0;
+        transition: DECEL_FAC 0.3 0.8;
+        target: "hider";
+     }
+     program { name: "left_image_hide1";
+        signal: "e,state,visible,270,off";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "shower";
+        target: "e.swallow.content";
+        after: "left_image_hide2";
+     }
+     program { name: "left_image_hide2";
+        action: STATE_SET "default-angle-270" 0.0;
+        transition: DECEL_FAC 0.3 0.8;
+        target: "shower";
+        target: "e.swallow.content";
+        after: "image_hide3";
+     }
+     program { name: "left_hider_hide1";
+        signal: "e,state,visible,270,off";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "hider";
+        after: "left_hider_hide2";
+     }
+     program { name: "left_hider_hide2";
+        action: STATE_SET "default-angle-270" 0.0;
+        transition: DECEL_FAC 0.3 0.8;
+        target: "hider";
+     }
+     program { name: "reverse_image_hide1";
+        signal: "e,state,visible,180,off";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "shower";
+        target: "e.swallow.content";
+        after: "reverse_image_hide2";
+     }
+     program { name: "reverse_image_hide2";
+        action: STATE_SET "default-angle-180" 0.0;
+        transition: DECEL_FAC 0.3 0.8;
+        target: "shower";
+        target: "e.swallow.content";
+        after: "image_hide3";
+     }
+     program { name: "reverse_hider_hide1";
+        signal: "e,state,visible,180,off";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "hider";
+        after: "reverse_hider_hide2";
+     }
+     program { name: "reverse_hider_hide2";
+        action: STATE_SET "default-angle-180" 0.0;
+        transition: DECEL_FAC 0.3 0.8;
+        target: "hider";
+     }
+     program { name: "show1_noeffect";
+        signal: "e,state,visible,on,noeffect";
+        source: "e";
+        action: STATE_SET "default" 0.0;
+        target: "shower";
+        target: "e.swallow.content";
+        target: "hider";
+        after: "show2_noeffect";
+     }
+     program { name: "show2_noeffect";
+        action: STATE_SET "visible" 0.0;
+        target: "shower";
+        target: "e.swallow.content";
+        target: "hider";
+        after: "image_show3";
+     }
+     program { name: "hide1_noeffect";
+        signal: "e,state,visible,off,noeffect";
+        source: "e";
+        action: STATE_SET "default" 0.0;
+        target: "shower";
+        target: "e.swallow.content";
+        target: "hider";
+        after: "image_hide3";
+     }
+     program { name: "show_background1";
+        signal: "e,state,background,visible,on";
+        source: "e";
+        action: STATE_SET "visible" 0.0;
+        target: "shower";
+        target: "e.swallow.content";
+        target: "hider";
+        after: "show_background2";
+     }
+     program { name: "show_background2";
+        action: STATE_SET "background" 0.0;
+        transition: DECELERATE 0.25;
+        target: "shower";
+        target: "e.swallow.content";
+        target: "hider";
+        after: "image_show3";
+     }
+     program { name: "hide_background1";
+        signal: "e,state,background,visible,off";
+        source: "e";
+        action: STATE_SET "background" 0.0;
+        target: "shower";
+        target: "e.swallow.content";
+        target: "hider";
+        after: "hide_background2";
+     }
+     program { name: "hide_background2";
+        action: STATE_SET "visible" 0.0;
+        transition: DECELERATE 0.3;
+        target: "shower";
+        target: "e.swallow.content";
+        target: "hider";
+        after: "image_hide3";
+     }
+  }
+} /* end of group "app_tray" */

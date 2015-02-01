@@ -1,7 +1,0 @@
-e17 system::share rwx
-e17 system::vconf_system rl
-e17 system::vconf_multimedia rl
-e17 system::vconf_network rl
-e17 system::vconf_misc rw
-e17 system::vconf_inhouse rl
-e17 system::vconf_setting rl
