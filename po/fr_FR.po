@@ -1,0 +1,9 @@
+msgid "IDS_COM_SK_OK"
+msgstr "OK"
+
+msgid "IDS_SMR_POP_YOUR_DEVICE_IS_CONNECTED_VIA_HDMI_THE_SCREEN_MIRRORING_CONNECTION_HAS_ENDED"
+msgstr "Votre appareil est connecté par HDMI. La connexion Screen Mirroring a été interrompue."
+
+msgid "IDS_SMR_POP_YOUR_DEVICE_IS_CONNECTED_VIA_HDMI_THE_SIDESYNC_CONNECTION_HAS_ENDED"
+msgstr "Votre appareil est connecté via HDMI. La connexion SideSync a été interrompue."
+

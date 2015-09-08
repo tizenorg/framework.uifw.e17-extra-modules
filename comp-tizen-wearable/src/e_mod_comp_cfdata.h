@@ -1,0 +1,121 @@
+#ifndef E_MOD_COMP_CFDATA_H
+#define E_MOD_COMP_CFDATA_H
+
+typedef struct _Config Config;
+typedef struct _Match  Match;
+
+struct _Config
+{
+   const char   *shadow_file;
+   const char   *shadow_style;
+   const char   *effect_file;
+   int           engine;
+   int           max_unmapped_pixels;
+   int           max_unmapped_time;
+   int           min_unmapped_time;
+   int           fps_average_range;
+   unsigned char fps_corner;
+   unsigned char fps_show;
+   unsigned char use_shadow;
+   unsigned char indirect;
+   unsigned char texture_from_pixmap;
+   unsigned char lock_fps;
+   unsigned char loose_sync;
+   unsigned char efl_sync;
+   unsigned char grab;
+   unsigned char vsync;
+   unsigned char keep_unmapped;
+   unsigned char send_flush;
+   unsigned char send_dump;
+   unsigned char nocomp_fs;
+   unsigned char use_hwc;
+   unsigned char smooth_windows;
+   double        first_draw_delay;
+   unsigned char canvas_per_zone;
+   unsigned char use_lock_screen;
+   unsigned char default_window_effect;
+   unsigned char keyboard_effect;
+   unsigned char xv_rotation_effect;
+   unsigned char fake_image_launch;
+   int           fake_launch_layer;
+   int            lower_layer;
+   unsigned char defer_raise_effect;
+   double        max_lock_screen_time;
+   double        damage_timeout;
+   double        nocomp_begin_timeout;
+   unsigned char use_hw_ov;
+   unsigned char debug_info_show;
+   int           max_debug_msgs;
+   int           debug_type_nocomp;
+   int           debug_type_swap;
+   int           debug_type_effect;
+
+   const char   *effect_policy_unknown;
+   const char   *effect_policy_desktop;
+   const char   *effect_policy_dock;
+   const char   *effect_policy_toolbar;
+   const char   *effect_policy_menu;
+   const char   *effect_policy_utility;
+   const char   *effect_policy_splash;
+   const char   *effect_policy_dialog;
+   const char   *effect_policy_normal;
+   const char   *effect_policy_videocall;
+   const char   *effect_policy_dropdown_menu;
+   const char   *effect_policy_popup_menu;
+   const char   *effect_policy_tooltip;
+   const char   *effect_policy_notification;
+   const char   *effect_policy_combo;
+   const char   *effect_policy_dnd;
+   const char   *effect_policy_menuscreen;
+   const char   *effect_policy_quickpanel_base;
+   const char   *effect_policy_quickpanel;
+   const char   *effect_policy_taskmanager;
+   const char   *effect_policy_livemagazine;
+   const char   *effect_policy_lockscreen;
+   const char   *effect_policy_indicator;
+   const char   *effect_policy_tickernoti;
+   const char   *effect_policy_debugging_info;
+   const char   *effect_policy_apptray;
+   const char   *effect_policy_mini_apptray;
+   const char   *effect_policy_volume;
+   const char   *effect_policy_background;
+   const char   *effect_policy_isf_keyboard;
+   const char   *effect_policy_isf_sub;
+   const char   *effect_policy_setup_wizard;
+   const char   *effect_policy_app_popup;
+   const char   *effect_policy_app_callscreen;
+
+   struct
+   {
+      Eina_List *popups;    // used for e popups
+      Eina_List *borders;    // used for borders
+      Eina_List *overrides;    // used for client menus, tooltips etc.
+      Eina_List *menus;    // used for e menus
+   } match;
+};
+
+struct _Match
+{
+   const char *title; // glob - used for borders, NULL if not to be used
+   const char *name; // glob - used for borders, overrides, popups, NULL if not to be used
+   const char *clas; // glob - used for borders, overrides, NULL if not to be used
+   const char *role; // glob - used for borders
+
+   const char *shadow_style; // shadow style to use
+
+   int         primary_type; // Ecore_X_Window_Type - used for borders, overrides, first one found - ECORE_X_WINDOW_TYPE_UNKNOWN if not to be used
+   char        borderless; // used for borders, 0 == dont use, 1 == borderless, -1 == not borderless
+   char        dialog; // used for borders, 0 == don't use, 1 == dialog, -1 == not dialog
+   char        accepts_focus; // used for borders, 0 == don't use, 1 == accepts focus, -1 == does not accept focus
+   char        vkbd; // used for borders, 0 == don't use, 1 == is vkbd, -1 == not vkbd
+   char        quickpanel; // used for borders, 0 == don't use, 1 == is quickpanel, -1 == not quickpanel
+   char        argb; // used for borders, overrides, popups, menus, 0 == don't use, 1 == is argb, -1 == not argb
+   char        fullscreen; // used for borders, 0 == don't use, 1 == is fullscreen, -1 == not fullscreen
+   char        modal; // used for borders, 0 == don't use, 1 == is modal, -1 == not modal
+};
+
+EAPI void    e_mod_comp_cfdata_edd_init(E_Config_DD **conf_edd, E_Config_DD **match_edd);
+EAPI Config *e_mod_comp_cfdata_config_new(void);
+EAPI void    e_mod_cfdata_config_free(Config *cfg);
+
+#endif

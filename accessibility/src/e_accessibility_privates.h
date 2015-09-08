@@ -4,11 +4,11 @@
 
 #include "e.h"
 
-#define E_ACCESSIBILITY_CFG_PATH       "/opt/share/.e/e/config/samsung/"
-#define E_ACCESSIBILITY_CFG       "module.accessibility-slp"
+#define E_ACCESSIBILITY_CFG_PATH       "/home/apps/.e/e/config/samsung/"
+#define E_ACCESSIBILITY_CFG       "module.accessibility-tizen"
 
-#define DEFAULT_SCREEN_WIDTH       480
-#define DEFAULT_SCREEN_HEIGHT       800
+#define DEFAULT_SCREEN_WIDTH       720
+#define DEFAULT_SCREEN_HEIGHT       1280
 
 typedef struct _E_Accessibility_Config E_Accessibility_Config;
 typedef struct _E_Accessibility_Config_Grab E_Accessibility_Config_Grab;
@@ -52,9 +52,27 @@ struct _E_Accessibility_Config
 
    struct
      {
-        Eina_Bool isHighContrastEnabled;
+        int HighContrastMode;
         /**< HighContrast enable/disable status */
      } HighContrast;
+
+   struct
+     {
+        int PowerSavingMode;
+     } PowerSaving;
+
+   struct
+     {
+        int DarkScreenMode;
+     } DarkScreen;
+
+   struct
+   	{
+   		Eina_Bool isPalmGestureEnabled;
+		/**< Palm gesture enable/disable status */
+		Eina_List *grabs;
+		/** < gesture event list to be grabbed */
+	} PalmGesture;
 };
 
 /**

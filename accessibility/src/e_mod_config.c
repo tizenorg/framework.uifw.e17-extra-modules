@@ -44,7 +44,9 @@ e_mod_accessibility_config_init(void)
    E_CONFIG_VAL(D, T, ZoomUI.offset_y, INT);
    E_CONFIG_VAL(D, T, ZoomUI.isZoomUIEnabled, UCHAR);
    E_CONFIG_LIST(D, T, ZoomUI.grabs, _acc_conf_grab_edd);
-   E_CONFIG_VAL(D, T, HighContrast.isHighContrastEnabled, UCHAR);
+   E_CONFIG_VAL(D, T, HighContrast.HighContrastMode, INT);
+   E_CONFIG_VAL(D, T, PowerSaving.PowerSavingMode, INT);
+   E_CONFIG_VAL(D, T, DarkScreen.DarkScreenMode, INT);
 
    /* attempt to load existing configuration */
    _e_accessibility_cfg = e_config_domain_load(E_ACCESSIBILITY_CFG, _acc_conf_edd);
@@ -119,7 +121,7 @@ _e_mod_accessibility_config_new(void)
    ecore_x_screen_size_get(ecore_x_default_screen_get(),
                            &screenWidth, &screenHeight);
 
-   if( !screenWidth && !screenHeight )
+   if ( !screenWidth && !screenHeight )
      {
         screenWidth = DEFAULT_SCREEN_WIDTH;
         screenHeight = DEFAULT_SCREEN_HEIGHT;
@@ -127,7 +129,11 @@ _e_mod_accessibility_config_new(void)
 
    /* create initial config */
    _e_accessibility_cfg = E_NEW(E_Accessibility_Config, 1);
-   _e_accessibility_cfg->ZoomUI.scale_factor = 0.05;
+
+   if (!_e_accessibility_cfg)
+     return;
+
+   _e_accessibility_cfg->ZoomUI.scale_factor = 0.25;
    _e_accessibility_cfg->ZoomUI.scale_threshold = 3;
    _e_accessibility_cfg->ZoomUI.max_scale = 7.0;
    _e_accessibility_cfg->ZoomUI.min_scale = 1.2;
@@ -137,16 +143,20 @@ _e_mod_accessibility_config_new(void)
    _e_accessibility_cfg->ZoomUI.offset_x = 0;
    _e_accessibility_cfg->ZoomUI.offset_y = 0;
    _e_accessibility_cfg->ZoomUI.isZoomUIEnabled = EINA_FALSE;
-   _e_accessibility_cfg->HighContrast.isHighContrastEnabled = EINA_FALSE;
+   _e_accessibility_cfg->HighContrast.HighContrastMode = 0;
+   _e_accessibility_cfg->PowerSaving.PowerSavingMode = 0;
+   _e_accessibility_cfg->DarkScreen.DarkScreenMode = 0;
 
    /* create config for initial grab */
    /* add grabs config to main config structure */
    cgz_2_tap = E_NEW(E_Accessibility_Config_Grab, 1);
 
+   if (!cgz_2_tap)
+     return;
+
    cgz_2_tap->num_finger = 2;
    cgz_2_tap->event_name = eina_stringshare_add("tap");
    cgz_2_tap->desc = eina_stringshare_add("2 finger tap event for zooming in/out");
-
    _e_accessibility_cfg->ZoomUI.grabs = eina_list_append(_e_accessibility_cfg->ZoomUI.grabs, cgz_2_tap);
 }
 

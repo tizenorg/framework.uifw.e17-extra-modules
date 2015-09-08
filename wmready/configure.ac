@@ -59,7 +59,8 @@ PKG_PROG_PKG_CONFIG
 dnl ========================================================================
 # checks for pkg-config
 dnl ========================================================================
-PKG_CHECK_MODULES(ENLIGHTENMENT, enlightenment)
+PKG_CHECK_MODULES(ENLIGHTENMENT, [enlightenment,
+		                          dlog])
 AC_SUBST(ENLIGHTENMENT_CFLAGS)
 AC_SUBST(ENLIGHTENMENT_LIBS)
 

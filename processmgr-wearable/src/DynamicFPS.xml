@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<!--
+<description>
+  <title> Dynamic FPS Test </title>
+    <author>
+      <name> Minsu Han </name>
+      <name> Donovan Prince </name>
+    </author>
+</description>
+
+====================================================================
+
+example entry
+dfps = refresh rate
+package = package name
+name = binary name
+
+e.g.
+<DynamicFPS>
+  <item dfps="30" package="org.tizen.calculator" name="calculator"/>
+  <item dfps="35" package="org.tizen.clock" name="clock"/>
+  <item dfps="45" package="org.tizen.gallery" name="gallery"/>
+  <item dfps="50" package="org.tizen.image-viewer" name="image-viewer"/>
+  <item dfps="45" package="3qwk86ogmg" name="PolarisOffice"/>
+</DynamicFPS>
+-->
+
+<DynamicFPS>
+</DynamicFPS>

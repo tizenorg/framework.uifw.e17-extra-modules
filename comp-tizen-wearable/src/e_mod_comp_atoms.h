@@ -1,0 +1,63 @@
+#ifdef E_TYPEDEFS
+#else
+#ifndef E_MOD_COMP_ATOMS_H
+#define E_MOD_COMP_ATOMS_H
+
+extern EAPI Ecore_X_Atom ATOM_CM_LOG;
+extern EAPI Ecore_X_Atom ATOM_CM_LOG_DUMP_DONE;
+extern EAPI Ecore_X_Atom ATOM_IMAGE_LAUNCH;
+extern EAPI Ecore_X_Atom ATOM_IMAGE_LAUNCH_FILE;
+extern EAPI Ecore_X_Atom ATOM_EFFECT_ENABLE;
+extern EAPI Ecore_X_Atom ATOM_WINDOW_EFFECT_ENABLE;
+extern EAPI Ecore_X_Atom ATOM_WINDOW_EFFECT_CLIENT_STATE;
+extern EAPI Ecore_X_Atom ATOM_WINDOW_EFFECT_STATE;
+extern EAPI Ecore_X_Atom ATOM_WINDOW_EFFECT_TYPE;
+extern EAPI Ecore_X_Atom ATOM_EFFECT_DEFAULT;
+extern EAPI Ecore_X_Atom ATOM_EFFECT_NONE;
+extern EAPI Ecore_X_Atom ATOM_EFFECT_CUSTOM0;
+extern EAPI Ecore_X_Atom ATOM_EFFECT_CUSTOM1;
+extern EAPI Ecore_X_Atom ATOM_EFFECT_CUSTOM2;
+extern EAPI Ecore_X_Atom ATOM_EFFECT_CUSTOM3;
+extern EAPI Ecore_X_Atom ATOM_EFFECT_CUSTOM4;
+extern EAPI Ecore_X_Atom ATOM_EFFECT_CUSTOM5;
+extern EAPI Ecore_X_Atom ATOM_EFFECT_CUSTOM6;
+extern EAPI Ecore_X_Atom ATOM_EFFECT_CUSTOM7;
+extern EAPI Ecore_X_Atom ATOM_EFFECT_CUSTOM8;
+extern EAPI Ecore_X_Atom ATOM_EFFECT_CUSTOM9;
+extern EAPI Ecore_X_Atom ATOM_OVERAY_WINDOW;
+extern EAPI Ecore_X_Atom ATOM_X_HIBERNATION_STATE;
+extern EAPI Ecore_X_Atom ATOM_X_SCREEN_ROTATION;
+extern EAPI Ecore_X_Atom ATOM_X_WIN_USE_DRI2;
+extern EAPI Ecore_X_Atom ATOM_X_WIN_HW_OV_SHOW;
+extern EAPI Ecore_X_Atom ATOM_CM_LOCK_SCREEN;
+extern EAPI Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_SUPPORTED;
+extern EAPI Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_STATE;
+extern EAPI Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_BEGIN;
+extern EAPI Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_BEGIN_DONE;
+extern EAPI Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_END;
+extern EAPI Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_END_DONE;
+extern EAPI Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_REQUEST;
+extern EAPI Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_REQUEST_DONE;
+extern EAPI Ecore_X_Atom ATOM_CM_PIXMAP_ROTATION_RESIZE_PIXMAP;
+extern EAPI Ecore_X_Atom ATOM_NET_CM_WINDOW_BACKGROUND;
+extern EAPI Ecore_X_Atom ATOM_XV_USE;
+extern EAPI Ecore_X_Atom ATOM_XV_PIXMAP0;
+extern EAPI Ecore_X_Atom ATOM_XV_PIXMAP1;
+extern EAPI Ecore_X_Atom ATOM_XV_BYPASS_TO_PIXMAP0;
+extern EAPI Ecore_X_Atom ATOM_XV_BYPASS_TO_PIXMAP1;
+extern EAPI Ecore_X_Atom ATOM_XV_BYPASS_DONE0;
+extern EAPI Ecore_X_Atom ATOM_XV_BYPASS_DONE1;
+extern EAPI Ecore_X_Atom ATOM_XV_ROT_EFFECT_DONE;
+extern EAPI Ecore_X_Atom ATOM_XV_ROT_EFFECT_BEGIN;
+extern EAPI Ecore_X_Atom ATOM_CM_TRANSPARENT_RECT;
+extern EAPI Ecore_X_Atom ATOM_RR_WM_STATE;
+extern EAPI Ecore_X_Atom ATOM_CM_3D_APP_WIN;
+extern EAPI Ecore_X_Atom ATOM_CM_STEREOSCOPIC_MODE;
+extern EAPI Ecore_X_Atom ATOM_CM_MSG_STEREO_MODE;
+
+EAPI int         e_mod_comp_atoms_init(void);
+EAPI int         e_mod_comp_atoms_shutdown(void);
+EAPI const char *e_mod_comp_atoms_name_get(Ecore_X_Atom a);
+
+#endif
+#endif

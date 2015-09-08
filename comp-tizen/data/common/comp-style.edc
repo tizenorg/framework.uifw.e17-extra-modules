@@ -1,0 +1,9 @@
+styles {
+   /* common text block style for logger */
+   style { name: "textblock_style";
+      base: "font=Sans font_size=20 align=left color=#ff0c0c wrap=word";
+      tag: "br" "\n";
+      tag: "b" "+ font=Sans:style=Bold";
+      tag: "tab" "\t";
+   }
+} /* end of styles */

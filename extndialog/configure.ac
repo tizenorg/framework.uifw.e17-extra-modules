@@ -12,12 +12,19 @@ AM_CONFIG_HEADER([config.h])
 
 AM_INIT_AUTOMAKE([1.8])
 
+GETTEXT_PACKAGE="extndialog"
+AC_SUBST([GETTEXT_PACKAGE])
+AC_DEFINE_UNQUOTED([GETTEXT_PACKAGE], "$GETTEXT_PACKAGE", [Gettext package])
+
 AC_USE_SYSTEM_EXTENSIONS
 AM_PROG_CC_STDC
 AM_PROG_CC_C_O
 
 requirements="\
    elementary \
+   ecore-x \
+   utilX \
+   vconf \
    "
 
 PKG_CHECK_MODULES(EXTNDIALOG, [${requirements}])

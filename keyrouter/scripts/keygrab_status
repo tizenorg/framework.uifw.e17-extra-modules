@@ -7,5 +7,5 @@ else
 fi
 
 if [ -x /usr/bin/xprop ]; then
-        xprop -root -f _GRAB_STATUS 32c -set _GRAB_STATUS ${VAL} &
+        /usr/bin/xprop -root -f _GRAB_STATUS 32c -set _GRAB_STATUS ${VAL} &
 fi

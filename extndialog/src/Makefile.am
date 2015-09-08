@@ -3,12 +3,19 @@ bin_PROGRAMS = extndialog
 extndialog_CPPFLAGS = \
 -I. \
 @EXTNDIALOG_CFLAGS@
+extndialog_CFLAGS = \
+-fPIE
+
+extndialog_LDFLAGS = \
+-pie
 
 extndialog_LDADD = \
 @EXTNDIALOG_LIBS@
 
 extndialog_SOURCES = \
-extndialog.c
+extndialog.c \
+extndialog-default.c \
+extndialog-hdmi.c
 
 MAINTAINERCLEANFILES = \
 Makefile.in 

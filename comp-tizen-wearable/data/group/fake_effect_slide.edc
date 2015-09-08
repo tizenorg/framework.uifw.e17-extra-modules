@@ -1,0 +1,352 @@
+/*-----------------------------------------------------*/
+/* group "slide"                                 */
+/*-----------------------------------------------------*/
+group { name: "fake_effect_slide";
+  #include "../common/comp-config.edc"
+  images {
+     image: "comp-sh1.png" COMP;
+  }
+  parts {
+     part { name: "clipper";
+        type: RECT;
+        mouse_events: 0;
+        description { state: "default" 0.0;
+           visible: 1;
+           color: 255 255 255 255;
+           rel1.relative: -1.0  -1.0;
+           rel1.offset:  -9999 -9999;
+           rel2.relative:  2.0   2.0;
+           rel2.offset:   9999  9999;
+        }
+        description { state: "visible" 0.0;
+           inherit: "default" 0.0;
+           visible: 1;
+           color: 255 255 255 255;
+        }
+        description { state: "foreground" 0.0;
+           inherit: "default" 0.0;
+           visible: 1;
+           color: 255 255 255 255;
+        }
+        description { state: "background" 0.0;
+           inherit: "default" 0.0;
+           visible: 1;
+           color: 255 255 255 100;
+        }
+        description { state: "hide-to180" 0.0;
+           inherit: "visible" 0.0;
+        }
+        description { state: "hide-to0" 0.0;
+           inherit: "visible" 0.0;
+        }
+        description { state: "hide-to90" 0.0;
+           inherit: "visible" 0.0;
+        }
+        description { state: "hide-to270" 0.0;
+           inherit: "visible" 0.0;
+        }
+        description { state: "default-from0" 0.0;
+           inherit: "visible" 0.0;
+        }
+        description { state: "default-from90" 0.0;
+           inherit: "visible" 0.0;
+        }
+        description { state: "default-from270" 0.0;
+           inherit: "visible" 0.0;
+        }
+     }
+     part { name: "shadow";
+        mouse_events: 0;
+        clip_to: "clipper";
+        description { state: "default" 0.0;
+           visible: 0;
+           image {
+              normal: "comp-sh1.png";
+              border: 12 12 12 12;
+              middle: 0;
+           }
+           fill.smooth: 0;
+           rel1 {
+              to: "fake.swallow.content";
+              relative: 0.0 0.0;
+              offset: -12 -12;
+           }
+           rel2 {
+              to: "fake.swallow.content";
+              relative: 1.0 1.0;
+              offset: 11 11;
+           }
+        }
+        description { state: "show" 0.0;
+           inherit: "default" 0.0;
+           visible: 1;
+        }
+        description { state: "hidden" 0.0;
+           inherit: "default" 0.0;
+        }
+     }
+     part { name: "shower";
+        type: RECT;
+        mouse_events: 0;
+        description { state: "default" 0.0; // upsidedown
+           visible: 0;
+           rel1.relative: 0 1;
+           rel1.offset:   0 0;
+           rel2.relative: 1 2;
+        }
+        description { state: "visible" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative: 0 0;
+           rel1.offset:   0 0;
+           rel2.relative: 1 1;
+        }
+        description { state: "hide-to180" 0.0; // hide sliding down
+           inherit: "default" 0.0;
+           rel1.relative: 0 1;
+           rel1.offset:   0 0;
+           rel2.relative: 1 2;
+        }
+        description { state: "hide-to0" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative: 0 -1;
+           rel1.offset:   0 0;
+           rel2.relative: 1 0;
+        }
+        description { state: "hide-to90" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative: -1 0;
+           rel1.offset:   0 0;
+           rel2.relative: 0 1;
+        }
+        description { state: "hide-to270" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative: 1 0;
+           rel1.offset:   0 0;
+           rel2.relative: 2 1;
+        }
+        description { state: "foreground" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative: 0 0;
+           rel1.offset:   0 0;
+           rel2.relative: 1 1;
+        }
+        description { state: "background" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative: 0.05 0.05;
+           rel1.offset:   0 0;
+           rel2.relative: 0.95 0.95;
+        }
+        description { state: "default-from0" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative: 0 -1;
+           rel1.offset:   0 0;
+           rel2.relative: 1 0;
+        }
+        description { state: "default-from90" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative: -1  0;
+           rel1.offset:   0 0;
+           rel2.relative:  0  1;
+        }
+        description { state: "default-from270" 0.0;
+           inherit: "default" 0.0;
+           rel1.relative: 1 0;
+           rel1.offset:   0 0;
+           rel2.relative: 2 1;
+        }
+     }
+     part { name: "fake.swallow.content";
+        type: SWALLOW;
+        clip_to: "clipper";
+        mouse_events: 0;
+        description { state: "default" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "visible" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "foreground" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "background" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "default-from0" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "default-from270" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+        description { state: "default-from90" 0.0;
+           rel1.to: "shower";
+           rel2.to: "shower";
+        }
+     }
+  }
+  programs {
+     program { name: "show_default";
+        signal: "fake,state,visible,on";
+        source: "fake";
+        action: STATE_SET "default" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "fake.swallow.content";
+        after: "show2";
+     }
+     program { name: "show_from0";
+        signal: "fake,state,visible,on,from0";
+        source: "fake";
+        action: STATE_SET "default-from0" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "fake.swallow.content";
+        after: "show2";
+     }
+     program { name: "show_from90";
+        signal: "fake,state,visible,on,from90";
+        source: "fake";
+        action: STATE_SET "default-from90" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "fake.swallow.content";
+        after: "show2";
+     }
+     program { name: "show_from270";
+        signal: "fake,state,visible,on,from270";
+        source: "fake";
+        action: STATE_SET "default-from270" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "fake.swallow.content";
+        after: "show2";
+     }
+     program { name: "show2";
+        action: STATE_SET "visible" 0.0;
+        transition: SIN_FAC 0.2 1.7;
+        target: "clipper";
+        target: "shower";
+        target: "fake.swallow.content";
+        after: "showdone";
+     }
+     program { name: "showdone";
+        action: SIGNAL_EMIT "fake,action,show,done" "fake";
+     }
+     program { name: "background_show";
+        signal: "e,state,background,visible,on";
+        source: "fake";
+        action: STATE_SET "foreground" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "fake.swallow.content";
+        after: "background_show2";
+     }
+     program { name: "background_show2";
+        action: STATE_SET "background" 0.0;
+        transition: SIN_FAC 0.2 1.7;
+        target: "clipper";
+        target: "shower";
+        target: "fake.swallow.content";
+        after: "background_show3";
+     }
+     program { name: "background_show3";
+        action: SIGNAL_EMIT "e,action,show,done" "e";
+     }
+     program { name: "hide-to180"; // slide down
+        signal: "fake,state,visible,off";
+        source: "fake";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "fake.swallow.content";
+        after: "hide-to180-2";
+     }
+     program { name: "hide-to180-2";
+        action: STATE_SET "hide-to180" 0.0;  // slide down
+        transition: SIN_FAC 0.2 1.7;
+        target: "clipper";
+        target: "shower";
+        after: "hidedone";
+     }
+     program { name: "hide-to0";
+        signal: "fake,state,visible,off,to0";
+        source: "fake";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "fake.swallow.content";
+        after: "hide-to0-2";
+     }
+     program { name: "hide-to0-2";
+        action: STATE_SET "hide-to0" 0.0;
+        transition: SIN_FAC 0.2 1.7;
+        target: "clipper";
+        target: "shower";
+        after: "hidedone";
+     }
+     program { name: "hide-to90";
+        signal: "fake,state,visible,off,to90";
+        source: "fake";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "fake.swallow.content";
+        after: "hide-to90-2";
+     }
+     program { name: "hide-to90-2";
+        action: STATE_SET "hide-to90" 0.0;
+        transition: SIN_FAC 0.2 1.7;
+        target: "clipper";
+        target: "shower";
+        after: "hidedone";
+     }
+     program { name: "hide-to270";
+        signal: "fake,state,visible,off,to270";
+        source: "fake";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "fake.swallow.content";
+        after: "hide-to270-2";
+     }
+     program { name: "hide-to270-2";
+        action: STATE_SET "hide-to270" 0.0;
+        transition: SIN_FAC 0.2 1.7;
+        target: "clipper";
+        target: "shower";
+        after: "hidedone";
+     }
+     program { name: "hidedone";
+        action: SIGNAL_EMIT "fake,action,hide,done" "fake";
+     }
+     program { name: "show1_noeffect";
+        signal: "fake,state,visible,on,noeffect";
+        source: "fake";
+        action: STATE_SET "default" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "fake.swallow.content";
+        after: "show2_noeffect";
+     }
+     program { name: "show2_noeffect";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        target: "shower";
+        target: "fake.swallow.content";
+        after: "showdone";
+     }
+     program { name: "hide1_noeffect";
+        signal: "fake,state,visible,off,noeffect";
+        source: "fake";
+        action: STATE_SET "default" 0.0;
+        target: "clipper";
+        target: "shower";
+        after: "hidedone";
+     }
+  }
+} /* end of group "slide" */

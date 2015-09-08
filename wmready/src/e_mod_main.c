@@ -1,6 +1,10 @@
 #include "e.h"
 #include "e_mod_main.h"
 
+#include "dlog.h"
+#undef LOG_TAG
+#define LOG_TAG "E17_EXTRA_MODULES"
+
 static int _e_wmready_init(void);
 static void _e_wmready_fin(void);
 static void _e_wmready_configure_system(void);
@@ -75,26 +79,28 @@ _e_wmready_configure_system(void)
 static Eina_Bool
 _e_wmready_cb_timer(void *data)
 {
-   Eina_Bool is_hib;
-
    // unblock to save config files
    e_config_save_block_set(0);
 
    // set power save mode to LOW
    e_powersave_mode_set(E_POWERSAVE_MODE_LOW);
 
-   is_hib = ecore_file_exists("/opt/etc/.hib_capturing");
-   if (is_hib == EINA_TRUE)
-     {
-        // set flag for hibernation
-        system("/usr/bin/vconftool set -t int \"memory/hibernation/xserver_ready\" 1 -i -f");
-     }
-
    return ECORE_CALLBACK_CANCEL;
 }
 
 static void _e_wmready_set_ready_flag(void)
 {
-   system("/bin/touch /tmp/.wm_ready");
+   FILE *_wmready_checker = NULL;
+
+   _wmready_checker = fopen("/tmp/.wm_ready", "wb");
+   if (_wmready_checker)
+     {
+        LOGD("[WM] WINDOW MANAGER is READY!!!");
+        fclose(_wmready_checker);
+     }
+   else
+     {
+        LOGD("[WM] WINDOW MANAGER is READY. BUT, failed to create .wm_ready file.");
+     }
 }
 

@@ -1,0 +1,7 @@
+#ifndef ROTATION_DEVICEMGR_H
+#define ROTATION_DEVICEMGR_H
+
+/*TODO*/
+
+#endif // ROTATION_DEVICEMGR_H
+

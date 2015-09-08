@@ -1,0 +1,106 @@
+/*-----------------------------------------------------*/
+/* group "no-effect"                                   */
+/*-----------------------------------------------------*/
+group { name: "no-effect";
+  #include "../common/comp-config.edc"
+  #include "../common/comp-script.edc"
+  #include "../common/comp-image.edc"
+  parts {
+     #include "../common/comp-part-clipper.edc"
+     #include "../common/comp-part-persp.edc"
+     #include "../common/comp-part-shower.edc"
+     #include "../common/comp-part-swallow.edc"
+     #include "../common/comp-part-logger.edc"
+  }
+  programs {
+     #include "../common/comp-prog-signal-emit.edc"
+     /*------------------------------------------------
+      * show/hide and fake show/hide
+      *-----------------------------------------------*/
+     program { name: "prog-clipper-show";
+        signal: "e,state,visible,on*";
+        source: "*";
+        action: STATE_SET "visible" 0.0;
+        target: "clipper";
+        after : "prog-emit-show-done";
+     }
+     program { name: "prog-clipper-hide";
+        signal: "e,state,visible,off*";
+        source: "*";
+        action: STATE_SET "default" 0.0;
+        target: "clipper";
+        after : "prog-emit-hide-done";
+     }
+     program { name: "prog-shower-show";
+        signal: "e,state,visible,on*";
+        source: "*";
+        action: STATE_SET "visible" 0.0;
+        target: "shower";
+     }
+     program { name: "prog-shower-hide";
+        signal: "e,state,visible,off*";
+        source: "*";
+        action: STATE_SET "invisible" 0.0;
+        target: "shower";
+     }
+     /*-----------------------------------------------*/
+     program { name: "prog-swallow-show";
+        signal: "e,state,visible,on*";
+        source: "e";
+        action: STATE_SET "default" 0.0;
+        target: "e.swallow.content";
+     }
+     program { name: "prog-swallow-hide";
+        signal: "e,state,visible,off*";
+        source: "e";
+        action: STATE_SET "default" 0.0;
+        target: "e.swallow.content";
+     }
+     /*------------------------------------------------
+      * raise above
+      *-----------------------------------------------*/
+     program { name: "raise_above1";
+        signal: "e,state,raise_above1,on";
+        source: "e";
+        after : "prog-emit-raise-above-1-done";
+     }
+     program { name: "raise_above2";
+        signal: "e,state,raise_above2,on";
+        source: "e";
+        after : "prog-emit-raise-above-2-done";
+     }
+     program { name: "raise_above3";
+        signal: "e,state,raise_above3,on";
+        source: "e";
+        after : "prog-emit-raise-above-3-done";
+     }
+     program { name: "raise_above_hide";
+        signal: "e,state,raise_above,off";
+        source: "e";
+        after : "prog-emit-raise-above-hide-done";
+     }
+     /*------------------------------------------------
+      * show/hide background
+      *-----------------------------------------------*/
+     program { name: "show_background1";
+        signal: "e,state,background,visible,on";
+        source: "e";
+        after : "prog-emit-show-done";
+     }
+     program { name: "hide_background1";
+        signal: "e,state,background,visible,off";
+        source: "e";
+        after : "prog-emit-hide-done";
+     }
+     /*------------------------------------------------
+      * rotation
+      *-----------------------------------------------*/
+     #include "../common/comp-prog-show-rotation-no-effect.edc"
+     #include "../common/comp-prog-hide-rotation-no-effect.edc"
+     #include "../common/comp-prog-rotation-on-no-effect.edc"
+     /*------------------------------------------------
+      * logger
+      *-----------------------------------------------*/
+     #include "../common/comp-prog-logger-on-off.edc"
+  }
+} /* end of group "no-effect" */

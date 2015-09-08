@@ -20,6 +20,7 @@
 #define E_PROP_ACCESSIBILITY_ZOOM_UI       "_E_ACC_ENABLE_ZOOM_UI_"
 #define E_PROP_ACCESSIBILITY_HIGH_CONTRAST       "_E_ACC_ENABLE_HIGH_CONTRAST_"
 #define E_PROP_XRROUTPUT       "X_RR_PROPERTY_REMOTE_CONTROLLER"
+#define E_PROP_ACCESSIBILITY_LCD_OFF	"LCD_OFF"
 
 typedef int XFixed;
 typedef double XDouble;
@@ -41,7 +42,9 @@ enum
 typedef enum
 {
    E_ACCESSIBILITY_ZOOM_UI = 1,
-   E_ACCESSIBILITY_HIGH_CONTRAST
+   E_ACCESSIBILITY_HIGH_CONTRAST,
+   E_ACCESSIBILITY_POWER_SAVING,
+   E_ACCESSIBILITY_DARK_SCREEN,
 } AccessibilityFeatureType;
 
 typedef enum
@@ -53,6 +56,25 @@ typedef enum
    ZOOM_IN_PROGRESS,
    ZOOM_PAN
 } ZoomUIStatusType;
+
+/**
+ *  HIGH_CONTRAST_NONE : ARGB => ARGB
+ *  HIGH_CONTRAST_NEGATIVE : ARGB =>  ARGB XOR 0x00FFFFF
+ *  HIGH_CONTRAST_EMERGENCY : ARGB => AYYY( Y = R * 0.2126 + G * 0.7152 + B * 0.0722 )
+ */
+typedef enum
+{
+   HIGH_CONTRAST_NONE = 0,
+   HIGH_CONTRAST_NEGATIVE,
+   HIGH_CONTRAST_EMERGENCY
+} HighContrastModeType;
+
+typedef enum
+{
+   POWER_SAVING_NONE = 0,
+   POWER_SAVING_CUSTOM,
+   POWER_SAVING_ULTRA
+} PowerSavingModeType;
 
 typedef struct
 {
@@ -83,20 +105,25 @@ typedef struct _accessibility_
    Ecore_X_Atom atomRROutput;
    Ecore_X_Atom atomInputTransform;
    Ecore_X_Atom atomFloat;
+   Ecore_X_Atom atomLCDOff;
 
    RROutput output;
    char rroutput_buf[256];
    int rroutput_buf_len;
 
    int isZoomUIEnabled;
-   int isHighContrastEnabled;
+   HighContrastModeType HighContrastMode;
+   PowerSavingModeType PowerSavingMode;
+   int DarkScreenMode;
    structZoomUI ZoomUI;
 
    Ecore_Event_Handler *window_property_handler;
    Ecore_Event_Handler *gesture_tap_handler;
    Ecore_Event_Handler *gesture_pan_handler;
    Ecore_Event_Handler *gesture_pinchrotation_handler;
+   Ecore_Event_Handler *gesture_flick_handler;
    Ecore_Event_Handler *gesture_hold_handler;
+   Ecore_Event_Handler *randr_output_property_handler;
 
    //XGesture extension related variable(s)
    Eina_Bool gesture_supported;
@@ -105,6 +132,12 @@ typedef struct _accessibility_
    int xi2_opcode;
    int touch_deviceid[MAX_MT_DEVICES];
    float tmatrix[9];
+
+   //edbus ralated variable(s)
+   E_DBus_Connection *conn;
+   E_DBus_Signal_Handler *edbus_dark_screen_handler;
+   Ecore_Timer *retry_timer;
+   int retry_count;
 } Accessibility;
 
 EAPI extern E_Module_Api e_modapi;
@@ -122,13 +155,18 @@ static int _e_accessibility_gesture_tap_handler(void *data, int ev_type, void *e
 static int _e_accessibility_gesture_pan_handler(void *data, int ev_type, void *ev);
 static int _e_accessibility_gesture_pinchrotation_handler(void *data, int ev_type, void *ev);
 static int _e_accessibility_gesture_hold_handler(void *data, int ev_type, void *ev);
+static int _e_accessibility_gesture_flick_handler(void *data, int ev_type, void *ev);
 static int _e_accessibility_cb_window_property(void *data, int ev_type, void *ev);
+static int _e_accessibility_cb_output_property (void *data, int type, void *ev);
 
+static void _e_accessibility_do_screencapture(void);
 static void _e_accessibility_enable_feature(AccessibilityFeatureType featureType);
 static void _e_accessibility_disable_feature(AccessibilityFeatureType featureType);
 
 static void _e_accessibility_ZoomUI_update(void);
 static void _e_accessibility_HighContrast_update(Eina_Bool enable);
+static void _e_accessibility_PowerSaving_update(Eina_Bool enable);
+static void _e_accessibility_DarkScreen_update(Eina_Bool enable);
 
 static int _e_accessibility_get_configuration(void);
 static int _e_accessibility_update_configuration(void);
@@ -146,5 +184,10 @@ static void _e_accessibility_init_input(void);
 
 static void _e_accessibility_update_input_transform_matrix(void);
 
+static void _e_accessibility_init_edbus(void);
+static Eina_Bool _e_accessibility_deinit_edbus(void);
+static int _e_accessibility_connect_edbus(void);
+static Eina_Bool _e_accessibility_retry_edbus_connection(void *data);
+static void _e_accessibility_dark_screen_handler(E_DBus_Object *obj, DBusMessage   *msg);
 #endif//__E_MOD_MAIN_H__
 

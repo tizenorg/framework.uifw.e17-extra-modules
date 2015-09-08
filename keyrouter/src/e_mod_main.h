@@ -10,14 +10,11 @@
 #include <X11/extensions/XTest.h>
 #include <X11/extensions/Xrandr.h>
 #include <utilX.h>
+#include <utilX_ext.h>
 
 //maximum number of hardkeys
+#define MIN_KEYCODE		8
 #define MAX_HARDKEYS	255
-
-#ifdef _F_ENABLE_MOUSE_POPUP
-#define POPUP_MENU_WIDTH	95
-#define POPUP_MENU_HEIGHT	120
-#endif//_F_ENABLE_MOUSE_POPUP
 
 //grab modes
 #define NONE_GRAB_MODE	0
@@ -30,11 +27,21 @@
 #define STR_ATOM_DEVICE_STATUS		"_DEVICE_STATUS"
 #define STR_ATOM_GRAB_STATUS			"_GRAB_STATUS"
 #define PROP_HWKEY_EMULATION			"_HWKEY_EMULATION"
+#define STR_ATOM_KEY_MENU_LONGPRESS	"KEY_MENU_LONGPRESS"
+#define STR_ATOM_KEY_BACK_LONGPRESS	"KEY_BACK_LONGPRESS"
+#define STR_ATOM_LONG_PRESS_ENABLE	"_LONG_PRESS_ENABLE_"
 
 //key composition for screen capture
 #define NUM_COMPOSITION_KEY	2
-#define KEY_COMPOSITION_TIME 300
+#ifdef _ENV_WEARABLE_
+#define NUM_KEY_COMPOSITION_ACTIONS	2
+#define KEY_COMPOSITION_TIME 1000
+#else //_ENV_WEARABLE_
+#define NUM_KEY_COMPOSITION_ACTIONS	1
+#define KEY_COMPOSITION_TIME 200
+#endif //_ENV_WEARABLE_
 #define STR_ATOM_XKEY_COMPOSITION	"_XKEY_COMPOSITION"
+#define STR_ATOM_KEYROUTER_NOTIWINDOW "_KEYROUTER_NOTIWINDOW"
 
 #define KEYROUTER_LOG_FILE		"/opt/var/log/keygrab_status.txt"
 
@@ -48,8 +55,9 @@ typedef struct
 {
 	int keycode;
 	char* keyname;
+	Eina_Bool longpress;
 	E_Binding_Key *bind;
-	Window lastwid;
+	keylist_node* pressed_win_ptr;
 	int lastmode;
 	keylist_node* or_excl_ptr;
 	keylist_node* excl_ptr;
@@ -78,7 +86,30 @@ typedef struct _key_event_info
 {
 	int ev_type;
 	int keycode;
+	int modkey_index;
 } key_event_info;
+
+#if 0
+typedef struct _key_comp_action
+{
+	int type;//property, clientmessage or exec
+	union
+	{
+		struct {
+			Ecore_X_Atom atom;
+			Ecore_X_Window win;
+		} p;
+		struct {
+			Ecore_X_Atom atom;
+			Ecore_X_Window win;
+		} c;
+		struct {
+			char *cmd;
+			char *args;
+		} e;
+	} u;
+} key_comp_action;
+#endif
 
 typedef struct _ModifierKey
 {
@@ -87,20 +118,13 @@ typedef struct _ModifierKey
 	int idx_mod;
 	int idx_comp;
 	Time time;
-	kinfo cancel_key;
+	Eina_Bool press_only;
+	//key_comp_action action;
 	kinfo keys[NUM_COMPOSITION_KEY];
 } ModifierKey;
+typedef struct ModifierKey *ModifierKeyPtr;
 
-#ifdef _F_ENABLE_MOUSE_POPUP
-const char *btns_label[] = {
-	"Volume Up",
-	"Volume Down",
-	"Go Home",
-	"Rotate"
-};
-#endif//_F_ENABLE_MOUSE_POPUP
-
-#define NUM_HWKEYS		18
+#define NUM_HWKEYS		37
 const char *HWKeys[] = {
 	KEY_VOLUMEUP,
 	KEY_VOLUMEDOWN,
@@ -119,12 +143,33 @@ const char *HWKeys[] = {
 	KEY_NEXTSONG,
 	KEY_PREVIOUSSONG,
 	KEY_REWIND,
-	KEY_FASTFORWARD
+	KEY_FASTFORWARD,
+	KEY_PLAYPAUSE,
+	KEY_MUTE,
+	KEY_HOMEPAGE,
+	KEY_WEBPAGE,
+	KEY_MAIL,
+	KEY_SCREENSAVER,
+	KEY_BRIGHTNESSUP,
+	KEY_BRIGHTNESSDOWN,
+	KEY_SOFTKBD,
+	KEY_QUICKPANEL,
+	KEY_TASKSWITCH,
+	KEY_APPS,
+	KEY_SEARCH,
+	KEY_VOICE,
+	KEY_LANGUAGE,
+	KEY_CONNECT,
+	KEY_GAMEPLAY,
+	KEY_VOICEWAKEUP_LPSD,
+	KEY_VOICEWAKEUP
 };
 
 typedef enum
 {
 	E_KEYROUTER_HWKEY= 1,
+	E_KEYROUTER_HOTPLUGGED,
+	E_KEYROUTER_KEYBOARD,
 	E_KEYROUTER_NONE
 } KeyrouterDeviceType;
 
@@ -137,37 +182,53 @@ struct _E_Keyrouter_Device_Info
 	KeyrouterDeviceType type;
 };
 
+typedef struct _hwkeymap_info
+{
+	EINA_INLIST;
+	const char* key_name;
+	KeySym key_sym;
+	int num_keycodes;
+	int *keycodes;
+} hwkeymap_info;
+
+typedef struct _longpress_info
+{
+	int keycode;
+	int longpress_timeout;
+	Ecore_X_Window longpress_window;
+	Time evtime;
+} longpress_info;
+
 //global variables will be the member variables of keyrouter structure
 typedef struct _tag_keyrouter
 {
 	Ecore_X_Display* disp;
 	Ecore_X_Window rootWin;
 	Ecore_X_Window input_window;
+	Ecore_X_Window noti_window;
 
 	//screen capture related variables
-	ModifierKey modkey;
+	kinfo cancel_key;
+	int modkey_set;
+	ModifierKey *modkey;
 
 	E_Zone *zone;
 
-#ifdef _F_ENABLE_MOUSE_POPUP
-	//mouse rbutton popup related variables
-	int toggle;
-	int rbutton_pressed_on_popup;
-	int popup_angle;
-	int popup_rootx;
-	int popup_rooty;
-
-	E_Popup     *popup;
-	Evas_Object *popup_btns[4];
-	Evas_Object* popup_bg;
-	unsigned int btn_keys[3];
-#endif//_F_ENABLE_MOUSE_POPUP
+	// for recognize long press or short press
+	int timer_flag;
+	int short_press_flag;
+	int first_press_flag;
+	int longpress_enabled;
 
 	//number of connected pointer and keyboard devices
 	int num_hwkey_devices;
 
 	Eina_List *device_list;
 	Eina_List *ignored_key_list;
+	Eina_List *waiting_key_list;
+	Eina_List *longpress_list;
+	longpress_info *pressinfo;
+	Eina_Inlist *hwkeymap_info_list;
 
 	//XInput extension 1 related variables
 	int DeviceKeyPress;
@@ -176,16 +237,12 @@ typedef struct _tag_keyrouter
 
 	//XInput extension 2 related variables
 	int xi2_opcode;
-	XIEventMask eventmask_all;
-	XIEventMask eventmask_part;
-	XIEventMask eventmask_0;
+	XIEventMask eventmask;
 
 	GrabbedKey HardKeys[MAX_HARDKEYS];
 	int isWindowStackChanged;
 	int resTopVisibleCheck;
 	int prev_sent_keycode;
-
-	struct FILE *fplog;
 
 	//atoms
 	Atom atomHWKeyEmulation;
@@ -194,11 +251,10 @@ typedef struct _tag_keyrouter
 	Atom atomDeviceStatus;
 	Atom atomGrabExclWin;
 	Atom atomGrabORExclWin;
-
-#ifdef _F_USE_XI_GRABDEVICE_
-	XEvent *gev;
-	XGenericEventCookie *gcookie;
-#endif
+	Atom atomMenuLongPress;
+	Atom atomBackLongPress;
+	Atom atomLongPressEnable;
+	Atom atomNotiWindow;
 
 	//event handlers
 	Ecore_Event_Handler *e_client_message_handler;
@@ -209,12 +265,9 @@ typedef struct _tag_keyrouter
 	Ecore_Event_Handler *e_window_destroy_handler;
 	Ecore_Event_Handler *e_window_configure_handler;
 	Ecore_Event_Handler *e_window_stack_handler;
-#ifdef _F_USE_XI_GRABDEVICE_
-	Ecore_Event_Handler *e_event_generic_handler;
-#else//_F_USE_XI_GRABDEVICE_
 	Ecore_Event_Handler *e_event_generic_handler;
 	Ecore_Event_Handler *e_event_any_handler;
-#endif//_F_USE_XI_GRABDEVICE_
+	Ecore_Timer 		*e_longpress_timer;
 } KeyRouter;
 
 //function prototypes
@@ -228,15 +281,14 @@ static void _e_keyrouter_fini();
 static void _e_keyrouter_structure_init();
 static void _e_keyrouter_bindings_init();
 static void _e_keyrouter_x_input_init(void);
+static void _e_keyrouter_grab_hwkeys(int devid);
+static void _e_keyrouter_set_key_repeat(int key, int auto_repeat_mode);
+static void _e_keyrouter_hwkey_event_handler(XEvent *ev);
+static void _e_keyrouter_cancel_key(XEvent *xev, int keycode);
 
 //event handlers
-#ifdef _F_USE_XI_GRABDEVICE_
-static int _e_keyrouter_cb_event_generic(void *data, int ev_type, void *ev);
-#else//_F_USE_XI_GRABDEVICE_
 static int _e_keyrouter_cb_event_generic(void *data, int ev_type, void *event);
 static int _e_keyrouter_cb_event_any(void *data, int ev_type, void *ev);
-#endif//_F_USE_XI_GRABDEVICE_
-//static int _e_keyrouter_cb_e_border_add(void *data, int ev_type, void *ev);
 static int _e_keyrouter_cb_window_property(void *data, int ev_type, void *ev);
 static int _e_keyrouter_cb_e_border_stack(void *data, int ev_type, void *ev);
 static int _e_keyrouter_cb_e_border_remove(void *data, int ev_type, void *ev);
@@ -246,47 +298,32 @@ static int _e_keyrouter_cb_window_configure(void *data, int ev_type, void *ev);
 static int _e_keyrouter_cb_window_stack(void *data, int ev_type, void *ev);
 static int _e_keyrouter_cb_client_message (void* data, int type, void* event);
 static void _e_keyrouter_xi2_device_hierarchy_handler(XIHierarchyEvent *event);
+static Eina_Bool _e_keyrouter_is_waiting_key_list_empty(XEvent *ev);
 static Eina_Bool _e_keyrouter_is_key_in_ignored_list(XEvent *ev);
 static void _e_keyrouter_device_add(int id, int type);
 static void _e_keyrouter_device_remove(int id, int type);
+static void _e_keyrouter_update_key_delivery_list(Ecore_X_Window win, int keycode, const int grab_mode, const int IsOnTop);
 
 //e17 bindings functions and action callbacks
 static int _e_keyrouter_modifiers(E_Binding_Modifier modifiers);
 static void _e_keyrouter_do_bound_key_action(XEvent *xev);
 
-#ifdef _F_USE_XI_GRABDEVICE_
-static void DeliverKeyEvents(XEvent *xev, XGenericEventCookie *cookie);
-#else//_F_USE_XI_GRABDEVICE_
-//static void DeliverDeviceKeyEvents(XEvent *xev);
-static void DeliverDeviceKeyEvents(XEvent *xev, int replace_key);
-#endif//_F_USE_XI_GRABDEVICE_
-
+static void DeliverDeviceKeyEvents(XEvent *xev);
 static void InitGrabKeyDevices();
-#ifdef _F_USE_XI_GRABDEVICE_
-static int GrabXIKeyDevices();
-static void UngrabXIKeyDevices();
-#else//_F_USE_XI_GRABDEVICE_
 static int GrabKeyDevices(Window win);
 static void UngrabKeyDevices();
-#endif//_F_USE_XI_GRABDEVICE_
 
 //functions related to mouse rbutton popup
 static E_Zone* _e_keyrouter_get_zone();
-#ifdef _F_ENABLE_MOUSE_POPUP
-static void InitHardKeyCodes();
-static void popup_update();
-static void popup_show();
-static void popup_destroy();
-#endif//_F_ENABLE_MOUSE_POPUP
 static void _e_keyrouter_do_hardkey_emulation(const char *label, unsigned int key_event, unsigned int on_release, int keycode, int cancel);
 
 //functions related to key composition for screen capture
 static void InitModKeys();
 static void ResetModKeyInfo();
-static int IsModKey(XEvent *ev);
-static int IsCompKey(XEvent *ev);
-static int IsKeyComposited(XEvent *ev);
-static void DoKeyCompositionAction();
+static int IsModKey(XEvent *ev, int index);
+static int IsCompKey(XEvent *ev, int index);
+static int IsKeyComposited(XEvent *ev, int index);
+static void DoKeyCompositionAction(int index, int press);
 
 static void UnSetExclusiveGrabInfoToRootWindow(int keycode, int grab_mode);
 static int AdjustTopPositionDeliveryList(Window win, int IsOnTop);
@@ -302,6 +339,10 @@ static void Device_Status(unsigned int val);
 static void PrintKeyDeliveryList();
 static void BuildKeyGrabList(Window root);
 static int GrabKeyDevice(Window win, const char* DeviceName, const int DeviceID);
+
+static int LongPressRecognize(int keycode);
+static Eina_Bool LongPressEventDeliver(void *data);
+static Eina_Bool ShortPressEventDeliver(longpress_info *kevinfo);
 
 #endif//__E_MOD_MAIN_H__
 

@@ -1,0 +1,9 @@
+msgid "IDS_COM_SK_OK"
+msgstr "ओके"
+
+msgid "IDS_SMR_POP_YOUR_DEVICE_IS_CONNECTED_VIA_HDMI_THE_SCREEN_MIRRORING_CONNECTION_HAS_ENDED"
+msgstr "आपका डिवाइस HDMI के माध्यम से कनेक्ट किया गया है। Screen Mirroring कनेक्शन समाप्त हो गया है।"
+
+msgid "IDS_SMR_POP_YOUR_DEVICE_IS_CONNECTED_VIA_HDMI_THE_SIDESYNC_CONNECTION_HAS_ENDED"
+msgstr "आपका डिवाइस HDMI के माध्यम से कनेक्ट किया गया है। साइडसिंक कनेक्शन समाप्त हो गया है।"
+

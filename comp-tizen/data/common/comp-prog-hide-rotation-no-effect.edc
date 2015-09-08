@@ -1,0 +1,28 @@
+program { name: "prog-hide-rot-0";
+   signal: "e,state,visible,off";
+   source: "e.rot.0";
+   action: STATE_SET "visible-rot-0" 0.0;
+   target: "e.swallow.content";
+   after : "prog-emit-hide-done";
+}
+program { name: "prog-hide-rot-90";
+   signal: "e,state,visible,off";
+   source: "e.rot.90";
+   action: STATE_SET "visible-rot-90" 0.0;
+   target: "e.swallow.content";
+   after : "prog-emit-hide-done";
+}
+program { name: "prog-hide-rot-180";
+   signal: "e,state,visible,off";
+   source: "e.rot.180";
+   action: STATE_SET "visible-rot-180" 0.0;
+   target: "e.swallow.content";
+   after : "prog-emit-hide-done";
+}
+program { name: "prog-hide-rot-270";
+   signal: "e,state,visible,off";
+   source: "e.rot.270";
+   action: STATE_SET "visible-rot-270" 0.0;
+   target: "e.swallow.content";
+   after : "prog-emit-hide-done";
+}
